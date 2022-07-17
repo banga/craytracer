@@ -18,8 +18,7 @@ mod shape;
 mod vector;
 
 const MAX_DEPTH: u32 = 3;
-const RADIANCE_SAMPLES: u32 = 1;
-const CAMERA_SAMPLES: u32 = 16;
+const RADIANCE_SAMPLES: u32 = 16;
 const GAMMA: f64 = 1.0 / 2.0;
 
 fn sky(ray: &Ray) -> Color {
@@ -118,17 +117,10 @@ fn main() {
 
     for y in 0..image.height {
         let sy = y as f64 * dy;
-        if y % 4 == 0 {
-            println!("{}", sy);
-        }
         for x in 0..image.width {
             let sx = x as f64 * dx;
-            let mut color = Vector::NULL;
-            for _ in 0..CAMERA_SAMPLES {
-                let ray = camera.make_ray(sx + dx * rng.gen::<f64>(), sy + dy * rng.gen::<f64>());
-                color += get_color(&ray, &shapes, MAX_DEPTH, RADIANCE_SAMPLES, &mut rng)
-            }
-            color /= CAMERA_SAMPLES as f64;
+            let ray = camera.make_ray(sx + dx * rng.gen::<f64>(), sy + dy * rng.gen::<f64>());
+            let color = get_color(&ray, &shapes, MAX_DEPTH, RADIANCE_SAMPLES, &mut rng);
             image.set_pixel(x, y, color.powf(GAMMA));
         }
     }
