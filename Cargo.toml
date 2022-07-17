@@ -7,7 +7,8 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+indicatif = "0.16.2"
+num_cpus = "1.13.1"
 rand = "0.8.5"
+threadpool = "1.8.1"
 
-[profile.release]
-debug = true

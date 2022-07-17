@@ -1,5 +1,10 @@
+use indicatif::{ProgressBar, ProgressStyle};
 use rand::prelude::*;
 use std::cmp::Ordering;
+use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::Duration;
+use threadpool::ThreadPool;
 
 use camera::{Camera, ProjectionCamera};
 use intersection::Intersection;
@@ -20,6 +25,8 @@ mod vector;
 const MAX_DEPTH: u32 = 3;
 const RADIANCE_SAMPLES: u32 = 16;
 const GAMMA: f64 = 1.0 / 2.0;
+const IMAGE_WIDTH: usize = 800;
+const IMAGE_HEIGHT: usize = 600;
 
 fn sky(ray: &Ray) -> Color {
     let t = (ray.direction().y() + 1.0) * 0.5;
@@ -94,36 +101,82 @@ fn get_color(
     }
 }
 
+fn trace_pixel(
+    sx: f64,
+    sy: f64,
+    camera: &dyn Camera,
+    shapes: &Vec<Sphere>,
+    rng: &mut ThreadRng,
+) -> Color {
+    let ray = camera.make_ray(sx, sy);
+    get_color(&ray, &shapes, MAX_DEPTH, RADIANCE_SAMPLES, rng).powf(GAMMA)
+}
+
 fn main() {
-    let mut rng = rand::thread_rng();
+    let num_pixels = (IMAGE_WIDTH * IMAGE_HEIGHT) as u64;
 
-    let mut image = Image::new(800, 600);
+    let image = Arc::new(Mutex::new(Image::new(IMAGE_WIDTH, IMAGE_HEIGHT)));
 
-    let camera = ProjectionCamera::new(
+    let camera = Arc::new(ProjectionCamera::new(
         Vector::new(0.0, 4.0, -10.0),
         Vector::new(0.0, 1.0, 10.0),
         Vector::Y,
         4.0,
-        image.width as f64 / image.height as f64,
-    );
-    let shapes = vec![
+        IMAGE_WIDTH as f64 / IMAGE_HEIGHT as f64,
+    ));
+    let shapes = Arc::new(vec![
         // Ground
         Sphere::new(Vector::new(0.0, 1.0, 10.0), 1.0),
         Sphere::new(Vector::new(0.0, -100.0, 10.0), 100.0),
-    ];
+    ]);
 
-    let dx = 1.0 / image.width as f64;
-    let dy = 1.0 / image.height as f64;
+    let dx = 1.0 / IMAGE_WIDTH as f64;
+    let dy = 1.0 / IMAGE_HEIGHT as f64;
 
-    for y in 0..image.height {
-        let sy = y as f64 * dy;
-        for x in 0..image.width {
-            let sx = x as f64 * dx;
-            let ray = camera.make_ray(sx + dx * rng.gen::<f64>(), sy + dy * rng.gen::<f64>());
-            let color = get_color(&ray, &shapes, MAX_DEPTH, RADIANCE_SAMPLES, &mut rng);
-            image.set_pixel(x, y, color.powf(GAMMA));
-        }
+    let pool = Arc::new(ThreadPool::new(num_cpus::get()));
+    let num_pixels_traced = Arc::new(Mutex::new(0));
+
+    // Rendering
+    for y in 0..IMAGE_HEIGHT {
+        let image = Arc::clone(&image);
+        let camera = Arc::clone(&camera);
+        let shapes = Arc::clone(&shapes);
+        let num_pixels_traced = Arc::clone(&num_pixels_traced);
+        pool.execute(move || {
+            let mut rng = rand::thread_rng();
+            let sy = y as f64 * dy;
+            for x in 0..IMAGE_WIDTH {
+                let sx = x as f64 * dx;
+                let color = trace_pixel(sx, sy, &*camera, &*shapes, &mut rng);
+                image.lock().unwrap().set_pixel(x, y, color);
+                *(num_pixels_traced.lock().unwrap()) += 1;
+            }
+        });
     }
 
-    image.write("out.ppm").expect("Error writing image")
+    // Progress bar
+    let pb = ProgressBar::new(num_pixels);
+    pb.set_style(
+        ProgressStyle::default_bar()
+            .template("{msg} {pos}/{len} pixels {wide_bar} [{elapsed} / {duration}]"),
+    );
+    loop {
+        if let Ok(num_pixels_traced) = num_pixels_traced.try_lock() {
+            pb.set_position(*num_pixels_traced);
+            if *num_pixels_traced == num_pixels {
+                pb.finish();
+                break;
+            }
+        }
+        pb.set_message(format!("{}/{} threads", pool.active_count(), pool.max_count()));
+        thread::sleep(Duration::from_millis(200));
+    }
+
+    pool.join();
+
+    image
+        .lock()
+        .unwrap()
+        .write("out.ppm")
+        .expect("Error writing image");
 }
