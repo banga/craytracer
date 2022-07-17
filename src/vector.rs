@@ -1,10 +1,10 @@
 use std::{
     fmt::Display,
     iter::FromIterator,
-    ops::{Add, Sub},
+    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign},
 };
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct Vector(f64, f64, f64);
 
 impl Vector {
@@ -12,28 +12,36 @@ impl Vector {
     pub const Y: Vector = Vector(0.0, 1.0, 0.0);
     pub const Z: Vector = Vector(0.0, 0.0, 1.0);
     pub const NULL: Vector = Vector(0.0, 0.0, 0.0);
-
     pub fn new(x: f64, y: f64, z: f64) -> Vector {
         Vector(x, y, z)
     }
     pub fn iter(&self) -> VectorIterator {
         VectorIterator::new(&self)
     }
+    pub fn x(&self) -> f64 {
+        self.0
+    }
+    pub fn y(&self) -> f64 {
+        self.1
+    }
+    pub fn z(&self) -> f64 {
+        self.2
+    }
     pub fn magnitude(&self) -> f64 {
         self.iter().map(|x| x * x).sum::<f64>().sqrt()
     }
     pub fn normalized(&self) -> Vector {
         let mag = self.magnitude();
-        Vector::new(self.0 / mag, self.1 / mag, self.2 / mag)
+        Vector::new(self.x() / mag, self.y() / mag, self.z() / mag)
     }
     pub fn dot(&self, other: &Vector) -> f64 {
         self.iter().zip(other.iter()).map(|(a, b)| a * b).sum()
     }
     pub fn cross(&self, other: &Vector) -> Vector {
         Vector(
-            self.1 * other.2 - self.2 * other.1,
-            self.2 * other.0 - self.0 * other.2,
-            self.0 * other.1 - self.1 * other.0,
+            self.y() * other.z() - self.z() * other.y(),
+            self.z() * other.x() - self.x() * other.z(),
+            self.x() * other.y() - self.y() * other.x(),
         )
     }
 }
@@ -63,6 +71,14 @@ impl Add for Vector {
     }
 }
 
+impl AddAssign for Vector {
+    fn add_assign(&mut self, rhs: Self) {
+        self.0 += rhs.0;
+        self.1 += rhs.1;
+        self.2 += rhs.2;
+    }
+}
+
 impl Sub for Vector {
     type Output = Vector;
 
@@ -71,9 +87,47 @@ impl Sub for Vector {
     }
 }
 
+impl SubAssign for Vector {
+    fn sub_assign(&mut self, rhs: Self) {
+        self.0 -= rhs.0;
+        self.1 -= rhs.1;
+        self.2 -= rhs.2;
+    }
+}
+
+impl Mul<f64> for Vector {
+    type Output = Vector;
+    fn mul(self, rhs: f64) -> Self::Output {
+        Vector(self.x() * rhs, self.y() * rhs, self.z() * rhs)
+    }
+}
+
+impl MulAssign<f64> for Vector {
+    fn mul_assign(&mut self, rhs: f64) {
+        self.0 *= rhs;
+        self.1 *= rhs;
+        self.2 *= rhs;
+    }
+}
+
+impl Div<f64> for Vector {
+    type Output = Vector;
+    fn div(self, rhs: f64) -> Self::Output {
+        Vector(self.x() / rhs, self.y() / rhs, self.z() / rhs)
+    }
+}
+
+impl DivAssign<f64> for Vector {
+    fn div_assign(&mut self, rhs: f64) {
+        self.0 /= rhs;
+        self.1 /= rhs;
+        self.2 /= rhs;
+    }
+}
+
 impl Display for Vector {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "({},{},{})", self.0, self.1, self.2)
+        write!(f, "({},{},{})", self.0, self.1, self.z())
     }
 }
 
@@ -98,6 +152,8 @@ impl Iterator for VectorIterator<'_> {
         }
     }
 }
+
+pub type Color = Vector;
 
 #[cfg(test)]
 mod tests {
@@ -155,9 +211,49 @@ mod tests {
     }
 
     #[test]
+    fn add_assign() {
+        let mut a = Vector::new(1.0, 2.0, 3.0);
+        a += Vector::new(1.0, 1.0, 1.0);
+        assert_eq!(a, Vector::new(2.0, 3.0, 4.0));
+    }
+
+    #[test]
     fn sub() {
         let a = Vector::new(1.0, 2.0, 3.0);
         let b = Vector::new(1.0, 1.0, 1.0);
         assert_eq!(a - b, Vector::new(0.0, 1.0, 2.0));
+    }
+
+    #[test]
+    fn sub_assign() {
+        let mut a = Vector::new(1.0, 2.0, 3.0);
+        a -= Vector::new(1.0, 1.0, 1.0);
+        assert_eq!(a, Vector::new(0.0, 1.0, 2.0));
+    }
+
+    #[test]
+    fn mul() {
+        let a = Vector::new(1.0, 2.0, 3.0);
+        assert_eq!(a * 2.0, Vector::new(2.0, 4.0, 6.0));
+    }
+
+    #[test]
+    fn mul_assign() {
+        let mut a = Vector::new(1.0, 2.0, 3.0);
+        a *= 2.0;
+        assert_eq!(a, Vector::new(2.0, 4.0, 6.0));
+    }
+
+    #[test]
+    fn div() {
+        let a = Vector::new(1.0, 2.0, 3.0);
+        assert_eq!(a / 2.0, Vector::new(0.5, 1.0, 1.5));
+    }
+
+    #[test]
+    fn div_assign() {
+        let mut a = Vector::new(1.0, 2.0, 3.0);
+        a *= 0.5;
+        assert_eq!(a, Vector::new(0.5, 1.0, 1.5));
     }
 }
