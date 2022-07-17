@@ -163,7 +163,11 @@ fn main() {
             }
         }
         pb.set_message(format!(
-            "{}/{} threads",
+            "{}x{}x{}x{} {}/{} threads",
+            IMAGE_WIDTH,
+            IMAGE_HEIGHT,
+            RADIANCE_SAMPLES,
+            MAX_DEPTH,
             pool.active_count(),
             pool.max_count()
         ));
