@@ -1,128 +1,69 @@
-use constants::EPSILON;
 use indicatif::{ProgressBar, ProgressStyle};
-use rand::prelude::*;
+use material::LambertianMaterial;
+use scene::Scene;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 use threadpool::ThreadPool;
+use trace::trace;
 
-use camera::{Camera, ProjectionCamera};
-use intersection::Intersection;
-use ray::Ray;
-use shape::{Shape, Sphere};
+use camera::ProjectionCamera;
+use shape::Sphere;
 
 use crate::image::Image;
-use crate::vector::{Color, Vector};
+use crate::vector::Vector;
 
 mod camera;
 mod constants;
 mod image;
 mod intersection;
+mod material;
 mod ray;
+mod sampling;
+mod scene;
 mod shape;
+mod trace;
 mod vector;
 
 const MAX_DEPTH: u32 = 3;
-const RADIANCE_SAMPLES: u32 = 16;
 const GAMMA: f64 = 1.0 / 2.0;
 const IMAGE_WIDTH: usize = 800;
 const IMAGE_HEIGHT: usize = 600;
-
-fn sky(ray: &Ray) -> Color {
-    let t = (ray.direction().y() + 1.0) * 0.5;
-    Color::new(1.0, 1.0, 1.0) * (1.0 - t) + Color::new(0.5, 0.7, 1.0) * t
-}
-
-fn sample_hemisphere(rng: &mut ThreadRng, normal: &Vector) -> Vector {
-    loop {
-        let v = Vector::new(
-            rng.gen::<f64>() * 2.0 - 1.0,
-            rng.gen::<f64>() * 2.0 - 1.0,
-            rng.gen::<f64>() * 2.0 - 1.0,
-        );
-        if v.dot(&v) <= 1.0 {
-            if v.dot(normal) > 0.0 {
-                return v;
-            } else {
-                return v * -1.0;
-            }
-        }
-    }
-}
-
-fn get_nearest_intersection(ray: &Ray, shapes: &Vec<Sphere>) -> Option<Intersection> {
-    let mut nearest_intersection: Option<Intersection> = None;
-    for shape in shapes {
-        if let Some(intersection) = shape.intersect(ray) {
-            if intersection.distance > EPSILON
-                && (nearest_intersection.is_none()
-                    || intersection.distance < nearest_intersection.as_ref().unwrap().distance)
-            {
-                nearest_intersection = Some(intersection);
-            }
-        }
-    }
-    nearest_intersection
-}
-
-fn get_color(
-    ray: &Ray,
-    shapes: &Vec<Sphere>,
-    depth: u32,
-    num_samples: u32,
-    rng: &mut ThreadRng,
-) -> Color {
-    if depth <= 0 {
-        return Color::NULL;
-    }
-    if let Some(intersection) = get_nearest_intersection(&ray, &shapes) {
-        let mut color = Color::NULL;
-        for _ in 0..num_samples {
-            let sample_direction = sample_hemisphere(rng, &intersection.normal);
-            let cos_theta = sample_direction.dot(&intersection.normal);
-            color += get_color(
-                &Ray::new(intersection.location, sample_direction),
-                shapes,
-                depth - 1,
-                num_samples,
-                rng,
-            ) * cos_theta;
-        }
-        // Multiplying by 0.5 to emulate 50% reflectance
-        (color / num_samples as f64) * 0.5
-    } else {
-        sky(&ray)
-    }
-}
-
-fn trace_pixel(
-    sx: f64,
-    sy: f64,
-    camera: &dyn Camera,
-    shapes: &Vec<Sphere>,
-    rng: &mut ThreadRng,
-) -> Color {
-    let ray = camera.make_ray(sx, sy);
-    get_color(&ray, &shapes, MAX_DEPTH, RADIANCE_SAMPLES, rng).powf(GAMMA)
-}
 
 fn main() {
     let num_pixels = (IMAGE_WIDTH * IMAGE_HEIGHT) as u64;
 
     let image = Arc::new(Mutex::new(Image::new(IMAGE_WIDTH, IMAGE_HEIGHT)));
 
-    let camera = Arc::new(ProjectionCamera::new(
-        Vector::new(0.0, 4.0, -10.0),
-        Vector::new(0.0, 1.0, 10.0),
-        Vector::Y,
-        4.0,
-        IMAGE_WIDTH as f64 / IMAGE_HEIGHT as f64,
-    ));
-    let shapes = Arc::new(vec![
-        // Ground
-        Sphere::new(Vector::new(0.0, 1.0, 10.0), 1.0),
-        Sphere::new(Vector::new(0.0, -100.0, 10.0), 100.0),
-    ]);
+    let scene = Arc::new(Scene {
+        background: Vector(1.0, 1.0, 1.0),
+        camera: Box::new(ProjectionCamera::new(
+            Vector(0.0, 4.0, -10.0),
+            Vector(0.0, 1.0, 10.0),
+            Vector::Y,
+            4.0,
+            IMAGE_WIDTH as f64 / IMAGE_HEIGHT as f64,
+        )),
+        shapes: vec![
+            // Ground
+            Box::new(Sphere {
+                origin: Vector(0.0, 1.0, 10.0),
+                radius: 1.0,
+                material: Box::new(LambertianMaterial {
+                    reflectance: Vector(1.0, 1.0, 1.0),
+                    num_samples: 32,
+                }),
+            }),
+            Box::new(Sphere {
+                origin: Vector(0.0, -100.0, 10.0),
+                radius: 100.0,
+                material: Box::new(LambertianMaterial {
+                    reflectance: Vector(1.0, 0.0, 0.0),
+                    num_samples: 32,
+                }),
+            }),
+        ],
+    });
 
     let dx = 1.0 / IMAGE_WIDTH as f64;
     let dy = 1.0 / IMAGE_HEIGHT as f64;
@@ -133,15 +74,14 @@ fn main() {
     // Rendering
     for y in 0..IMAGE_HEIGHT {
         let image = Arc::clone(&image);
-        let camera = Arc::clone(&camera);
-        let shapes = Arc::clone(&shapes);
+        let scene = Arc::clone(&scene);
         let num_pixels_traced = Arc::clone(&num_pixels_traced);
         pool.execute(move || {
-            let mut rng = rand::thread_rng();
             let sy = y as f64 * dy;
             for x in 0..IMAGE_WIDTH {
                 let sx = x as f64 * dx;
-                let color = trace_pixel(sx, sy, &*camera, &*shapes, &mut rng);
+                let ray = scene.camera.make_ray(sx, sy);
+                let color = trace(&ray, &scene, MAX_DEPTH).powf(GAMMA);
                 image.lock().unwrap().set_pixel(x, y, color);
                 *(num_pixels_traced.lock().unwrap()) += 1;
             }
@@ -163,10 +103,9 @@ fn main() {
             }
         }
         pb.set_message(format!(
-            "{}x{}x{}x{} {}/{} threads",
+            "{}x{}x{} {}/{} threads",
             IMAGE_WIDTH,
             IMAGE_HEIGHT,
-            RADIANCE_SAMPLES,
             MAX_DEPTH,
             pool.active_count(),
             pool.max_count()

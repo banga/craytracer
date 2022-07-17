@@ -1,6 +1,6 @@
 use crate::{ray::Ray, vector::Vector};
 
-pub trait Camera {
+pub trait Camera: Send + Sync {
     /**
     Converts screen space co-ordinates to a Ray in world space.
 

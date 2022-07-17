@@ -1,18 +1,14 @@
-use crate::{intersection::Intersection, ray::Ray, vector::Vector, constants::EPSILON};
+use crate::{intersection::Intersection, material::Material, ray::Ray, vector::Vector};
 
-pub trait Shape {
+pub trait Shape: Sync + Send {
     fn intersect(&self, ray: &Ray) -> Option<Intersection>;
+    fn material(&self) -> &Box<dyn Material>;
 }
 
 pub struct Sphere {
-    origin: Vector,
-    radius: f64,
-}
-
-impl Sphere {
-    pub fn new(origin: Vector, radius: f64) -> Sphere {
-        Sphere { origin, radius }
-    }
+    pub origin: Vector,
+    pub radius: f64,
+    pub material: Box<dyn Material>,
 }
 
 impl Shape for Sphere {
@@ -30,10 +26,16 @@ impl Shape for Sphere {
         let distance = (-b - discriminant.sqrt()) / (2.0 * a);
         let location = ray.at(distance);
         let normal = (location - self.origin) / self.radius;
+
         Some(Intersection {
             distance,
             location,
             normal,
+            shape: self,
         })
+    }
+
+    fn material(&self) -> &Box<dyn Material> {
+        &self.material
     }
 }
