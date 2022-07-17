@@ -1,4 +1,4 @@
-use crate::{intersection::Intersection, ray::Ray, vector::Vector};
+use crate::{intersection::Intersection, ray::Ray, vector::Vector, constants::EPSILON};
 
 pub trait Shape {
     fn intersect(&self, ray: &Ray) -> Option<Intersection>;
@@ -28,6 +28,10 @@ impl Shape for Sphere {
         }
 
         let distance = (-b - discriminant.sqrt()) / (2.0 * a);
+        if distance < EPSILON {
+            return None;
+        }
+        
         let location = ray.at(distance);
         let normal = (location - self.origin) / self.radius;
         Some(Intersection {

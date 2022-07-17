@@ -44,6 +44,9 @@ impl Vector {
             self.x() * other.y() - self.y() * other.x(),
         )
     }
+    pub fn powf(&self, p: f64) -> Vector {
+        Vector::new(self.x().powf(p), self.y().powf(p), self.z().powf(p))
+    }
 }
 
 impl FromIterator<f64> for Vector {

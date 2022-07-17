@@ -27,9 +27,9 @@ impl ProjectionCamera {
         focal_distance: f64,
         aspect_ratio: f64,
     ) -> ProjectionCamera {
-        let y = up.normalized();
         let z = (target - origin).normalized();
-        let x = y.cross(&z) * aspect_ratio;
+        let x = up.normalized().cross(&z) * aspect_ratio;
+        let y = z.cross(&x).normalized();
 
         ProjectionCamera {
             origin,
