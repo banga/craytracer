@@ -28,10 +28,6 @@ impl Shape for Sphere {
         }
 
         let distance = (-b - discriminant.sqrt()) / (2.0 * a);
-        if distance < EPSILON {
-            return None;
-        }
-        
         let location = ray.at(distance);
         let normal = (location - self.origin) / self.radius;
         Some(Intersection {

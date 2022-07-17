@@ -1,6 +1,6 @@
+use constants::EPSILON;
 use indicatif::{ProgressBar, ProgressStyle};
 use rand::prelude::*;
-use std::cmp::Ordering;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
@@ -50,24 +50,19 @@ fn sample_hemisphere(rng: &mut ThreadRng, normal: &Vector) -> Vector {
     }
 }
 
-const INFINITE: Intersection = Intersection {
-    distance: f64::INFINITY,
-    location: Vector::NULL,
-    normal: Vector::NULL,
-};
-
-fn intersect(ray: &Ray, shapes: &Vec<Sphere>) -> Option<Intersection> {
-    shapes
-        .iter()
-        .map(|shape| shape.intersect(ray))
-        .min_by(|a, b| {
-            if a.as_ref().unwrap_or(&INFINITE).distance < b.as_ref().unwrap_or(&INFINITE).distance {
-                Ordering::Less
-            } else {
-                Ordering::Greater
+fn get_nearest_intersection(ray: &Ray, shapes: &Vec<Sphere>) -> Option<Intersection> {
+    let mut nearest_intersection: Option<Intersection> = None;
+    for shape in shapes {
+        if let Some(intersection) = shape.intersect(ray) {
+            if intersection.distance > EPSILON
+                && (nearest_intersection.is_none()
+                    || intersection.distance < nearest_intersection.as_ref().unwrap().distance)
+            {
+                nearest_intersection = Some(intersection);
             }
-        })
-        .expect("Expected to find a single intersection result, did you provide any shapes?")
+        }
+    }
+    nearest_intersection
 }
 
 fn get_color(
@@ -77,11 +72,10 @@ fn get_color(
     num_samples: u32,
     rng: &mut ThreadRng,
 ) -> Color {
-    // TODO: Lights
     if depth <= 0 {
         return Color::NULL;
     }
-    if let Some(intersection) = intersect(&ray, &shapes) {
+    if let Some(intersection) = get_nearest_intersection(&ray, &shapes) {
         let mut color = Color::NULL;
         for _ in 0..num_samples {
             let sample_direction = sample_hemisphere(rng, &intersection.normal);
@@ -168,7 +162,11 @@ fn main() {
                 break;
             }
         }
-        pb.set_message(format!("{}/{} threads", pool.active_count(), pool.max_count()));
+        pb.set_message(format!(
+            "{}/{} threads",
+            pool.active_count(),
+            pool.max_count()
+        ));
         thread::sleep(Duration::from_millis(200));
     }
 
