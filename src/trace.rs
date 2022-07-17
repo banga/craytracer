@@ -23,7 +23,7 @@ pub fn trace(ray: &Ray, scene: &Scene, depth: u32) -> Color {
         intersection
             .shape
             .material()
-            .sample(scene, &intersection, depth - 1)
+            .sample(scene, &intersection, ray, depth - 1)
     } else {
         scene.background
     }

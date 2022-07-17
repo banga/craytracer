@@ -1,5 +1,5 @@
 use indicatif::{ProgressBar, ProgressStyle};
-use material::LambertianMaterial;
+use material::{LambertianMaterial, Mirror};
 use scene::Scene;
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -47,7 +47,7 @@ fn main() {
         shapes: vec![
             // Ground
             Box::new(Sphere {
-                origin: Vector(0.0, 1.0, 10.0),
+                origin: Vector(1.0, 1.0, 10.0),
                 radius: 1.0,
                 material: Box::new(LambertianMaterial {
                     reflectance: Vector(1.0, 1.0, 1.0),
@@ -55,10 +55,15 @@ fn main() {
                 }),
             }),
             Box::new(Sphere {
+                origin: Vector(-1.0, 0.75, 12.0),
+                radius: 0.75,
+                material: Box::new(Mirror {}),
+            }),
+            Box::new(Sphere {
                 origin: Vector(0.0, -100.0, 10.0),
                 radius: 100.0,
                 material: Box::new(LambertianMaterial {
-                    reflectance: Vector(1.0, 0.0, 0.0),
+                    reflectance: Vector(1.0, 1.0, 1.0),
                     num_samples: 32,
                 }),
             }),

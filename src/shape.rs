@@ -13,9 +13,9 @@ pub struct Sphere {
 
 impl Shape for Sphere {
     fn intersect(&self, ray: &Ray) -> Option<Intersection> {
-        let oc = *ray.origin() - self.origin;
-        let a = ray.direction().dot(ray.direction());
-        let b = 2.0 * oc.dot(ray.direction());
+        let oc = ray.origin - self.origin;
+        let a = ray.direction.dot(&ray.direction);
+        let b = 2.0 * oc.dot(&ray.direction);
         let c = oc.dot(&oc) - self.radius * self.radius;
         let discriminant = b * b - 4.0 * a * c;
 
