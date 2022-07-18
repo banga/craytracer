@@ -7,6 +7,7 @@ use std::{
 #[derive(Clone, Copy, Debug)]
 pub struct Vector(pub f64, pub f64, pub f64);
 
+#[allow(dead_code)]
 impl Vector {
     pub const X: Vector = Vector(1.0, 0.0, 0.0);
     pub const Y: Vector = Vector(0.0, 1.0, 0.0);

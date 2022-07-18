@@ -1,10 +1,5 @@
 use crate::{
-    intersection::Intersection,
-    ray::Ray,
-    sampling::sample_hemisphere,
-    trace,
-    vector::{Color, Vector},
-    Scene,
+    intersection::Intersection, ray::Ray, sampling::sample_hemisphere, trace, vector::Color, Scene,
 };
 
 pub trait Material: Sync + Send {

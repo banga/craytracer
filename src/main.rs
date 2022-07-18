@@ -10,13 +10,13 @@ use crate::image::Image;
 
 mod camera;
 mod constants;
-mod scenes;
 mod image;
 mod intersection;
 mod material;
 mod ray;
 mod sampling;
 mod scene;
+mod scenes;
 mod shape;
 mod trace;
 mod vector;
@@ -80,6 +80,6 @@ fn render(scene: Scene) {
 }
 
 fn main() {
-    let scene = scenes::logo();
+    let scene = scenes::random_spheres();
     render(scene);
 }

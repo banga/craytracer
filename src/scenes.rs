@@ -10,11 +10,12 @@ use crate::{
     vector::Vector,
 };
 
-const NUM_SAMPLES: usize = 8;
-const NUM_CAMERA_SAMPLES: usize = 64;
-const FILM_WIDTH: usize = 800;
-const FILM_HEIGHT: usize = 470;
+const NUM_SAMPLES: usize = 4;
+const NUM_CAMERA_SAMPLES: usize = 32;
+const FILM_WIDTH: usize = 600;
+const FILM_HEIGHT: usize = 600;
 
+#[allow(dead_code)]
 pub fn simple() -> Scene {
     let blue = Vector(0.0, 120.0, 255.0) / 255.0;
 
@@ -35,7 +36,7 @@ pub fn simple() -> Scene {
         )),
         shapes: vec![
             Box::new(Sphere {
-                origin: Vector(0.0, 1.0, 10.0),
+                origin: Vector(-1.0, 1.0, 10.0),
                 radius: 1.0,
                 material: Box::new(LambertianMaterial {
                     reflectance: blue,
@@ -43,15 +44,15 @@ pub fn simple() -> Scene {
                 }),
             }),
             Box::new(Sphere {
-                origin: Vector(2.0, 1.0, 11.0),
-                radius: 1.0,
+                origin: Vector(0.5, 0.5, 10.5),
+                radius: 0.5,
                 material: Box::new(Mirror {
                     reflectance: Vector(1.0, 1.0, 1.0),
                 }),
             }),
             Box::new(Sphere {
-                origin: Vector(0.0, -100.0, 10.0),
-                radius: 100.0,
+                origin: Vector(0.0, -1000.0, 10.0),
+                radius: 1000.0,
                 material: Box::new(LambertianMaterial {
                     reflectance: Vector(1.0, 1.0, 1.0),
                     num_samples: NUM_SAMPLES,
@@ -61,6 +62,7 @@ pub fn simple() -> Scene {
     }
 }
 
+#[allow(dead_code)]
 pub fn random_spheres() -> Scene {
     let mut rng = rand::thread_rng();
 
@@ -76,9 +78,9 @@ pub fn random_spheres() -> Scene {
         }),
     ];
 
-    for x in (-3..3).step_by(2) {
-        for z in (5..15).step_by(2) {
-            let radius = z as f64 / 30.0;
+    for x in -4..4 {
+        for z in 0..15 {
+            let radius = 0.25;
             let reflectance = Vector(rng.gen(), rng.gen(), rng.gen());
             let material: Box<dyn Material> = if rng.gen_bool(0.9) {
                 Box::new(LambertianMaterial {
@@ -103,10 +105,10 @@ pub fn random_spheres() -> Scene {
         film_height: FILM_HEIGHT,
         background: Vector(1.0, 1.0, 1.0),
         camera: Box::new(ProjectionCamera::new(
-            Vector(0.0, 1.0, -10.0),
-            Vector(0.0, 1.0, 10.0),
+            Vector(0.0, 4.0, -10.0),
+            Vector(0.0, 0.0, 10.0),
             Vector::Y,
-            4.0,
+            8.0,
             NUM_CAMERA_SAMPLES,
             FILM_WIDTH,
             FILM_HEIGHT,
@@ -115,6 +117,7 @@ pub fn random_spheres() -> Scene {
     }
 }
 
+#[allow(dead_code)]
 pub fn logo() -> Scene {
     let blue = Vector(66.0, 133.0, 244.0) / 255.0;
     let red = Vector(219.0, 68.0, 55.0) / 255.0;
