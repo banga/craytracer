@@ -1,8 +1,8 @@
-use crate::vector::{Vector};
+use crate::vector::Vector;
 
 pub struct Ray {
     pub origin: Vector,
-    pub direction: Vector
+    pub direction: Vector,
 }
 
 impl Ray {

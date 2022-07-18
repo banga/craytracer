@@ -42,7 +42,8 @@ impl Material for Mirror {
     fn sample(&self, scene: &Scene, intersection: &Intersection, ray: &Ray, depth: u32) -> Color {
         let ray = Ray::new(
             intersection.location,
-            intersection.normal - intersection.normal * (intersection.normal.dot(&ray.direction) * 2.0),
+            intersection.normal
+                - intersection.normal * (intersection.normal.dot(&ray.direction) * 2.0),
         );
         trace(&ray, scene, depth)
     }

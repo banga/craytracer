@@ -1,0 +1,219 @@
+use std::vec;
+
+use rand::Rng;
+
+use crate::{
+    camera::ProjectionCamera,
+    material::{LambertianMaterial, Material, Mirror},
+    scene::Scene,
+    shape::{Shape, Sphere},
+    vector::Vector,
+};
+
+const NUM_SAMPLES: usize = 4;
+const NUM_CAMERA_SAMPLES: usize = 32;
+const FILM_WIDTH: usize = 800;
+const FILM_HEIGHT: usize = 470;
+
+pub fn simple() -> Scene {
+    let blue = Vector(0.0, 120.0, 255.0) / 255.0;
+
+    Scene {
+        max_depth: 3,
+        gamma: 2.2,
+        film_width: FILM_WIDTH,
+        film_height: FILM_HEIGHT,
+        background: Vector(1.0, 1.0, 1.0),
+        camera: Box::new(ProjectionCamera::new(
+            Vector(0.0, 4.0, -10.0),
+            Vector(0.0, 1.0, 10.0),
+            Vector::Y,
+            4.0,
+            NUM_CAMERA_SAMPLES,
+            FILM_WIDTH,
+            FILM_HEIGHT,
+        )),
+        shapes: vec![
+            Box::new(Sphere {
+                origin: Vector(0.0, 1.0, 10.0),
+                radius: 1.0,
+                material: Box::new(LambertianMaterial {
+                    reflectance: blue,
+                    num_samples: NUM_SAMPLES,
+                }),
+            }),
+            Box::new(Sphere {
+                origin: Vector(2.0, 1.0, 11.0),
+                radius: 1.0,
+                material: Box::new(Mirror {}),
+            }),
+            Box::new(Sphere {
+                origin: Vector(0.0, -100.0, 10.0),
+                radius: 100.0,
+                material: Box::new(LambertianMaterial {
+                    reflectance: Vector(1.0, 1.0, 1.0),
+                    num_samples: NUM_SAMPLES,
+                }),
+            }),
+        ],
+    }
+}
+
+pub fn random_spheres() -> Scene {
+    let mut rng = rand::thread_rng();
+
+    let mut shapes: Vec<Box<dyn Shape>> = vec![
+        // Ground
+        Box::new(Sphere {
+            origin: Vector(0.0, -1000.0, 10.0),
+            radius: 1000.0,
+            material: Box::new(LambertianMaterial {
+                reflectance: Vector(1.0, 1.0, 1.0),
+                num_samples: NUM_SAMPLES,
+            }),
+        }),
+    ];
+
+    for x in (-3..3).step_by(2) {
+        for z in (5..15).step_by(2) {
+            let radius = z as f64 / 30.0;
+            let material: Box<dyn Material> = if rng.gen_bool(0.9) {
+                Box::new(LambertianMaterial {
+                    reflectance: Vector(rng.gen(), rng.gen(), rng.gen()),
+                    num_samples: NUM_SAMPLES,
+                })
+            } else {
+                Box::new(Mirror {})
+            };
+            shapes.push(Box::new(Sphere {
+                origin: Vector(x as f64, radius, z as f64) + Vector(rng.gen(), 0.0, rng.gen()),
+                radius,
+                material,
+            }));
+        }
+    }
+
+    Scene {
+        max_depth: 3,
+        gamma: 2.2,
+        film_width: FILM_WIDTH,
+        film_height: FILM_HEIGHT,
+        background: Vector(1.0, 1.0, 1.0),
+        camera: Box::new(ProjectionCamera::new(
+            Vector(0.0, 1.0, -10.0),
+            Vector(0.0, 1.0, 10.0),
+            Vector::Y,
+            4.0,
+            NUM_CAMERA_SAMPLES,
+            FILM_WIDTH,
+            FILM_HEIGHT,
+        )),
+        shapes,
+    }
+}
+
+pub fn google() -> Scene {
+    let blue = Vector(66.0, 133.0, 244.0) / 255.0;
+    let red = Vector(219.0, 68.0, 55.0) / 255.0;
+    let yellow = Vector(244.0, 180.0, 0.0) / 255.0;
+    let green = Vector(15.0, 157.0, 88.0) / 255.0;
+
+    Scene {
+        max_depth: 3,
+        gamma: 2.2,
+        film_width: FILM_WIDTH,
+        film_height: FILM_HEIGHT,
+        background: Vector(1.0, 1.0, 1.0),
+        camera: Box::new(ProjectionCamera::new(
+            Vector(0.0, 4.0, -10.0),
+            Vector(0.0, 1.0, 10.0),
+            Vector::Y,
+            4.0,
+            NUM_CAMERA_SAMPLES,
+            FILM_WIDTH,
+            FILM_HEIGHT,
+        )),
+        shapes: vec![
+            Box::new(Sphere {
+                origin: Vector(-3.0, 1.0, 10.0),
+                radius: 1.0,
+                material: Box::new(LambertianMaterial {
+                    reflectance: blue,
+                    num_samples: NUM_SAMPLES,
+                }),
+            }),
+            Box::new(Sphere {
+                origin: Vector(-1.5, 0.5, 10.0),
+                radius: 0.5,
+                material: Box::new(LambertianMaterial {
+                    reflectance: red,
+                    num_samples: NUM_SAMPLES,
+                }),
+            }),
+            Box::new(Sphere {
+                origin: Vector(-0.5, 0.5, 10.0),
+                radius: 0.5,
+                material: Box::new(LambertianMaterial {
+                    reflectance: yellow,
+                    num_samples: NUM_SAMPLES,
+                }),
+            }),
+            Box::new(Sphere {
+                origin: Vector(0.5, 0.5, 10.0),
+                radius: 0.5,
+                material: Box::new(LambertianMaterial {
+                    reflectance: blue,
+                    num_samples: NUM_SAMPLES,
+                }),
+            }),
+            Box::new(Sphere {
+                origin: Vector(0.5, -0.5, 10.0),
+                radius: 0.5,
+                material: Box::new(LambertianMaterial {
+                    reflectance: blue,
+                    num_samples: NUM_SAMPLES,
+                }),
+            }),
+            Box::new(Sphere {
+                origin: Vector(1.5, 0.5, 10.0),
+                radius: 0.5,
+                material: Box::new(LambertianMaterial {
+                    reflectance: green,
+                    num_samples: NUM_SAMPLES,
+                }),
+            }),
+            Box::new(Sphere {
+                origin: Vector(1.5, 0.5, 10.0),
+                radius: 0.5,
+                material: Box::new(LambertianMaterial {
+                    reflectance: green,
+                    num_samples: NUM_SAMPLES,
+                }),
+            }),
+            Box::new(Sphere {
+                origin: Vector(1.5, 1.5, 10.0),
+                radius: 0.5,
+                material: Box::new(LambertianMaterial {
+                    reflectance: green,
+                    num_samples: NUM_SAMPLES,
+                }),
+            }),
+            Box::new(Sphere {
+                origin: Vector(2.5, 0.5, 10.0),
+                radius: 0.5,
+                material: Box::new(LambertianMaterial {
+                    reflectance: red,
+                    num_samples: NUM_SAMPLES,
+                }),
+            }),
+            Box::new(Sphere {
+                origin: Vector(0.0, -101.0, 10.0),
+                radius: 100.0,
+                material: Box::new(LambertianMaterial {
+                    reflectance: Vector(1.0, 1.0, 1.0),
+                    num_samples: NUM_SAMPLES,
+                }),
+            }),
+        ],
+    }
+}
