@@ -10,8 +10,8 @@ use crate::{
     vector::Vector,
 };
 
-const NUM_SAMPLES: usize = 4;
-const NUM_CAMERA_SAMPLES: usize = 32;
+const NUM_SAMPLES: usize = 8;
+const NUM_CAMERA_SAMPLES: usize = 64;
 const FILM_WIDTH: usize = 800;
 const FILM_HEIGHT: usize = 470;
 
@@ -45,7 +45,9 @@ pub fn simple() -> Scene {
             Box::new(Sphere {
                 origin: Vector(2.0, 1.0, 11.0),
                 radius: 1.0,
-                material: Box::new(Mirror {}),
+                material: Box::new(Mirror {
+                    reflectance: Vector(1.0, 1.0, 1.0),
+                }),
             }),
             Box::new(Sphere {
                 origin: Vector(0.0, -100.0, 10.0),
@@ -77,13 +79,14 @@ pub fn random_spheres() -> Scene {
     for x in (-3..3).step_by(2) {
         for z in (5..15).step_by(2) {
             let radius = z as f64 / 30.0;
+            let reflectance = Vector(rng.gen(), rng.gen(), rng.gen());
             let material: Box<dyn Material> = if rng.gen_bool(0.9) {
                 Box::new(LambertianMaterial {
-                    reflectance: Vector(rng.gen(), rng.gen(), rng.gen()),
+                    reflectance,
                     num_samples: NUM_SAMPLES,
                 })
             } else {
-                Box::new(Mirror {})
+                Box::new(Mirror { reflectance })
             };
             shapes.push(Box::new(Sphere {
                 origin: Vector(x as f64, radius, z as f64) + Vector(rng.gen(), 0.0, rng.gen()),
@@ -112,7 +115,7 @@ pub fn random_spheres() -> Scene {
     }
 }
 
-pub fn google() -> Scene {
+pub fn logo() -> Scene {
     let blue = Vector(66.0, 133.0, 244.0) / 255.0;
     let red = Vector(219.0, 68.0, 55.0) / 255.0;
     let yellow = Vector(244.0, 180.0, 0.0) / 255.0;
@@ -125,7 +128,7 @@ pub fn google() -> Scene {
         film_height: FILM_HEIGHT,
         background: Vector(1.0, 1.0, 1.0),
         camera: Box::new(ProjectionCamera::new(
-            Vector(0.0, 4.0, -10.0),
+            Vector(-10.0, 2.0, -10.0),
             Vector(0.0, 1.0, 10.0),
             Vector::Y,
             4.0,
@@ -207,8 +210,8 @@ pub fn google() -> Scene {
                 }),
             }),
             Box::new(Sphere {
-                origin: Vector(0.0, -101.0, 10.0),
-                radius: 100.0,
+                origin: Vector(0.0, -1001.0, 10.0),
+                radius: 1000.0,
                 material: Box::new(LambertianMaterial {
                     reflectance: Vector(1.0, 1.0, 1.0),
                     num_samples: NUM_SAMPLES,

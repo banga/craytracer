@@ -28,15 +28,13 @@ impl Material for LambertianMaterial {
             irradiance += trace(&ray, scene, depth) * cos_theta;
         }
         irradiance /= self.num_samples as f64;
-        Vector(
-            irradiance.x() * self.reflectance.x(),
-            irradiance.y() * self.reflectance.y(),
-            irradiance.z() * self.reflectance.z(),
-        )
+        irradiance * self.reflectance
     }
 }
 
-pub struct Mirror {}
+pub struct Mirror {
+    pub reflectance: Color,
+}
 
 impl Material for Mirror {
     fn sample(&self, scene: &Scene, intersection: &Intersection, ray: &Ray, depth: u32) -> Color {
@@ -45,6 +43,6 @@ impl Material for Mirror {
             intersection.normal
                 - intersection.normal * (intersection.normal.dot(&ray.direction) * 2.0),
         );
-        trace(&ray, scene, depth)
+        trace(&ray, scene, depth) * self.reflectance
     }
 }

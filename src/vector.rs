@@ -125,6 +125,14 @@ impl DivAssign<f64> for Vector {
     }
 }
 
+// Allow pairwise multiplication of two vectors
+impl Mul<Vector> for Vector {
+    type Output = Vector;
+    fn mul(self, rhs: Vector) -> Self::Output {
+        Vector(self.x() * rhs.x(), self.y() * rhs.y(), self.z() * rhs.z())
+    }
+}
+
 impl Display for Vector {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "({},{},{})", self.0, self.1, self.z())

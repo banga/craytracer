@@ -80,6 +80,6 @@ fn render(scene: Scene) {
 }
 
 fn main() {
-    let scene = scenes::google();
+    let scene = scenes::logo();
     render(scene);
 }
