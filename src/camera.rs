@@ -1,8 +1,9 @@
 use crate::{
     ray::Ray,
+    sampling::sample_2d,
     scene::Scene,
     trace,
-    vector::{Color, Vector}, sampling::sample_2d,
+    vector::{Color, Vector},
 };
 
 pub trait Camera: Send + Sync {
@@ -17,7 +18,7 @@ pub struct ProjectionCamera {
     focal_distance: f64,
     num_samples: usize,
     delta_x: f64,
-    delta_y: f64
+    delta_y: f64,
 }
 
 impl ProjectionCamera {
@@ -56,9 +57,8 @@ impl Camera for ProjectionCamera {
         // of the film
         let sx = x as f64 * self.delta_x - 0.5;
         let sy = y as f64 * self.delta_y as f64 - 0.5;
-        let ray_origin =
-            self.origin 
-            + self.z * self.focal_distance 
+        let ray_origin = self.origin
+            + self.z * self.focal_distance
             + self.x * sx
             // Screen space y co-ordinates are flipped, hence the minus sign
             - self.y * sy;
