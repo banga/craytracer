@@ -7,6 +7,7 @@ use std::sync::Arc;
 use trace::trace;
 
 mod camera;
+mod color;
 mod constants;
 mod image;
 mod intersection;
@@ -40,8 +41,9 @@ fn render_with_rayon(scene: Scene) {
         .map(|pixel| {
             let x = pixel % width;
             let y = pixel / width;
-            let color = scene.camera.sample(x, y, &scene) * 256.0;
-            [color.0 as u8, color.1 as u8, color.2 as u8]
+            let color = scene.camera.sample(x, y, &scene);
+            let (r, g, b) = color.gamma_correct(scene.gamma).to_rgb();
+            [r, g, b]
         })
         .flatten_iter()
         .collect();

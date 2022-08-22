@@ -4,6 +4,7 @@ use rand::Rng;
 
 use crate::{
     camera::ProjectionCamera,
+    color::Color,
     material::{LambertianMaterial, Material, Mirror},
     scene::Scene,
     shape::{Shape, Sphere},
@@ -17,14 +18,14 @@ pub fn simple() -> Scene {
     let film_width: usize = 800;
     let film_height: usize = 470;
 
-    let blue = Vector(0.0, 120.0, 255.0) / 255.0;
+    let blue = Color::from_rgb(0, 120, 255);
 
     Scene {
         max_depth: 3,
         gamma: 2.2,
         film_width,
         film_height,
-        background: Vector(1.0, 1.0, 1.0),
+        background: Color::WHITE,
         camera: Box::new(ProjectionCamera::new(
             Vector(0.0, 4.0, -10.0),
             Vector(0.0, 1.0, 10.0),
@@ -47,14 +48,14 @@ pub fn simple() -> Scene {
                 origin: Vector(0.5, 0.5, 10.5),
                 radius: 0.5,
                 material: Box::new(Mirror {
-                    reflectance: Vector(1.0, 1.0, 1.0),
+                    reflectance: Color::WHITE,
                 }),
             }),
             Box::new(Sphere {
                 origin: Vector(0.0, -1000.0, 10.0),
                 radius: 1000.0,
                 material: Box::new(LambertianMaterial {
-                    reflectance: Vector(1.0, 1.0, 1.0),
+                    reflectance: Color::WHITE,
                     num_samples,
                 }),
             }),
@@ -77,7 +78,7 @@ pub fn random_spheres() -> Scene {
             origin: Vector(0.0, -1000.0, 10.0),
             radius: 1000.0,
             material: Box::new(LambertianMaterial {
-                reflectance: Vector(1.0, 1.0, 1.0),
+                reflectance: Color::WHITE,
                 num_samples,
             }),
         }),
@@ -86,7 +87,11 @@ pub fn random_spheres() -> Scene {
     for x in -2..2 {
         for z in 6..14 {
             let radius = 0.25;
-            let reflectance = Vector(rng.gen(), rng.gen(), rng.gen());
+            let reflectance = Color::from_rgb(
+                rng.gen_range(0..255),
+                rng.gen_range(0..255),
+                rng.gen_range(0..255),
+            );
             let material: Box<dyn Material> = if rng.gen_bool(0.9) {
                 Box::new(LambertianMaterial {
                     reflectance,
@@ -108,7 +113,7 @@ pub fn random_spheres() -> Scene {
         gamma: 2.2,
         film_width,
         film_height,
-        background: Vector(1.0, 1.0, 1.0),
+        background: Color::WHITE,
         camera: Box::new(ProjectionCamera::new(
             Vector(0.0, 4.0, -10.0),
             Vector(0.0, 0.0, 10.0),
@@ -129,17 +134,17 @@ pub fn logo() -> Scene {
     let film_width: usize = 800;
     let film_height: usize = 470;
 
-    let blue = Vector(66.0, 133.0, 244.0) / 255.0;
-    let red = Vector(219.0, 68.0, 55.0) / 255.0;
-    let yellow = Vector(244.0, 180.0, 0.0) / 255.0;
-    let green = Vector(15.0, 157.0, 88.0) / 255.0;
+    let blue = Color::from_rgb(66, 133, 244);
+    let red = Color::from_rgb(219, 68, 55);
+    let yellow = Color::from_rgb(244, 180, 0);
+    let green = Color::from_rgb(15, 157, 88);
 
     Scene {
         max_depth: 3,
         gamma: 2.2,
         film_width: film_width,
         film_height: film_height,
-        background: Vector(1.0, 1.0, 1.0),
+        background: Color::WHITE,
         camera: Box::new(ProjectionCamera::new(
             Vector(-10.0, 2.0, -10.0),
             Vector(0.0, 1.0, 10.0),
@@ -226,7 +231,7 @@ pub fn logo() -> Scene {
                 origin: Vector(0.0, -1001.0, 10.0),
                 radius: 1000.0,
                 material: Box::new(LambertianMaterial {
-                    reflectance: Vector(1.0, 1.0, 1.0),
+                    reflectance: Color::WHITE,
                     num_samples,
                 }),
             }),

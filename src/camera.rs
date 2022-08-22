@@ -1,10 +1,4 @@
-use crate::{
-    ray::Ray,
-    sampling::sample_2d,
-    scene::Scene,
-    trace,
-    vector::{Color, Vector},
-};
+use crate::{color::Color, ray::Ray, sampling::sample_2d, scene::Scene, trace, vector::Vector};
 
 pub trait Camera: Send + Sync {
     fn sample(&self, x: usize, y: usize, scene: &Scene) -> Color;
@@ -63,12 +57,12 @@ impl Camera for ProjectionCamera {
             // Screen space y co-ordinates are flipped, hence the minus sign
             - self.y * sy;
 
-        let mut color = Color::NULL;
+        let mut color = Color::BLACK;
         for _ in 0..self.num_samples {
             let (dx, dy) = sample_2d();
             let ray_origin = ray_origin + self.x * dx * self.delta_x + self.y * dy * self.delta_y;
             let ray = Ray::new(ray_origin, (ray_origin - self.origin).normalized());
-            color += trace(&ray, &scene, scene.max_depth).powf(1.0 / scene.gamma);
+            color += trace(&ray, &scene, scene.max_depth);
         }
         color / self.num_samples as f64
     }

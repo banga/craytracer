@@ -1,5 +1,5 @@
 use crate::{
-    intersection::Intersection, ray::Ray, sampling::sample_hemisphere, trace, vector::Color, Scene,
+    color::Color, intersection::Intersection, ray::Ray, sampling::sample_hemisphere, trace, Scene,
 };
 
 pub trait Material: Sync + Send {
@@ -13,7 +13,7 @@ pub struct LambertianMaterial {
 
 impl Material for LambertianMaterial {
     fn sample(&self, scene: &Scene, intersection: &Intersection, _: &Ray, depth: u32) -> Color {
-        let mut irradiance = Color::NULL;
+        let mut irradiance = Color::BLACK;
         for _ in 0..self.num_samples {
             let ray = Ray::new(
                 intersection.location,

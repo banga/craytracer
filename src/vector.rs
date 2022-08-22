@@ -162,8 +162,6 @@ impl Iterator for VectorIterator<'_> {
     }
 }
 
-pub type Color = Vector;
-
 #[cfg(test)]
 mod tests {
     use super::*;

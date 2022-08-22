@@ -1,4 +1,4 @@
-use crate::{constants::EPSILON, intersection::Intersection, ray::Ray, vector::Color, Scene};
+use crate::{constants::EPSILON, intersection::Intersection, ray::Ray, Scene, color::Color};
 
 fn get_nearest_intersection<'a>(ray: &Ray, scene: &'a Scene) -> Option<Intersection<'a>> {
     let mut nearest_intersection: Option<Intersection> = None;
@@ -17,7 +17,7 @@ fn get_nearest_intersection<'a>(ray: &Ray, scene: &'a Scene) -> Option<Intersect
 
 pub fn trace(ray: &Ray, scene: &Scene, depth: u32) -> Color {
     if depth <= 0 {
-        return Color::NULL;
+        return Color::BLACK;
     }
     if let Some(intersection) = get_nearest_intersection(&ray, &scene) {
         intersection
