@@ -1,4 +1,4 @@
-use crate::{intersection::Intersection, material::Material, ray::Ray, vector::Vector};
+use crate::{intersection::Intersection, material::Material, ray::Ray, vector::Vector, constants::EPSILON};
 
 pub trait Shape: Sync + Send {
     fn intersect(&self, ray: &Ray) -> Option<Intersection>;
@@ -23,7 +23,11 @@ impl Shape for Sphere {
             return None;
         }
 
-        let distance = (-b - discriminant.sqrt()) / (2.0 * a);
+        let mut distance = (-b - discriminant.sqrt()) / (2.0 * a);
+        if distance < EPSILON {
+            distance = (-b + discriminant.sqrt()) / (2.0 * a);
+        }
+
         let location = ray.at(distance);
         let normal = (location - self.origin) / self.radius;
 
@@ -37,5 +41,52 @@ impl Shape for Sphere {
 
     fn material(&self) -> &Box<dyn Material> {
         &self.material
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{color::Color, material::LambertianMaterial};
+    use super::*;
+
+    #[test]
+    fn intersect() {
+        // Unit sphere at origin
+        let sphere = Sphere {
+            origin: Vector(0.0, 0.0, 0.0),
+            radius: 1.0,
+            material: Box::new(LambertianMaterial {
+                reflectance: Color::WHITE,
+                num_samples: 1,
+            }),
+        };
+
+        // Shoot ray from outside sphere
+        let intersection = sphere
+            .intersect(&Ray {
+                origin: Vector(0.0, 0.0, -2.0),
+                direction: Vector::Z,
+            })
+            .unwrap();
+        assert_eq!(intersection.location, Vector(0.0, 0.0, -1.0));
+        assert_eq!(intersection.normal, Vector(0.0, 0.0, -1.0));
+
+        // Shoot ray from inside sphere
+        let intersection = sphere
+            .intersect(&Ray {
+                origin: Vector(0.0, 0.0, 0.0),
+                direction: Vector::Z,
+            })
+            .unwrap();
+        assert_eq!(intersection.location, Vector(0.0, 0.0, 1.0));
+        assert_eq!(intersection.normal, Vector(0.0, 0.0, 1.0));
+
+        // Shoot ray away from sphere
+        assert!(sphere
+            .intersect(&Ray {
+                origin: Vector(0.0, 0.0, -2.0),
+                direction: Vector::X,
+            })
+            .is_none());
     }
 }
