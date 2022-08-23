@@ -19,9 +19,9 @@ pub fn sample_hemisphere(normal: &Vector) -> Vector {
         );
         if v.dot(&v) <= 1.0 {
             if v.dot(normal) > 0.0 {
-                return v;
+                return v.normalized();
             } else {
-                return v * -1.0;
+                return v.normalized() * -1.0;
             }
         }
     }
