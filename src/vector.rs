@@ -4,6 +4,10 @@ use std::{
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign},
 };
 
+use approx::AbsDiffEq;
+
+use crate::constants::EPSILON;
+
 #[derive(Clone, Copy, Debug)]
 pub struct Vector(pub f64, pub f64, pub f64);
 
@@ -131,6 +135,20 @@ impl Mul<Vector> for Vector {
     type Output = Vector;
     fn mul(self, rhs: Vector) -> Self::Output {
         Vector(self.x() * rhs.x(), self.y() * rhs.y(), self.z() * rhs.z())
+    }
+}
+
+impl AbsDiffEq for Vector {
+    type Epsilon = f64;
+
+    fn default_epsilon() -> Self::Epsilon {
+        EPSILON
+    }
+
+    fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
+        self.0.abs_diff_eq(&other.0, epsilon)
+            && self.1.abs_diff_eq(&other.1, epsilon)
+            && self.2.abs_diff_eq(&other.2, epsilon)
     }
 }
 
