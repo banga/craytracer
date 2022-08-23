@@ -17,8 +17,6 @@ pub fn simple() -> Scene {
     let film_width: usize = 800;
     let film_height: usize = 480;
 
-    let blue = Color::from_rgb(0, 120, 255);
-
     Scene {
         max_depth: 4,
         gamma: 2.2,
@@ -36,19 +34,26 @@ pub fn simple() -> Scene {
         )),
         shapes: vec![
             Box::new(Sphere {
-                origin: Vector(0.0, 1.0, 12.5),
-                radius: 1.0,
+                origin: Vector(0.0, 1.5, 12.5),
+                radius: 1.5,
                 material: Box::new(LambertianMaterial {
-                    reflectance: blue,
+                    reflectance: Color::from_rgb(0, 180, 255),
                     num_samples: 1,
                 }),
             }),
             Box::new(Sphere {
-                origin: Vector(0.5, 0.5, 10.5),
-                radius: 0.5,
+                origin: Vector(-1.5, 1.0, 9.0),
+                radius: 1.0,
                 material: Box::new(Glass {
-                    eta: 1.3,
-                    transmittance: Color::WHITE,
+                    eta: 2.0,
+                    transmittance: Color::from_rgb(255, 230, 230),
+                }),
+            }),
+            Box::new(Sphere {
+                origin: Vector(1.5, 0.5, 10.5),
+                radius: 0.5,
+                material: Box::new(Mirror {
+                    reflectance: Color::from_rgb(255, 255, 255),
                 }),
             }),
             Box::new(Sphere {
