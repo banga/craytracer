@@ -52,6 +52,6 @@ fn render_with_rayon(scene: Scene) {
 }
 
 fn main() {
-    let scene = scenes::simple();
+    let scene = scenes::random_spheres();
     render_with_rayon(scene);
 }

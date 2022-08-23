@@ -5,7 +5,7 @@ use rand::Rng;
 use crate::{
     camera::ProjectionCamera,
     color::Color,
-    material::{LambertianMaterial, Material, Mirror, Glass},
+    material::{Glass, LambertianMaterial, Material, Mirror},
     scene::Scene,
     shape::{Shape, Sphere},
     vector::Vector,
@@ -48,6 +48,7 @@ pub fn simple() -> Scene {
                 radius: 0.5,
                 material: Box::new(Glass {
                     eta: 1.3,
+                    transmittance: Color::WHITE,
                 }),
             }),
             Box::new(Sphere {
@@ -64,10 +65,9 @@ pub fn simple() -> Scene {
 
 #[allow(dead_code)]
 pub fn random_spheres() -> Scene {
-    let num_samples: usize = 8;
-    let num_camera_samples: usize = 256;
-    let film_width: usize = 600;
-    let film_height: usize = 600;
+    let num_camera_samples: usize = 1024;
+    let film_width: usize = 1000;
+    let film_height: usize = 1000;
 
     let mut rng = rand::thread_rng();
 
@@ -77,27 +77,39 @@ pub fn random_spheres() -> Scene {
             origin: Vector(0.0, -1000.0, 10.0),
             radius: 1000.0,
             material: Box::new(LambertianMaterial {
-                reflectance: Color::WHITE,
-                num_samples,
+                reflectance: Color::from_rgb(250, 255, 250),
+                num_samples: 1,
             }),
         }),
     ];
 
     for x in -2..2 {
         for z in 6..14 {
-            let radius = 0.25;
-            let reflectance = Color::from_rgb(
-                rng.gen_range(0..255),
-                rng.gen_range(0..255),
-                rng.gen_range(0..255),
-            );
-            let material: Box<dyn Material> = if rng.gen_bool(0.9) {
-                Box::new(LambertianMaterial {
-                    reflectance,
-                    num_samples,
-                })
-            } else {
-                Box::new(Mirror { reflectance })
+            let radius = rng.gen_range(0.15..0.3);
+            let material: Box<dyn Material> = match rng.gen_range(0..10) {
+                0 => Box::new(Mirror {
+                    reflectance: Color::from_rgb(
+                        rng.gen_range(0..255),
+                        rng.gen_range(0..255),
+                        rng.gen_range(0..255),
+                    ),
+                }),
+                1..=3 => Box::new(Glass {
+                    transmittance: Color::from_rgb(
+                        rng.gen_range(128..255),
+                        rng.gen_range(128..255),
+                        rng.gen_range(128..255),
+                    ),
+                    eta: 1.0 + rng.gen::<f64>(),
+                }),
+                _ => Box::new(LambertianMaterial {
+                    reflectance: Color::from_rgb(
+                        rng.gen_range(0..255),
+                        rng.gen_range(0..255),
+                        rng.gen_range(0..255),
+                    ),
+                    num_samples: 1,
+                }),
             };
             shapes.push(Box::new(Sphere {
                 origin: Vector(x as f64, radius, z as f64) + Vector(rng.gen(), 0.0, rng.gen()),
@@ -108,7 +120,7 @@ pub fn random_spheres() -> Scene {
     }
 
     Scene {
-        max_depth: 3,
+        max_depth: 5,
         gamma: 2.2,
         film_width,
         film_height,

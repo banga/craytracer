@@ -82,6 +82,7 @@ impl Material for Mirror {
 
 pub struct Glass {
     pub eta: f64,
+    pub transmittance: Color,
 }
 
 impl Material for Glass {
@@ -93,7 +94,7 @@ impl Material for Glass {
             origin: intersection.location,
             direction,
         };
-        return trace(&ray, scene, depth);
+        trace(&ray, scene, depth) * self.transmittance
     }
 }
 
