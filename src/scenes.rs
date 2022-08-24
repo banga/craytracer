@@ -5,7 +5,7 @@ use rand::Rng;
 use crate::{
     camera::ProjectionCamera,
     color::Color,
-    material::{Glass, LambertianMaterial, Material, Mirror},
+    material::{Glass, LambertianMaterial, Material, Mirror, EmissiveMaterial},
     scene::Scene,
     shape::{Shape, Sphere},
     vector::Vector,
@@ -13,19 +13,22 @@ use crate::{
 
 #[allow(dead_code)]
 pub fn simple() -> Scene {
-    let num_camera_samples: usize = 1024;
-    let film_width: usize = 800;
-    let film_height: usize = 480;
+    // let num_camera_samples: usize = 256;
+    // let film_width: usize = 3072;
+    // let film_height: usize = 1920;
+    let num_camera_samples: usize = 64;
+    let film_width: usize = 600;
+    let film_height: usize = 400;
 
     Scene {
-        max_depth: 4,
+        max_depth: 8,
         gamma: 2.2,
         film_width,
         film_height,
-        background: Color::WHITE,
+        background: Color::from_rgb(0, 10, 60),
         camera: Box::new(ProjectionCamera::new(
-            Vector(0.0, 4.0, -10.0),
-            Vector(0.0, 1.0, 10.0),
+            Vector(0.0, 3.0, -10.0),
+            Vector(0.0, 1.5, 10.0),
             Vector::Y,
             4.0,
             num_camera_samples,
@@ -36,32 +39,24 @@ pub fn simple() -> Scene {
             Box::new(Sphere {
                 origin: Vector(0.0, 1.5, 12.5),
                 radius: 1.5,
-                material: Box::new(LambertianMaterial {
-                    reflectance: Color::from_rgb(0, 180, 255),
-                    num_samples: 1,
-                }),
-            }),
-            Box::new(Sphere {
-                origin: Vector(-1.5, 1.0, 9.0),
-                radius: 1.0,
                 material: Box::new(Glass {
-                    eta: 2.0,
-                    transmittance: Color::from_rgb(255, 230, 230),
+                    eta: 2.4,
+                    transmittance: Color::from_rgb(240, 250, 255),
                 }),
             }),
             Box::new(Sphere {
-                origin: Vector(1.5, 0.5, 10.5),
+                origin: Vector(-2.5, 4.0, 13.0),
                 radius: 0.5,
-                material: Box::new(Mirror {
-                    reflectance: Color::from_rgb(255, 255, 255),
+                material: Box::new(EmissiveMaterial {
+                    emittance: Color::from_rgb(255, 230, 120),
                 }),
             }),
             Box::new(Sphere {
-                origin: Vector(0.0, -1000.0, 10.0),
-                radius: 1000.0,
+                origin: Vector(0.0, -10000.0, 10.0),
+                radius: 10000.0,
                 material: Box::new(LambertianMaterial {
                     reflectance: Color::WHITE,
-                    num_samples: 1,
+                    num_samples: 8,
                 }),
             }),
         ],
@@ -70,9 +65,9 @@ pub fn simple() -> Scene {
 
 #[allow(dead_code)]
 pub fn random_spheres() -> Scene {
-    let num_camera_samples: usize = 1024;
-    let film_width: usize = 1000;
-    let film_height: usize = 1000;
+    let num_camera_samples: usize = 64;
+    let film_width: usize = 500;
+    let film_height: usize = 500;
 
     let mut rng = rand::thread_rng();
 

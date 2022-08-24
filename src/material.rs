@@ -1,9 +1,9 @@
-use approx::{assert_abs_diff_eq};
+use approx::assert_abs_diff_eq;
 use rand::Rng;
 
 use crate::{
-    color::Color, intersection::Intersection, ray::Ray, sampling::sample_hemisphere, trace,
-    vector::Vector, Scene, constants::EPSILON
+    color::Color, constants::EPSILON, intersection::Intersection, ray::Ray,
+    sampling::sample_hemisphere, trace, vector::Vector, Scene,
 };
 
 fn reflect(direction: &Vector, normal: &Vector) -> Vector {
@@ -42,6 +42,17 @@ pub trait Material: Sync + Send {
     fn sample(&self, scene: &Scene, intersection: &Intersection, ray: &Ray, depth: u32) -> Color;
 }
 
+// This is a hack to add "lights". TODO: Replace with proper lighting support
+pub struct EmissiveMaterial {
+    pub emittance: Color,
+}
+
+impl Material for EmissiveMaterial {
+    fn sample(&self, _scene: &Scene, _intersection: &Intersection, _: &Ray, _depth: u32) -> Color {
+        self.emittance
+    }
+}
+
 pub struct LambertianMaterial {
     pub reflectance: Color,
     pub num_samples: usize,
@@ -70,7 +81,7 @@ pub struct Mirror {
 impl Material for Mirror {
     fn sample(&self, scene: &Scene, intersection: &Intersection, ray: &Ray, depth: u32) -> Color {
         let direction = reflect(&ray.direction, &intersection.normal);
-        assert_abs_diff_eq!(direction.magnitude(), 1.0, epsilon=EPSILON);
+        assert_abs_diff_eq!(direction.magnitude(), 1.0, epsilon = EPSILON);
 
         let ray = Ray {
             origin: intersection.location,
@@ -88,8 +99,8 @@ pub struct Glass {
 impl Material for Glass {
     fn sample(&self, scene: &Scene, intersection: &Intersection, ray: &Ray, depth: u32) -> Color {
         let direction = refract(&ray.direction, &intersection.normal, 1.0, self.eta);
-        assert_abs_diff_eq!(direction.magnitude(), 1.0, epsilon=EPSILON);
-    
+        assert_abs_diff_eq!(direction.magnitude(), 1.0, epsilon = EPSILON);
+
         let ray = Ray {
             origin: intersection.location,
             direction,
@@ -114,7 +125,12 @@ mod tests {
     #[test]
     fn refract_test() {
         assert_abs_diff_eq!(
-            refract(&Vector(1.0, -1.0, 0.0).normalized(), &Vector(0.0, 1.0, 0.0), 1.0, 1.0),
+            refract(
+                &Vector(1.0, -1.0, 0.0).normalized(),
+                &Vector(0.0, 1.0, 0.0),
+                1.0,
+                1.0
+            ),
             Vector(1.0, -1.0, 0.0).normalized()
         );
     }
