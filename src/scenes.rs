@@ -1,11 +1,11 @@
 use std::vec;
 
-use rand::Rng;
+use rand::{Rng, SeedableRng};
 
 use crate::{
     camera::ProjectionCamera,
     color::Color,
-    material::{Glass, LambertianMaterial, Material, Mirror, EmissiveMaterial},
+    material::{EmissiveMaterial, Glass, LambertianMaterial, Material, Mirror},
     scene::Scene,
     shape::{Shape, Sphere},
     vector::Vector,
@@ -65,11 +65,15 @@ pub fn simple() -> Scene {
 
 #[allow(dead_code)]
 pub fn random_spheres() -> Scene {
-    let num_camera_samples: usize = 64;
-    let film_width: usize = 500;
-    let film_height: usize = 500;
+    // let num_camera_samples: usize = 16;
+    // let film_width: usize = 500;
+    // let film_height: usize = 500;
+    let num_camera_samples: usize = 1024;
+    let film_width: usize = 1000;
+    let film_height: usize = 1000;
 
-    let mut rng = rand::thread_rng();
+    let seed = [100; 32];
+    let mut rng = rand::rngs::StdRng::from_seed(seed);
 
     let mut shapes: Vec<Box<dyn Shape>> = vec![
         // Ground
@@ -102,6 +106,13 @@ pub fn random_spheres() -> Scene {
                     ),
                     eta: 1.0 + rng.gen::<f64>(),
                 }),
+                4 => Box::new(EmissiveMaterial {
+                    emittance: Color::from_rgb(
+                        rng.gen_range(0..255),
+                        rng.gen_range(0..255),
+                        rng.gen_range(0..255),
+                    ) * 10.0,
+                }),
                 _ => Box::new(LambertianMaterial {
                     reflectance: Color::from_rgb(
                         rng.gen_range(0..255),
@@ -112,7 +123,8 @@ pub fn random_spheres() -> Scene {
                 }),
             };
             shapes.push(Box::new(Sphere {
-                origin: Vector(x as f64, radius, z as f64) + Vector(rng.gen(), 0.0, rng.gen()),
+                origin: Vector(x as f64, radius, z as f64)
+                    + Vector(rng.gen_range(0.0..0.6), 0.0, rng.gen_range(0.0..0.3)),
                 radius,
                 material,
             }));
@@ -120,16 +132,16 @@ pub fn random_spheres() -> Scene {
     }
 
     Scene {
-        max_depth: 5,
+        max_depth: 8,
         gamma: 2.2,
         film_width,
         film_height,
-        background: Color::WHITE,
+        background: Color::from_rgb(80, 88, 90),
         camera: Box::new(ProjectionCamera::new(
-            Vector(0.0, 4.0, -10.0),
+            Vector(2.0, 2.0, 0.0),
             Vector(0.0, 0.0, 10.0),
             Vector::Y,
-            8.0,
+            5.0,
             num_camera_samples,
             film_width,
             film_height,
