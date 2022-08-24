@@ -45,6 +45,12 @@ impl Color {
     }
 }
 
+impl Into<(f32, f32, f32)> for Color {
+    fn into(self) -> (f32, f32, f32) {
+        (self.r as f32, self.g as f32, self.b as f32)
+    }
+}
+
 impl PartialEq for Color {
     fn eq(&self, other: &Self) -> bool {
         self.r == other.r && self.g == other.g && self.b == other.b

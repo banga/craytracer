@@ -67,7 +67,7 @@ impl Material for LambertianMaterial {
                 sample_hemisphere(&intersection.normal),
             );
             let cos_theta = ray.direction.dot(&intersection.normal);
-            irradiance += trace(&ray, scene, depth) * cos_theta;
+            irradiance += trace(&ray, scene, depth) * cos_theta as f64;
         }
         irradiance /= self.num_samples as f64;
         irradiance * self.reflectance

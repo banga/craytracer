@@ -1,4 +1,3 @@
-use image::write_ppm;
 use indicatif::{ParallelProgressIterator, ProgressBar, ProgressStyle};
 
 use minifb::{Key, Window, WindowOptions};
@@ -17,7 +16,6 @@ use trace::trace;
 mod camera;
 mod color;
 mod constants;
-mod image;
 mod intersection;
 mod material;
 mod ray;
@@ -29,7 +27,7 @@ mod trace;
 mod vector;
 
 #[allow(dead_code)]
-fn render_with_rayon(scene: Scene) {
+fn render_with_rayon(scene: Scene) -> Vec<f32> {
     let width = scene.film_width;
     let height = scene.film_height;
     let num_pixels = width * height;
@@ -44,29 +42,30 @@ fn render_with_rayon(scene: Scene) {
 
     // Rendering
     let scene = Arc::new(scene);
-    let pixels: Vec<u8> = (0..num_pixels)
+    let pixels: Vec<f32> = (0..num_pixels)
         .into_par_iter()
         .progress_with(pb)
         .map(|pixel| {
             let x = pixel % width;
             let y = pixel / width;
-            let color = scene.camera.sample(x, y, &scene);
-            let (r, g, b) = color.gamma_correct(scene.gamma).to_rgb();
+            let (r, g, b) = scene.camera.sample(x, y, &scene).into();
             [r, g, b]
         })
-        .flatten_iter()
+        .flatten()
         .collect();
 
-    write_ppm("out.ppm", pixels, width, height).expect("Failed to write out.ppm");
+    pixels
 }
 
 #[allow(dead_code)]
-fn render_with_preview(scene: Scene) {
+fn render_with_preview(scene: Scene) -> Vec<f32> {
     let width = scene.film_width;
     let height = scene.film_height;
     let tile_width = 64;
     let tile_height = 64;
 
+    // The window library expects a vec<u32> buffer
+    let pixels = vec![0f32; width * height * 3];
     let mut buffer = vec![0u32; width * height];
     let mut tiles = Vec::<(usize, usize)>::new();
     for ty in (0..height).step_by(tile_height as usize) {
@@ -86,12 +85,14 @@ fn render_with_preview(scene: Scene) {
         }
     }
 
+    // Render tiles in threads and preview them in a window
     let mut window = Window::new("craytracer", width, height, WindowOptions::default()).unwrap();
     window.update_with_buffer(&buffer, width, height).unwrap();
 
     let tiles = Arc::new(tiles);
     let tile_index = Arc::new(AtomicUsize::new(0));
     let tile_count = Arc::new(AtomicUsize::new(0));
+    let pixels = Arc::new(Mutex::new(pixels));
     let buffer = Arc::new(Mutex::new(buffer));
     let scene = Arc::new(scene);
 
@@ -102,6 +103,7 @@ fn render_with_preview(scene: Scene) {
             let tile_index = Arc::clone(&tile_index);
             let tile_count = Arc::clone(&tile_count);
             let tiles = Arc::clone(&tiles);
+            let pixels = Arc::clone(&pixels);
             let buffer = Arc::clone(&buffer);
             let scene = Arc::clone(&scene);
 
@@ -114,11 +116,23 @@ fn render_with_preview(scene: Scene) {
                 let (tx, ty) = tiles[tile_index];
                 for y in ty..(ty + tile_height).min(height) {
                     for x in tx..(tx + tile_width).min(width) {
+                        let offset = x + y * width;
                         let color = scene.camera.sample(x, y, &scene);
-                        let (r, g, b) = color.gamma_correct(scene.gamma).to_rgb();
 
-                        let mut buffer = buffer.lock().unwrap();
-                        buffer[x + y * width] = ((r as u32) << 16) | ((g as u32) << 8) | (b as u32);
+                        {
+                            let mut pixels = pixels.lock().unwrap();
+                            let (r, g, b) = color.into();
+                            pixels[3 * offset] = r;
+                            pixels[3 * offset + 1] = g;
+                            pixels[3 * offset + 2] = b;
+                        }
+
+                        {
+                            let (r, g, b) = color.gamma_correct(scene.gamma).to_rgb();
+                            let mut buffer = buffer.lock().unwrap();
+                            buffer[offset] =
+                                ((r as u32) << 16) | ((g as u32) << 8) | (b as u32);
+                        }
                     }
                 }
 
@@ -134,11 +148,19 @@ fn render_with_preview(scene: Scene) {
         thread::sleep(Duration::from_millis(16));
     }
 
-    // TODO: save buffer to file before exiting
+    let pixels = pixels.lock().unwrap().clone();
+    pixels
 }
 
 fn main() {
     let scene = scenes::random_spheres();
-    render_with_rayon(scene);
-    // render_with_preview(scene);
+
+    let width = scene.film_width as u32;
+    let height = scene.film_height as u32;
+
+    // let pixels = render_with_rayon(scene);
+    let pixels = render_with_preview(scene);
+
+    let image_buffer = image::Rgb32FImage::from_raw(width, height, pixels).unwrap();
+    image_buffer.save("out.exr").expect("Error saving file");
 }

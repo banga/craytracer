@@ -1,4 +1,6 @@
-use crate::{intersection::Intersection, material::Material, ray::Ray, vector::Vector, constants::EPSILON};
+use crate::{
+    constants::EPSILON, intersection::Intersection, material::Material, ray::Ray, vector::Vector,
+};
 
 pub trait Shape: Sync + Send {
     fn intersect(&self, ray: &Ray) -> Option<Intersection>;
@@ -46,8 +48,8 @@ impl Shape for Sphere {
 
 #[cfg(test)]
 mod tests {
-    use crate::{color::Color, material::LambertianMaterial};
     use super::*;
+    use crate::{color::Color, material::LambertianMaterial};
 
     #[test]
     fn intersect() {

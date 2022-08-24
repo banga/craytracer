@@ -69,8 +69,8 @@ pub fn random_spheres() -> Scene {
     // let film_width: usize = 500;
     // let film_height: usize = 500;
     let num_camera_samples: usize = 1024;
-    let film_width: usize = 1000;
-    let film_height: usize = 1000;
+    let film_width: usize = 800;
+    let film_height: usize = 800;
 
     let seed = [100; 32];
     let mut rng = rand::rngs::StdRng::from_seed(seed);

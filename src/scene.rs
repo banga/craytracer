@@ -1,4 +1,4 @@
-use crate::{camera::Camera, shape::Shape, color::Color};
+use crate::{camera::Camera, color::Color, shape::Shape};
 
 pub struct Scene {
     pub film_width: usize,
