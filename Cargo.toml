@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 approx = "0.5.1"
 indicatif = {version = "0.16.2", features = ["rayon"]}
+minifb = "0.23.0"
 num_cpus = "1.13.1"
 rand = "0.8.5"
 rayon = "1.5.3"
