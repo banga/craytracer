@@ -7,5 +7,4 @@ pub struct Scene {
     pub shapes: Vec<Box<dyn Shape>>,
     pub background: Color,
     pub max_depth: u32,
-    pub gamma: f64,
 }

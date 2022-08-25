@@ -1,7 +1,5 @@
-use indicatif::{ParallelProgressIterator, ProgressBar, ProgressStyle};
-
+use clap::{Parser, ValueEnum};
 use minifb::{Key, Window, WindowOptions};
-use rayon::prelude::*;
 use scene::Scene;
 use std::{
     sync::{
@@ -9,7 +7,7 @@ use std::{
         Arc, Mutex,
     },
     thread,
-    time::Duration,
+    time::{Duration, Instant},
 };
 use trace::trace;
 
@@ -26,38 +24,6 @@ mod shape;
 mod trace;
 mod vector;
 
-#[allow(dead_code)]
-fn render_with_rayon(scene: Scene) -> Vec<f32> {
-    let width = scene.film_width;
-    let height = scene.film_height;
-    let num_pixels = width * height;
-
-    // Progress bar
-    let pb = ProgressBar::new(num_pixels as u64);
-    pb.set_style(
-        ProgressStyle::default_bar()
-            .template("{msg} {pos}/{len} pixels {wide_bar} [{elapsed} / {duration}]"),
-    );
-    pb.set_message(format!("{}x{}x{}", width, height, scene.max_depth));
-
-    // Rendering
-    let scene = Arc::new(scene);
-    let pixels: Vec<f32> = (0..num_pixels)
-        .into_par_iter()
-        .progress_with(pb)
-        .map(|pixel| {
-            let x = pixel % width;
-            let y = pixel / width;
-            let (r, g, b) = scene.camera.sample(x, y, &scene).into();
-            [r, g, b]
-        })
-        .flatten()
-        .collect();
-
-    pixels
-}
-
-#[allow(dead_code)]
 fn render_with_preview(scene: Scene) -> Vec<f32> {
     let width = scene.film_width;
     let height = scene.film_height;
@@ -128,10 +94,10 @@ fn render_with_preview(scene: Scene) -> Vec<f32> {
                         }
 
                         {
-                            let (r, g, b) = color.gamma_correct(scene.gamma).to_rgb();
+                            // Apply gamma correction for the preview
+                            let (r, g, b) = color.gamma_correct(2.2).to_rgb();
                             let mut buffer = buffer.lock().unwrap();
-                            buffer[offset] =
-                                ((r as u32) << 16) | ((g as u32) << 8) | (b as u32);
+                            buffer[offset] = ((r as u32) << 16) | ((g as u32) << 8) | (b as u32);
                         }
                     }
                 }
@@ -152,15 +118,46 @@ fn render_with_preview(scene: Scene) -> Vec<f32> {
     pixels
 }
 
-fn main() {
-    let scene = scenes::random_spheres();
+#[derive(Parser)]
+struct Cli {
+    #[clap(short, long)]
+    preview: bool,
 
+    #[clap(arg_enum, value_parser)]
+    scene: SceneName,
+
+    #[clap(short, long, default_value_t = 4)]
+    samples: usize,
+
+    #[clap(short, long, default_value_t = String::from("out.exr"))]
+    output: String,
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+enum SceneName {
+    Simple,
+    RandomSpheres,
+    Logo,
+}
+
+fn main() {
+    let args = Cli::parse();
+
+    let scene = match args.scene {
+        SceneName::Simple => scenes::simple(args.samples),
+        SceneName::RandomSpheres => scenes::random_spheres(args.samples),
+        SceneName::Logo => scenes::logo(args.samples),
+    };
+
+    let start = Instant::now();
     let width = scene.film_width as u32;
     let height = scene.film_height as u32;
-
-    // let pixels = render_with_rayon(scene);
     let pixels = render_with_preview(scene);
+    println!("Rendering finished in {:?}", start.elapsed());
 
     let image_buffer = image::Rgb32FImage::from_raw(width, height, pixels).unwrap();
-    image_buffer.save("out.exr").expect("Error saving file");
+    image_buffer.save(&args.output).expect("Error saving file");
+
+    println!("Output written to {}", &args.output);
+
 }

@@ -12,17 +12,12 @@ use crate::{
 };
 
 #[allow(dead_code)]
-pub fn simple() -> Scene {
-    // let num_camera_samples: usize = 256;
-    // let film_width: usize = 3072;
-    // let film_height: usize = 1920;
-    let num_camera_samples: usize = 64;
+pub fn simple(num_samples: usize) -> Scene {
     let film_width: usize = 600;
     let film_height: usize = 400;
 
     Scene {
         max_depth: 8,
-        gamma: 2.2,
         film_width,
         film_height,
         background: Color::from_rgb(0, 10, 60),
@@ -31,7 +26,7 @@ pub fn simple() -> Scene {
             Vector(0.0, 1.5, 10.0),
             Vector::Y,
             4.0,
-            num_camera_samples,
+            num_samples,
             film_width,
             film_height,
         )),
@@ -64,15 +59,11 @@ pub fn simple() -> Scene {
 }
 
 #[allow(dead_code)]
-pub fn random_spheres() -> Scene {
-    // let num_camera_samples: usize = 16;
-    // let film_width: usize = 500;
-    // let film_height: usize = 500;
-    let num_camera_samples: usize = 1024;
-    let film_width: usize = 800;
-    let film_height: usize = 800;
+pub fn random_spheres(num_samples: usize) -> Scene {
+    let film_width: usize = 600;
+    let film_height: usize = 400;
 
-    let seed = [100; 32];
+    let seed = [19; 32];
     let mut rng = rand::rngs::StdRng::from_seed(seed);
 
     let mut shapes: Vec<Box<dyn Shape>> = vec![
@@ -133,7 +124,6 @@ pub fn random_spheres() -> Scene {
 
     Scene {
         max_depth: 8,
-        gamma: 2.2,
         film_width,
         film_height,
         background: Color::from_rgb(80, 88, 90),
@@ -142,7 +132,7 @@ pub fn random_spheres() -> Scene {
             Vector(0.0, 0.0, 10.0),
             Vector::Y,
             5.0,
-            num_camera_samples,
+            num_samples,
             film_width,
             film_height,
         )),
@@ -151,9 +141,7 @@ pub fn random_spheres() -> Scene {
 }
 
 #[allow(dead_code)]
-pub fn logo() -> Scene {
-    let num_samples: usize = 4;
-    let num_camera_samples: usize = 256;
+pub fn logo(num_samples: usize) -> Scene {
     let film_width: usize = 800;
     let film_height: usize = 470;
 
@@ -164,16 +152,15 @@ pub fn logo() -> Scene {
 
     Scene {
         max_depth: 3,
-        gamma: 2.2,
-        film_width: film_width,
-        film_height: film_height,
+        film_width,
+        film_height,
         background: Color::WHITE,
         camera: Box::new(ProjectionCamera::new(
             Vector(-10.0, 2.0, -10.0),
             Vector(0.0, 1.0, 10.0),
             Vector::Y,
             4.0,
-            num_camera_samples,
+            num_samples,
             film_width,
             film_height,
         )),
@@ -183,7 +170,7 @@ pub fn logo() -> Scene {
                 radius: 1.0,
                 material: Box::new(LambertianMaterial {
                     reflectance: blue,
-                    num_samples,
+                    num_samples: 1,
                 }),
             }),
             Box::new(Sphere {
@@ -191,7 +178,7 @@ pub fn logo() -> Scene {
                 radius: 0.5,
                 material: Box::new(LambertianMaterial {
                     reflectance: red,
-                    num_samples,
+                    num_samples: 1,
                 }),
             }),
             Box::new(Sphere {
@@ -199,7 +186,7 @@ pub fn logo() -> Scene {
                 radius: 0.5,
                 material: Box::new(LambertianMaterial {
                     reflectance: yellow,
-                    num_samples,
+                    num_samples: 1,
                 }),
             }),
             Box::new(Sphere {
@@ -207,7 +194,7 @@ pub fn logo() -> Scene {
                 radius: 0.5,
                 material: Box::new(LambertianMaterial {
                     reflectance: blue,
-                    num_samples,
+                    num_samples: 1,
                 }),
             }),
             Box::new(Sphere {
@@ -215,7 +202,7 @@ pub fn logo() -> Scene {
                 radius: 0.5,
                 material: Box::new(LambertianMaterial {
                     reflectance: blue,
-                    num_samples,
+                    num_samples: 1,
                 }),
             }),
             Box::new(Sphere {
@@ -223,7 +210,7 @@ pub fn logo() -> Scene {
                 radius: 0.5,
                 material: Box::new(LambertianMaterial {
                     reflectance: green,
-                    num_samples,
+                    num_samples: 1,
                 }),
             }),
             Box::new(Sphere {
@@ -231,7 +218,7 @@ pub fn logo() -> Scene {
                 radius: 0.5,
                 material: Box::new(LambertianMaterial {
                     reflectance: green,
-                    num_samples,
+                    num_samples: 1,
                 }),
             }),
             Box::new(Sphere {
@@ -239,7 +226,7 @@ pub fn logo() -> Scene {
                 radius: 0.5,
                 material: Box::new(LambertianMaterial {
                     reflectance: green,
-                    num_samples,
+                    num_samples: 1,
                 }),
             }),
             Box::new(Sphere {
@@ -247,7 +234,7 @@ pub fn logo() -> Scene {
                 radius: 0.5,
                 material: Box::new(LambertianMaterial {
                     reflectance: red,
-                    num_samples,
+                    num_samples: 1,
                 }),
             }),
             Box::new(Sphere {
@@ -255,7 +242,7 @@ pub fn logo() -> Scene {
                 radius: 1000.0,
                 material: Box::new(LambertianMaterial {
                     reflectance: Color::WHITE,
-                    num_samples,
+                    num_samples: 1,
                 }),
             }),
         ],
