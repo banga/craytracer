@@ -64,7 +64,8 @@ pub struct LambertianMaterial {
 impl Material for LambertianMaterial {
     fn sample(&self, _wo: &Vector, normal: &Vector) -> (Vector, Color, Color) {
         let wi = sample_hemisphere(normal);
-        (wi, self.reflectance, Color::BLACK)
+        let cos_theta = wi.dot(normal);
+        (wi, self.reflectance * cos_theta, Color::BLACK)
     }
 }
 
