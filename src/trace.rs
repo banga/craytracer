@@ -18,16 +18,25 @@ fn get_nearest_intersection<'a>(ray: &Ray, scene: &'a Scene) -> Option<Intersect
     nearest_intersection
 }
 
+#[allow(non_snake_case)]
 pub fn trace(ray: &Ray, scene: &Scene, depth: u32) -> Color {
-    if depth <= 0 {
-        return Color::BLACK;
-    }
+    let depth = depth + 1;
+
     if let Some(intersection) = get_nearest_intersection(&ray, &scene) {
-        intersection
-            .shape
-            .material()
-            .sample(scene, &intersection, ray, depth - 1)
+        let material = intersection.shape.material();
+
+        let wo = ray.direction;
+        let (wi, f, Le) = material.sample(&wo, &intersection.normal);
+
+        let ray = Ray::new(intersection.location, wi);
+        let Li = if depth <= scene.max_depth && !f.is_black() {
+            trace(&ray, scene, depth - 1)
+        } else {
+            Color::BLACK
+        };
+
+        Le + Li * f
     } else {
-        scene.background
+        Color::BLACK
     }
 }

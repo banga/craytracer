@@ -1,10 +1,7 @@
 use approx::assert_abs_diff_eq;
 use rand::Rng;
 
-use crate::{
-    color::Color, constants::EPSILON, intersection::Intersection, ray::Ray,
-    sampling::sample_hemisphere, trace, vector::Vector, Scene,
-};
+use crate::{color::Color, constants::EPSILON, sampling::sample_hemisphere, vector::Vector};
 
 fn reflect(direction: &Vector, normal: &Vector) -> Vector {
     *direction - *normal * (normal.dot(direction) * 2.0)
@@ -39,38 +36,35 @@ fn refract(direction: &Vector, normal: &Vector, eta_i: f64, eta_t: f64) -> Vecto
 }
 
 pub trait Material: Sync + Send {
-    fn sample(&self, scene: &Scene, intersection: &Intersection, ray: &Ray, depth: u32) -> Color;
+    fn sample(
+        &self,
+        wo: &Vector,
+        normal: &Vector,
+    ) -> (
+        /* wi */ Vector,
+        /* f */ Color,
+        /* Le */ Color,
+    );
 }
 
-// This is a hack to add "lights". TODO: Replace with proper lighting support
 pub struct EmissiveMaterial {
     pub emittance: Color,
 }
 
 impl Material for EmissiveMaterial {
-    fn sample(&self, _scene: &Scene, _intersection: &Intersection, _: &Ray, _depth: u32) -> Color {
-        self.emittance
+    fn sample(&self, wo: &Vector, _normal: &Vector) -> (Vector, Color, Color) {
+        (*wo, Color::BLACK, self.emittance)
     }
 }
 
 pub struct LambertianMaterial {
     pub reflectance: Color,
-    pub num_samples: usize,
 }
 
 impl Material for LambertianMaterial {
-    fn sample(&self, scene: &Scene, intersection: &Intersection, _: &Ray, depth: u32) -> Color {
-        let mut irradiance = Color::BLACK;
-        for _ in 0..self.num_samples {
-            let ray = Ray::new(
-                intersection.location,
-                sample_hemisphere(&intersection.normal),
-            );
-            let cos_theta = ray.direction.dot(&intersection.normal);
-            irradiance += trace(&ray, scene, depth) * cos_theta as f64;
-        }
-        irradiance /= self.num_samples as f64;
-        irradiance * self.reflectance
+    fn sample(&self, _wo: &Vector, normal: &Vector) -> (Vector, Color, Color) {
+        let wi = sample_hemisphere(normal);
+        (wi, self.reflectance, Color::BLACK)
     }
 }
 
@@ -79,15 +73,11 @@ pub struct Mirror {
 }
 
 impl Material for Mirror {
-    fn sample(&self, scene: &Scene, intersection: &Intersection, ray: &Ray, depth: u32) -> Color {
-        let direction = reflect(&ray.direction, &intersection.normal);
-        assert_abs_diff_eq!(direction.magnitude(), 1.0, epsilon = EPSILON);
+    fn sample(&self, wo: &Vector, normal: &Vector) -> (Vector, Color, Color) {
+        let wi = reflect(&wo, &normal);
+        assert_abs_diff_eq!(wi.magnitude(), 1.0, epsilon = EPSILON);
 
-        let ray = Ray {
-            origin: intersection.location,
-            direction,
-        };
-        trace(&ray, scene, depth) * self.reflectance
+        (wi, self.reflectance, Color::BLACK)
     }
 }
 
@@ -97,15 +87,11 @@ pub struct Glass {
 }
 
 impl Material for Glass {
-    fn sample(&self, scene: &Scene, intersection: &Intersection, ray: &Ray, depth: u32) -> Color {
-        let direction = refract(&ray.direction, &intersection.normal, 1.0, self.eta);
-        assert_abs_diff_eq!(direction.magnitude(), 1.0, epsilon = EPSILON);
+    fn sample(&self, wo: &Vector, normal: &Vector) -> (Vector, Color, Color) {
+        let wi = refract(&wo, &normal, 1.0, self.eta);
+        assert_abs_diff_eq!(wi.magnitude(), 1.0, epsilon = EPSILON);
 
-        let ray = Ray {
-            origin: intersection.location,
-            direction,
-        };
-        trace(&ray, scene, depth) * self.transmittance
+        (wi, self.transmittance, Color::BLACK)
     }
 }
 

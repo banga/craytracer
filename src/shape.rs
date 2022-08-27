@@ -59,7 +59,6 @@ mod tests {
             radius: 1.0,
             material: Box::new(LambertianMaterial {
                 reflectance: Color::WHITE,
-                num_samples: 1,
             }),
         };
 
