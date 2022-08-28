@@ -173,7 +173,7 @@ struct Cli {
     #[clap(arg_enum, value_parser)]
     scene: SceneName,
 
-    #[clap(short, long, default_value_t = 4)]
+    #[clap(short, long, default_value_t = 64)]
     samples: usize,
 
     #[clap(short = 'S', long, default_value_t = 1)]
