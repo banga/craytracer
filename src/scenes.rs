@@ -179,19 +179,31 @@ pub fn logo(num_samples: usize, scale: usize) -> Scene {
             film_height,
         )),
         shapes: vec![
+            // Ground
+            Box::new(Sphere {
+                origin: Vector(0.0, -1001.0, 10.0),
+                radius: 1000.0,
+                material: Box::new(LambertianMaterial {
+                    reflectance: Color::WHITE,
+                }),
+            }),
+            // Sky
+            Box::new(Sphere {
+                origin: Vector(0.0, 0.0, 0.0),
+                radius: 1000.0,
+                material: Box::new(EmissiveMaterial {
+                    emittance: Color::WHITE,
+                }),
+            }),
             Box::new(Sphere {
                 origin: Vector(-3.0, 1.0, 10.0),
                 radius: 1.0,
-                material: Box::new(LambertianMaterial {
-                    reflectance: blue,
-                }),
+                material: Box::new(LambertianMaterial { reflectance: blue }),
             }),
             Box::new(Sphere {
                 origin: Vector(-1.5, 0.5, 10.0),
                 radius: 0.5,
-                material: Box::new(LambertianMaterial {
-                    reflectance: red,
-                }),
+                material: Box::new(LambertianMaterial { reflectance: red }),
             }),
             Box::new(Sphere {
                 origin: Vector(-0.5, 0.5, 10.0),
@@ -203,51 +215,32 @@ pub fn logo(num_samples: usize, scale: usize) -> Scene {
             Box::new(Sphere {
                 origin: Vector(0.5, 0.5, 10.0),
                 radius: 0.5,
-                material: Box::new(LambertianMaterial {
-                    reflectance: blue,
-                }),
+                material: Box::new(LambertianMaterial { reflectance: blue }),
             }),
             Box::new(Sphere {
                 origin: Vector(0.5, -0.5, 10.0),
                 radius: 0.5,
-                material: Box::new(LambertianMaterial {
-                    reflectance: blue,
-                }),
+                material: Box::new(LambertianMaterial { reflectance: blue }),
             }),
             Box::new(Sphere {
                 origin: Vector(1.5, 0.5, 10.0),
                 radius: 0.5,
-                material: Box::new(LambertianMaterial {
-                    reflectance: green,
-                }),
+                material: Box::new(LambertianMaterial { reflectance: green }),
             }),
             Box::new(Sphere {
                 origin: Vector(1.5, 0.5, 10.0),
                 radius: 0.5,
-                material: Box::new(LambertianMaterial {
-                    reflectance: green,
-                }),
+                material: Box::new(LambertianMaterial { reflectance: green }),
             }),
             Box::new(Sphere {
                 origin: Vector(1.5, 1.5, 10.0),
                 radius: 0.5,
-                material: Box::new(LambertianMaterial {
-                    reflectance: green,
-                }),
+                material: Box::new(LambertianMaterial { reflectance: green }),
             }),
             Box::new(Sphere {
                 origin: Vector(2.5, 0.5, 10.0),
                 radius: 0.5,
-                material: Box::new(LambertianMaterial {
-                    reflectance: red,
-                }),
-            }),
-            Box::new(Sphere {
-                origin: Vector(0.0, -1001.0, 10.0),
-                radius: 1000.0,
-                material: Box::new(LambertianMaterial {
-                    reflectance: Color::WHITE,
-                }),
+                material: Box::new(LambertianMaterial { reflectance: red }),
             }),
         ],
     }
