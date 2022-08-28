@@ -12,9 +12,9 @@ use crate::{
 };
 
 #[allow(dead_code)]
-pub fn simple(num_samples: usize) -> Scene {
-    let film_width: usize = 1792;
-    let film_height: usize = 1120;
+pub fn simple(num_samples: usize, scale: usize) -> Scene {
+    let film_width: usize = 896 * scale;
+    let film_height: usize = 560 * scale;
 
     Scene {
         max_depth: 8,
@@ -69,20 +69,28 @@ pub fn simple(num_samples: usize) -> Scene {
 }
 
 #[allow(dead_code)]
-pub fn random_spheres(num_samples: usize) -> Scene {
-    let film_width: usize = 600;
-    let film_height: usize = 400;
+pub fn random_spheres(num_samples: usize, scale: usize) -> Scene {
+    let film_width: usize = 600 * scale;
+    let film_height: usize = 400 * scale;
 
     let seed = [19; 32];
     let mut rng = rand::rngs::StdRng::from_seed(seed);
 
     let mut shapes: Vec<Box<dyn Shape>> = vec![
+        // Sky
+        Box::new(Sphere {
+            origin: Vector(0.0, 0.0, 10.0),
+            radius: 1000.0,
+            material: Box::new(EmissiveMaterial {
+                emittance: Color::from_rgb(240, 245, 255),
+            }),
+        }),
         // Ground
         Box::new(Sphere {
             origin: Vector(0.0, -1000.0, 10.0),
             radius: 1000.0,
             material: Box::new(LambertianMaterial {
-                reflectance: Color::from_rgb(250, 255, 250),
+                reflectance: Color::from_rgb(200, 180, 150),
             }),
         }),
     ];
@@ -148,9 +156,9 @@ pub fn random_spheres(num_samples: usize) -> Scene {
 }
 
 #[allow(dead_code)]
-pub fn logo(num_samples: usize) -> Scene {
-    let film_width: usize = 800;
-    let film_height: usize = 470;
+pub fn logo(num_samples: usize, scale: usize) -> Scene {
+    let film_width: usize = 400 * scale;
+    let film_height: usize = 235 * scale;
 
     let blue = Color::from_rgb(66, 133, 244);
     let red = Color::from_rgb(219, 68, 55);

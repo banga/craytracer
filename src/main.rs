@@ -129,6 +129,9 @@ struct Cli {
     #[clap(short, long, default_value_t = 4)]
     samples: usize,
 
+    #[clap(short = 'S', long, default_value_t = 1)]
+    scale: usize,
+
     #[clap(short, long, default_value_t = String::from("out.exr"))]
     output: String,
 }
@@ -144,9 +147,9 @@ fn main() {
     let args = Cli::parse();
 
     let scene = match args.scene {
-        SceneName::Simple => scenes::simple(args.samples),
-        SceneName::RandomSpheres => scenes::random_spheres(args.samples),
-        SceneName::Logo => scenes::logo(args.samples),
+        SceneName::Simple => scenes::simple(args.samples, args.scale),
+        SceneName::RandomSpheres => scenes::random_spheres(args.samples, args.scale),
+        SceneName::Logo => scenes::logo(args.samples, args.scale),
     };
 
     let start = Instant::now();
