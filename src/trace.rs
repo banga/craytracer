@@ -30,7 +30,7 @@ pub fn trace(ray: &Ray, scene: &Scene, depth: u32) -> Color {
 
         let ray = Ray::new(intersection.location, wi);
         let Li = if depth <= scene.max_depth && !f.is_black() {
-            trace(&ray, scene, depth - 1)
+            trace(&ray, scene, depth)
         } else {
             Color::BLACK
         };

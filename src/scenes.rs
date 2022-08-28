@@ -5,7 +5,7 @@ use rand::{Rng, SeedableRng};
 use crate::{
     camera::ProjectionCamera,
     color::Color,
-    material::{Glass, LambertianMaterial, Material, Mirror, EmissiveMaterial},
+    material::{EmissiveMaterial, Glass, LambertianMaterial, Material, Mirror},
     scene::Scene,
     shape::{Shape, Sphere},
     vector::Vector,
@@ -17,7 +17,7 @@ pub fn simple(num_samples: usize, scale: usize) -> Scene {
     let film_height: usize = 560 * scale;
 
     Scene {
-        max_depth: 8,
+        max_depth: 3,
         film_width,
         film_height,
         camera: Box::new(ProjectionCamera::new(
@@ -49,12 +49,10 @@ pub fn simple(num_samples: usize, scale: usize) -> Scene {
             Box::new(Sphere {
                 origin: Vector(0.0, 1.5, 12.5),
                 radius: 1.5,
-                material: Box::new(
-                    Glass {
+                material: Box::new(Glass {
                     eta: 1.8,
                     transmittance: Color::from_rgb(240, 250, 255),
-                }
-            ),
+                }),
             }),
             // Light
             Box::new(Sphere {
@@ -139,7 +137,7 @@ pub fn random_spheres(num_samples: usize, scale: usize) -> Scene {
     }
 
     Scene {
-        max_depth: 8,
+        max_depth: 4,
         film_width,
         film_height,
         camera: Box::new(ProjectionCamera::new(
