@@ -1,20 +1,17 @@
-use crate::{
-    constants::EPSILON, intersection::Intersection, material::Material, ray::Ray, vector::Vector,
-};
+use crate::{constants::EPSILON, ray::Ray, vector::Vector};
 
 pub trait Shape: Sync + Send {
-    fn intersect(&self, ray: &Ray) -> Option<Intersection>;
-    fn material(&self) -> &Box<dyn Material>;
+    // Returns distance and normal
+    fn intersect(&self, ray: &Ray) -> Option<(f64, Vector)>;
 }
 
 pub struct Sphere {
     pub origin: Vector,
     pub radius: f64,
-    pub material: Box<dyn Material>,
 }
 
 impl Shape for Sphere {
-    fn intersect(&self, ray: &Ray) -> Option<Intersection> {
+    fn intersect(&self, ray: &Ray) -> Option<(f64, Vector)> {
         let oc = ray.origin - self.origin;
         let a = ray.direction.dot(&ray.direction);
         let b = 2.0 * oc.dot(&ray.direction);
@@ -33,16 +30,7 @@ impl Shape for Sphere {
         let location = ray.at(distance);
         let normal = (location - self.origin) / self.radius;
 
-        Some(Intersection {
-            distance,
-            location,
-            normal,
-            shape: self,
-        })
-    }
-
-    fn material(&self) -> &Box<dyn Material> {
-        &self.material
+        Some((distance, normal))
     }
 }
 
@@ -51,11 +39,10 @@ pub struct Triangle {
     e1: Vector,
     e2: Vector,
     normal: Vector,
-    material: Box<dyn Material>,
 }
 
 impl Triangle {
-    pub fn new(v0: Vector, v1: Vector, v2: Vector, material: Box<dyn Material>) -> Triangle {
+    pub fn new(v0: Vector, v1: Vector, v2: Vector) -> Triangle {
         let e1 = v1 - v0;
         let e2 = v2 - v0;
         Triangle {
@@ -64,14 +51,13 @@ impl Triangle {
             e2,
             // Arbitrary choice, may need to be flipped for some meshes
             normal: e1.cross(&e2).normalized(),
-            material,
         }
     }
 }
 
 impl Shape for Triangle {
     #[allow(non_snake_case)]
-    fn intersect(&self, ray: &Ray) -> Option<Intersection> {
+    fn intersect(&self, ray: &Ray) -> Option<(f64, Vector)> {
         // Source: http://www.graphics.cornell.edu/pubs/1997/MT97.pdf
         let P = ray.direction.cross(&self.e2);
 
@@ -98,25 +84,13 @@ impl Shape for Triangle {
             return None;
         }
 
-        let location = ray.at(distance);
-
-        Some(Intersection {
-            distance,
-            location,
-            normal: self.normal,
-            shape: self,
-        })
-    }
-
-    fn material(&self) -> &Box<dyn Material> {
-        &self.material
+        Some((distance, self.normal))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{color::Color, material::LambertianMaterial};
 
     mod sphere {
         use super::*;
@@ -127,30 +101,27 @@ mod tests {
             let sphere = Sphere {
                 origin: Vector(0.0, 0.0, 0.0),
                 radius: 1.0,
-                material: Box::new(LambertianMaterial {
-                    reflectance: Color::WHITE,
-                }),
             };
 
             // Shoot ray from outside sphere
-            let intersection = sphere
+            let (distance, normal) = sphere
                 .intersect(&Ray {
                     origin: Vector(0.0, 0.0, -2.0),
                     direction: Vector::Z,
                 })
                 .unwrap();
-            assert_eq!(intersection.location, Vector(0.0, 0.0, -1.0));
-            assert_eq!(intersection.normal, Vector(0.0, 0.0, -1.0));
+            assert_eq!(distance, 1.0);
+            assert_eq!(normal, Vector(0.0, 0.0, -1.0));
 
             // Shoot ray from inside sphere
-            let intersection = sphere
+            let (distance, normal) = sphere
                 .intersect(&Ray {
                     origin: Vector(0.0, 0.0, 0.0),
                     direction: Vector::Z,
                 })
                 .unwrap();
-            assert_eq!(intersection.location, Vector(0.0, 0.0, 1.0));
-            assert_eq!(intersection.normal, Vector(0.0, 0.0, 1.0));
+            assert_eq!(distance, 1.0);
+            assert_eq!(normal, Vector(0.0, 0.0, 1.0));
 
             // Shoot ray away from sphere
             assert!(sphere
@@ -174,9 +145,6 @@ mod tests {
                 Vector(1.0, 0.0, 0.0),
                 Vector(1.0, 1.0, 0.0),
                 Vector(2.0, 0.0, 0.0),
-                Box::new(LambertianMaterial {
-                    reflectance: Color::WHITE,
-                }),
             )
         }
 
@@ -185,14 +153,14 @@ mod tests {
             // Shoot ray to hit v0
             let t = triangle();
             for point in [t.v0, t.v0 + t.e1, t.v0 + t.e2] {
-                let intersection = t
+                let (distance, normal) = t
                     .intersect(&Ray {
                         origin: Vector(point.x(), point.y(), -2.0),
                         direction: Vector::Z,
                     })
                     .unwrap();
-                assert_eq!(intersection.location, point);
-                assert_eq!(intersection.normal, Vector(0.0, 0.0, 1.0));
+                assert_eq!(distance, 2.0);
+                assert_eq!(normal, Vector(0.0, 0.0, -1.0));
             }
         }
 
@@ -200,14 +168,14 @@ mod tests {
         fn from_behind() {
             // Shoot ray from the opposite side
             let t = triangle();
-            let intersection = t
+            let (distance, normal) = t
                 .intersect(&Ray {
                     origin: Vector(1.0, 0.0, 2.0),
                     direction: Vector::Z * -1.0,
                 })
                 .unwrap();
-            assert_eq!(intersection.location, Vector(1.0, 0.0, 0.0));
-            assert_eq!(intersection.normal, Vector(0.0, 0.0, 1.0));
+            assert_eq!(distance, 2.0);
+            assert_eq!(normal, Vector(0.0, 0.0, -1.0));
         }
 
         #[test]
@@ -236,9 +204,9 @@ mod tests {
             });
 
             if u + v <= 1.0 {
-                let intersection = intersection.expect("Expected an intersection");
-                assert_abs_diff_eq!(intersection.location, target, epsilon = EPSILON);
-                assert_eq!(intersection.normal, Vector(0.0, 0.0, 1.0));
+                let (distance, normal) = intersection.expect("Expected an intersection");
+                assert_abs_diff_eq!(distance, (target - origin).magnitude(), epsilon = EPSILON);
+                assert_eq!(normal, Vector(0.0, 0.0, -1.0));
             } else {
                 assert!(intersection.is_none());
             }

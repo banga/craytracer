@@ -1,20 +1,34 @@
-use std::vec;
-
 use rand::{Rng, SeedableRng};
+use std::vec;
 
 use crate::{
     camera::ProjectionCamera,
     color::Color,
     material::{EmissiveMaterial, Glass, LambertianMaterial, Material, Mirror},
+    obj::load_obj,
+    primitive::{Primitive, ShapePrimitive},
     scene::Scene,
-    shape::{Shape, Sphere},
+    shape::Sphere,
     vector::Vector,
 };
 
-#[allow(dead_code)]
-pub fn simple(num_samples: usize, scale: usize) -> Scene {
+pub fn simple<'a>(num_samples: usize, scale: usize) -> Scene {
     let film_width: usize = 896 * scale;
     let film_height: usize = 560 * scale;
+
+    let sky_material = Box::new(EmissiveMaterial {
+        emittance: Color::from_rgb(0, 10, 60),
+    });
+    let ground_material = Box::new(LambertianMaterial {
+        reflectance: Color::WHITE,
+    });
+    let glass_material = Box::new(Glass {
+        eta: 1.8,
+        transmittance: Color::from_rgb(240, 250, 255),
+    });
+    let light_material = Box::new(EmissiveMaterial {
+        emittance: Color::from_rgb(255, 230, 180) * 2.0,
+    });
 
     Scene {
         max_depth: 3,
@@ -29,44 +43,42 @@ pub fn simple(num_samples: usize, scale: usize) -> Scene {
             film_width,
             film_height,
         )),
-        shapes: vec![
+        primitives: vec![
             // Sky
-            Box::new(Sphere {
-                origin: Vector(0.0, 0.0, 0.0),
-                radius: 1000.0,
-                material: Box::new(EmissiveMaterial {
-                    emittance: Color::from_rgb(0, 10, 60),
+            Box::new(ShapePrimitive {
+                shape: Box::new(Sphere {
+                    origin: Vector(0.0, 0.0, 0.0),
+                    radius: 1000.0,
                 }),
+                material: sky_material,
             }),
             // Ground
-            Box::new(Sphere {
-                origin: Vector(0.0, -10000.0, 10.0),
-                radius: 10000.0,
-                material: Box::new(LambertianMaterial {
-                    reflectance: Color::WHITE,
+            Box::new(ShapePrimitive {
+                shape: Box::new(Sphere {
+                    origin: Vector(0.0, -10000.0, 10.0),
+                    radius: 10000.0,
                 }),
+                material: ground_material,
             }),
-            Box::new(Sphere {
-                origin: Vector(0.0, 1.5, 12.5),
-                radius: 1.5,
-                material: Box::new(Glass {
-                    eta: 1.8,
-                    transmittance: Color::from_rgb(240, 250, 255),
+            Box::new(ShapePrimitive {
+                shape: Box::new(Sphere {
+                    origin: Vector(0.0, 1.5, 12.5),
+                    radius: 1.5,
                 }),
+                material: glass_material,
             }),
             // Light
-            Box::new(Sphere {
-                origin: Vector(-3.0, 4.0, 13.5),
-                radius: 0.5,
-                material: Box::new(EmissiveMaterial {
-                    emittance: Color::from_rgb(255, 230, 180) * 2.0,
+            Box::new(ShapePrimitive {
+                shape: Box::new(Sphere {
+                    origin: Vector(-3.0, 4.0, 13.5),
+                    radius: 0.5,
                 }),
+                material: light_material,
             }),
         ],
     }
 }
 
-#[allow(dead_code)]
 pub fn random_spheres(num_samples: usize, scale: usize) -> Scene {
     let film_width: usize = 600 * scale;
     let film_height: usize = 400 * scale;
@@ -74,19 +86,23 @@ pub fn random_spheres(num_samples: usize, scale: usize) -> Scene {
     let seed = [19; 32];
     let mut rng = rand::rngs::StdRng::from_seed(seed);
 
-    let mut shapes: Vec<Box<dyn Shape>> = vec![
+    let mut primitives: Vec<Box<dyn Primitive>> = vec![
         // Sky
-        Box::new(Sphere {
-            origin: Vector(0.0, 0.0, 10.0),
-            radius: 1000.0,
+        Box::new(ShapePrimitive {
+            shape: Box::new(Sphere {
+                origin: Vector(0.0, 0.0, 10.0),
+                radius: 1000.0,
+            }),
             material: Box::new(EmissiveMaterial {
                 emittance: Color::from_rgb(240, 245, 255),
             }),
         }),
         // Ground
-        Box::new(Sphere {
-            origin: Vector(0.0, -1000.0, 10.0),
-            radius: 1000.0,
+        Box::new(ShapePrimitive {
+            shape: Box::new(Sphere {
+                origin: Vector(0.0, -1000.0, 10.0),
+                radius: 1000.0,
+            }),
             material: Box::new(LambertianMaterial {
                 reflectance: Color::from_rgb(200, 180, 150),
             }),
@@ -127,10 +143,12 @@ pub fn random_spheres(num_samples: usize, scale: usize) -> Scene {
                     ),
                 }),
             };
-            shapes.push(Box::new(Sphere {
-                origin: Vector(x as f64, radius, z as f64)
-                    + Vector(rng.gen_range(0.0..0.6), 0.0, rng.gen_range(0.0..0.3)),
-                radius,
+            primitives.push(Box::new(ShapePrimitive {
+                shape: Box::new(Sphere {
+                    origin: Vector(x as f64, radius, z as f64)
+                        + Vector(rng.gen_range(0.0..0.6), 0.0, rng.gen_range(0.0..0.3)),
+                    radius,
+                }),
                 material,
             }));
         }
@@ -149,97 +167,27 @@ pub fn random_spheres(num_samples: usize, scale: usize) -> Scene {
             film_width,
             film_height,
         )),
-        shapes,
+        primitives,
     }
 }
 
-#[allow(dead_code)]
-pub fn logo(num_samples: usize, scale: usize) -> Scene {
+pub fn cornell_box(num_samples: usize, scale: usize) -> Scene {
     let film_width: usize = 400 * scale;
-    let film_height: usize = 235 * scale;
-
-    let blue = Color::from_rgb(66, 133, 244);
-    let red = Color::from_rgb(219, 68, 55);
-    let yellow = Color::from_rgb(244, 180, 0);
-    let green = Color::from_rgb(15, 157, 88);
+    let film_height: usize = 400 * scale;
 
     Scene {
-        max_depth: 3,
+        max_depth: 5,
         film_width,
         film_height,
         camera: Box::new(ProjectionCamera::new(
-            Vector(-10.0, 2.0, -10.0),
-            Vector(0.0, 1.0, 10.0),
+            Vector(0.0, 1.0, 6.1),
+            Vector(0.0, 1.0, 0.0),
             Vector::Y,
-            4.0,
+            2.5,
             num_samples,
             film_width,
             film_height,
         )),
-        shapes: vec![
-            // Ground
-            Box::new(Sphere {
-                origin: Vector(0.0, -1001.0, 10.0),
-                radius: 1000.0,
-                material: Box::new(LambertianMaterial {
-                    reflectance: Color::WHITE,
-                }),
-            }),
-            // Sky
-            Box::new(Sphere {
-                origin: Vector(0.0, 0.0, 0.0),
-                radius: 1000.0,
-                material: Box::new(EmissiveMaterial {
-                    emittance: Color::WHITE,
-                }),
-            }),
-            Box::new(Sphere {
-                origin: Vector(-3.0, 1.0, 10.0),
-                radius: 1.0,
-                material: Box::new(LambertianMaterial { reflectance: blue }),
-            }),
-            Box::new(Sphere {
-                origin: Vector(-1.5, 0.5, 10.0),
-                radius: 0.5,
-                material: Box::new(LambertianMaterial { reflectance: red }),
-            }),
-            Box::new(Sphere {
-                origin: Vector(-0.5, 0.5, 10.0),
-                radius: 0.5,
-                material: Box::new(LambertianMaterial {
-                    reflectance: yellow,
-                }),
-            }),
-            Box::new(Sphere {
-                origin: Vector(0.5, 0.5, 10.0),
-                radius: 0.5,
-                material: Box::new(LambertianMaterial { reflectance: blue }),
-            }),
-            Box::new(Sphere {
-                origin: Vector(0.5, -0.5, 10.0),
-                radius: 0.5,
-                material: Box::new(LambertianMaterial { reflectance: blue }),
-            }),
-            Box::new(Sphere {
-                origin: Vector(1.5, 0.5, 10.0),
-                radius: 0.5,
-                material: Box::new(LambertianMaterial { reflectance: green }),
-            }),
-            Box::new(Sphere {
-                origin: Vector(1.5, 0.5, 10.0),
-                radius: 0.5,
-                material: Box::new(LambertianMaterial { reflectance: green }),
-            }),
-            Box::new(Sphere {
-                origin: Vector(1.5, 1.5, 10.0),
-                radius: 0.5,
-                material: Box::new(LambertianMaterial { reflectance: green }),
-            }),
-            Box::new(Sphere {
-                origin: Vector(2.5, 0.5, 10.0),
-                radius: 0.5,
-                material: Box::new(LambertianMaterial { reflectance: red }),
-            }),
-        ],
+        primitives: load_obj("objs/cornellbox.obj"),
     }
 }

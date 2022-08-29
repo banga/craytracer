@@ -17,6 +17,8 @@ mod color;
 mod constants;
 mod intersection;
 mod material;
+mod obj;
+mod primitive;
 mod ray;
 mod sampling;
 mod scene;
@@ -187,7 +189,7 @@ struct Cli {
 enum SceneName {
     Simple,
     RandomSpheres,
-    Logo,
+    CornellBox,
 }
 
 fn main() {
@@ -196,7 +198,7 @@ fn main() {
     let scene = match args.scene {
         SceneName::Simple => scenes::simple(args.samples, args.scale),
         SceneName::RandomSpheres => scenes::random_spheres(args.samples, args.scale),
-        SceneName::Logo => scenes::logo(args.samples, args.scale),
+        SceneName::CornellBox => scenes::cornell_box(args.samples, args.scale),
     };
 
     let start = Instant::now();
