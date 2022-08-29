@@ -62,7 +62,8 @@ impl Triangle {
             v0,
             e1,
             e2,
-            normal: e2.cross(&e1).normalized(),
+            // Arbitrary choice, may need to be flipped for some meshes
+            normal: e1.cross(&e2).normalized(),
             material,
         }
     }

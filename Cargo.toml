@@ -13,4 +13,5 @@ image = "0.24.3"
 minifb = "0.23.0"
 num_cpus = "1.13.1"
 rand = "0.8.5"
+tobj = "3.2.3"
 
