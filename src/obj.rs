@@ -15,20 +15,27 @@ pub fn load_obj(file_name: &str) -> Vec<Box<dyn Primitive>> {
 
     let mut materials: Vec<Arc<dyn Material>> = vec![];
     for m in input_materials {
-        if let Some(emission) = m.unknown_param.get("Ke") {
+        let diffuse = Color {
+            r: m.diffuse[0] as f64,
+            g: m.diffuse[1] as f64,
+            b: m.diffuse[2] as f64,
+        };
+        let ambient = if let Some(emission) = m.unknown_param.get("Ke") {
             let emission: Vec<f64> = emission.split(' ').map(|s| s.parse().unwrap()).collect();
-            let ambient = Color {
+            Some(Color {
                 r: emission[0] as f64,
                 g: emission[1] as f64,
                 b: emission[2] as f64,
-            };
-            materials.push(Arc::new(EmissiveMaterial { emittance: ambient }));
+            })
         } else {
-            let diffuse = Color {
-                r: m.diffuse[0] as f64,
-                g: m.diffuse[1] as f64,
-                b: m.diffuse[2] as f64,
-            };
+            None
+        };
+
+        if ambient.is_some() && !ambient.unwrap().is_black() {
+            materials.push(Arc::new(EmissiveMaterial {
+                emittance: ambient.unwrap(),
+            }));
+        } else {
             materials.push(Arc::new(LambertianMaterial {
                 reflectance: diffuse,
             }));

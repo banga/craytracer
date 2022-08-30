@@ -1,3 +1,3 @@
 # Sources
 
-Cornell Box: https://github.com/serhii-rieznik/raytracing-references
+Sheep: https://quaternius.com/packs/farmanimal.html

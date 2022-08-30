@@ -193,7 +193,7 @@ struct Cli {
 enum SceneName {
     Simple,
     RandomSpheres,
-    CornellBox,
+    Sheep,
 }
 
 fn main() {
@@ -202,7 +202,7 @@ fn main() {
     let scene = match args.scene {
         SceneName::Simple => scenes::simple(args.samples, args.scale),
         SceneName::RandomSpheres => scenes::random_spheres(args.samples, args.scale),
-        SceneName::CornellBox => scenes::cornell_box(args.samples, args.scale),
+        SceneName::Sheep => scenes::sheep(args.samples, args.scale),
     };
 
     let start = Instant::now();

@@ -171,23 +171,45 @@ pub fn random_spheres(num_samples: usize, scale: usize) -> Scene {
     }
 }
 
-pub fn cornell_box(num_samples: usize, scale: usize) -> Scene {
+pub fn sheep(num_samples: usize, scale: usize) -> Scene {
     let film_width: usize = 400 * scale;
     let film_height: usize = 400 * scale;
+
+    let mut primitives = load_obj("objs/Sheep.obj");
+
+    primitives.push(Box::new(ShapePrimitive {
+        shape: Box::new(Sphere {
+            origin: Vector(0.0, 0.0, 0.0),
+            radius: 1000.0,
+        }),
+        material: Arc::new(EmissiveMaterial {
+            emittance: Color::from_rgb(200, 250, 255),
+        }),
+    }));
+
+    primitives.push(Box::new(ShapePrimitive {
+        shape: Box::new(Sphere {
+            origin: Vector(0.0, -100.0, 0.0),
+            radius: 100.0,
+        }),
+        material: Arc::new(LambertianMaterial {
+            reflectance: Color::from_rgb(0, 250, 30),
+        }),
+    }));
 
     Scene {
         max_depth: 5,
         film_width,
         film_height,
         camera: Box::new(ProjectionCamera::new(
-            Vector(0.0, 1.0, 6.1),
-            Vector(0.0, 1.0, 0.0),
+            Vector(-10.0, 3.0, 0.0),
+            Vector(0.0, 2.0, 0.0),
             Vector::Y,
-            2.5,
+            1.0,
             num_samples,
             film_width,
             film_height,
         )),
-        primitives: load_obj("objs/cornellbox.obj"),
+        primitives,
     }
 }
