@@ -1,5 +1,5 @@
 use rand::{Rng, SeedableRng};
-use std::vec;
+use std::{sync::Arc, vec};
 
 use crate::{
     camera::ProjectionCamera,
@@ -12,21 +12,21 @@ use crate::{
     vector::Vector,
 };
 
-pub fn simple<'a>(num_samples: usize, scale: usize) -> Scene {
+pub fn simple(num_samples: usize, scale: usize) -> Scene {
     let film_width: usize = 896 * scale;
     let film_height: usize = 560 * scale;
 
-    let sky_material = Box::new(EmissiveMaterial {
+    let sky_material = Arc::new(EmissiveMaterial {
         emittance: Color::from_rgb(0, 10, 60),
     });
-    let ground_material = Box::new(LambertianMaterial {
+    let ground_material = Arc::new(LambertianMaterial {
         reflectance: Color::WHITE,
     });
-    let glass_material = Box::new(Glass {
+    let glass_material = Arc::new(Glass {
         eta: 1.8,
         transmittance: Color::from_rgb(240, 250, 255),
     });
-    let light_material = Box::new(EmissiveMaterial {
+    let light_material = Arc::new(EmissiveMaterial {
         emittance: Color::from_rgb(255, 230, 180) * 2.0,
     });
 
@@ -93,7 +93,7 @@ pub fn random_spheres(num_samples: usize, scale: usize) -> Scene {
                 origin: Vector(0.0, 0.0, 10.0),
                 radius: 1000.0,
             }),
-            material: Box::new(EmissiveMaterial {
+            material: Arc::new(EmissiveMaterial {
                 emittance: Color::from_rgb(240, 245, 255),
             }),
         }),
@@ -103,7 +103,7 @@ pub fn random_spheres(num_samples: usize, scale: usize) -> Scene {
                 origin: Vector(0.0, -1000.0, 10.0),
                 radius: 1000.0,
             }),
-            material: Box::new(LambertianMaterial {
+            material: Arc::new(LambertianMaterial {
                 reflectance: Color::from_rgb(200, 180, 150),
             }),
         }),
@@ -112,15 +112,15 @@ pub fn random_spheres(num_samples: usize, scale: usize) -> Scene {
     for x in -2..2 {
         for z in 6..14 {
             let radius = rng.gen_range(0.15..0.3);
-            let material: Box<dyn Material> = match rng.gen_range(0..10) {
-                0 => Box::new(Mirror {
+            let material: Arc<dyn Material> = match rng.gen_range(0..10) {
+                0 => Arc::new(Mirror {
                     reflectance: Color::from_rgb(
                         rng.gen_range(0..255),
                         rng.gen_range(0..255),
                         rng.gen_range(0..255),
                     ),
                 }),
-                1..=3 => Box::new(Glass {
+                1..=3 => Arc::new(Glass {
                     transmittance: Color::from_rgb(
                         rng.gen_range(128..255),
                         rng.gen_range(128..255),
@@ -128,14 +128,14 @@ pub fn random_spheres(num_samples: usize, scale: usize) -> Scene {
                     ),
                     eta: 1.0 + rng.gen::<f64>(),
                 }),
-                4 => Box::new(EmissiveMaterial {
+                4 => Arc::new(EmissiveMaterial {
                     emittance: Color::from_rgb(
                         rng.gen_range(0..255),
                         rng.gen_range(0..255),
                         rng.gen_range(0..255),
                     ) * 10.0,
                 }),
-                _ => Box::new(LambertianMaterial {
+                _ => Arc::new(LambertianMaterial {
                     reflectance: Color::from_rgb(
                         rng.gen_range(0..255),
                         rng.gen_range(0..255),

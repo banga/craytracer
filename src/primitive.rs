@@ -1,13 +1,15 @@
+use std::sync::Arc;
+
 use crate::{intersection::Intersection, material::Material, ray::Ray, shape::Shape};
 
 pub trait Primitive: Sync + Send {
     fn intersect(&self, ray: &Ray) -> Option<Intersection>;
-    fn material(&self) -> &Box<dyn Material>;
+    fn material(&self) -> Arc<dyn Material>;
 }
 
 pub struct ShapePrimitive {
     pub shape: Box<dyn Shape>,
-    pub material: Box<dyn Material>,
+    pub material: Arc<dyn Material>,
 }
 
 impl Primitive for ShapePrimitive {
@@ -21,7 +23,7 @@ impl Primitive for ShapePrimitive {
         })
     }
 
-    fn material(&self) -> &Box<dyn Material> {
-        &self.material
+    fn material(&self) -> Arc<dyn Material> {
+        Arc::clone(&self.material)
     }
 }
