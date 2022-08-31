@@ -12,6 +12,7 @@ use std::{
 };
 use trace::trace;
 
+mod bounds;
 mod camera;
 mod color;
 mod constants;

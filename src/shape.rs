@@ -1,8 +1,9 @@
-use crate::{constants::EPSILON, ray::Ray, vector::Vector};
+use crate::{bounds::Bounds, constants::EPSILON, ray::Ray, vector::Vector};
 
 pub trait Shape: Sync + Send {
     // Returns distance and normal
     fn intersect(&self, ray: &Ray) -> Option<(f64, Vector)>;
+    fn bounds(&self) -> Bounds;
 }
 
 pub struct Sphere {
@@ -11,6 +12,21 @@ pub struct Sphere {
 }
 
 impl Shape for Sphere {
+    fn bounds(&self) -> Bounds {
+        Bounds {
+            min: Vector(
+                self.origin.x() - self.radius,
+                self.origin.y() - self.radius,
+                self.origin.z() - self.radius,
+            ),
+            max: Vector(
+                self.origin.x() + self.radius,
+                self.origin.y() + self.radius,
+                self.origin.z() + self.radius,
+            ),
+        }
+    }
+
     fn intersect(&self, ray: &Ray) -> Option<(f64, Vector)> {
         let oc = ray.origin - self.origin;
         let a = ray.direction.dot(&ray.direction);
@@ -56,6 +72,24 @@ impl Triangle {
 }
 
 impl Shape for Triangle {
+    fn bounds(&self) -> Bounds {
+        let v1 = self.v0 + self.e1;
+        let v2 = self.v0 + self.e2;
+
+        Bounds {
+            min: Vector(
+                v1.x().min(v2.x().min(self.v0.x())),
+                v1.y().min(v2.y().min(self.v0.y())),
+                v1.z().min(v2.z().min(self.v0.z())),
+            ),
+            max: Vector(
+                v1.x().max(v2.x().max(self.v0.x())),
+                v1.y().max(v2.y().max(self.v0.y())),
+                v1.z().max(v2.z().max(self.v0.z())),
+            ),
+        }
+    }
+
     #[allow(non_snake_case)]
     fn intersect(&self, ray: &Ray) -> Option<(f64, Vector)> {
         // Source: http://www.graphics.cornell.edu/pubs/1997/MT97.pdf
@@ -94,6 +128,33 @@ mod tests {
 
     mod sphere {
         use super::*;
+
+        #[test]
+        fn bounds() {
+            assert_eq!(
+                Sphere {
+                    origin: Vector(0.0, 0.0, 0.0),
+                    radius: 1.0,
+                }
+                .bounds(),
+                Bounds {
+                    min: Vector(-1.0, -1.0, -1.0),
+                    max: Vector(1.0, 1.0, 1.0),
+                }
+            );
+
+            assert_eq!(
+                Sphere {
+                    origin: Vector(-2.0, 3.0, 0.0),
+                    radius: 1.0,
+                }
+                .bounds(),
+                Bounds {
+                    min: Vector(-3.0, 2.0, -1.0),
+                    max: Vector(-1.0, 4.0, 1.0),
+                }
+            );
+        }
 
         #[test]
         fn intersect() {
@@ -146,6 +207,17 @@ mod tests {
                 Vector(1.0, 1.0, 0.0),
                 Vector(2.0, 0.0, 0.0),
             )
+        }
+
+        #[test]
+        fn bounds() {
+            assert_eq!(
+                triangle().bounds(),
+                Bounds {
+                    min: Vector(1.0, 0.0, 0.0),
+                    max: Vector(2.0, 1.0, 0.0),
+                }
+            );
         }
 
         #[test]
