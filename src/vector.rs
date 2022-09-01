@@ -1,6 +1,6 @@
 use std::{
     fmt::Display,
-    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign},
+    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 
 use approx::AbsDiffEq;
@@ -15,7 +15,7 @@ impl Vector {
     pub const X: Vector = Vector(1.0, 0.0, 0.0);
     pub const Y: Vector = Vector(0.0, 1.0, 0.0);
     pub const Z: Vector = Vector(0.0, 0.0, 1.0);
-    pub const NULL: Vector = Vector(0.0, 0.0, 0.0);
+    pub const O: Vector = Vector(0.0, 0.0, 0.0);
     pub fn x(&self) -> f64 {
         self.0
     }
@@ -115,6 +115,14 @@ impl DivAssign<f64> for Vector {
     }
 }
 
+impl Neg for Vector {
+    type Output = Vector;
+
+    fn neg(self) -> Self::Output {
+        self * -1.0
+    }
+}
+
 impl AbsDiffEq for Vector {
     type Epsilon = f64;
 
@@ -168,7 +176,7 @@ mod tests {
         let a = Vector(1.0, 1.0, 0.0);
 
         // Cross product with itself is the null vector
-        assert_eq!(a.cross(&a), Vector::NULL);
+        assert_eq!(a.cross(&a), Vector::O);
 
         assert_eq!(a.cross(&Vector::X), Vector(0.0, 0.0, -1.0));
         assert_eq!(a.cross(&Vector::Y), Vector(0.0, 0.0, 1.0));

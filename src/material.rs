@@ -14,7 +14,7 @@ fn refract(direction: &Vector, normal: &Vector, eta_i: f64, eta_t: f64) -> Vecto
     if cos_theta < 0.0 {
         cos_theta = -cos_theta;
         eta_relative = eta_i / eta_t;
-        normal = normal * -1.0;
+        normal = -normal;
     }
 
     let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();

@@ -243,7 +243,7 @@ mod tests {
             let (distance, normal) = t
                 .intersect(&Ray {
                     origin: Vector(1.0, 0.0, 2.0),
-                    direction: Vector::Z * -1.0,
+                    direction: -Vector::Z,
                 })
                 .unwrap();
             assert_eq!(distance, 2.0);
