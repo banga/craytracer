@@ -17,11 +17,12 @@ pub fn sample_hemisphere(normal: &Vector) -> Vector {
             uniform.sample(&mut rng),
             uniform.sample(&mut rng),
         );
-        if v.dot(&v) <= 1.0 {
+        let magnitude_squared = v.dot(&v);
+        if magnitude_squared <= 1.0 {
             if v.dot(normal) > 0.0 {
-                return v.normalized();
+                return v / magnitude_squared.sqrt();
             } else {
-                return -v.normalized();
+                return -v / magnitude_squared.sqrt();
             }
         }
     }
