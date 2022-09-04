@@ -53,8 +53,9 @@ impl Camera for ProjectionCamera {
         let sy = y as f64 * self.delta_y as f64 - 0.5;
         let ray_origin = self.origin
             + self.z * self.focal_distance
-            + self.x * sx
-            // Screen space y co-ordinates are flipped, hence the minus sign
+            // Screen space x and y co-ordinates are flipped (and we use
+            // right-handed co-ordinates)
+            - self.x * sx
             - self.y * sy;
 
         let mut color = Color::BLACK;
