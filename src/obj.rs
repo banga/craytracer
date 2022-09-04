@@ -8,7 +8,7 @@ use crate::{
     vector::Vector,
 };
 
-pub fn load_obj(file_name: &str) -> Vec<Box<dyn Primitive>> {
+pub fn load_obj(file_name: &str) -> Vec<Arc<dyn Primitive>> {
     let (models, input_materials) =
         tobj::load_obj(file_name, &tobj::GPU_LOAD_OPTIONS).expect("Error loading models");
     let input_materials = input_materials.expect("Error loading materials");
@@ -45,7 +45,7 @@ pub fn load_obj(file_name: &str) -> Vec<Box<dyn Primitive>> {
     let fallback_material: Arc<dyn Material> = Arc::new(LambertianMaterial {
         reflectance: Color::WHITE,
     });
-    let mut primitives: Vec<Box<dyn Primitive>> = Vec::new();
+    let mut primitives: Vec<Arc<dyn Primitive>> = Vec::new();
     for (i, m) in models.iter().enumerate() {
         let mesh = &m.mesh;
 
@@ -78,7 +78,7 @@ pub fn load_obj(file_name: &str) -> Vec<Box<dyn Primitive>> {
                 vertices[indices[i + 1] as usize],
                 vertices[indices[i + 2] as usize],
             );
-            primitives.push(Box::new(ShapePrimitive {
+            primitives.push(Arc::new(ShapePrimitive {
                 shape: Box::new(triangle),
                 material: Arc::clone(&material),
             }));

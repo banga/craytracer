@@ -61,8 +61,8 @@ impl Camera for ProjectionCamera {
         for _ in 0..self.num_samples {
             let (dx, dy) = sample_2d();
             let ray_origin = ray_origin + self.x * dx * self.delta_x + self.y * dy * self.delta_y;
-            let ray = Ray::new(ray_origin, (ray_origin - self.origin).normalized());
-            color += trace(&ray, &scene, 0);
+            let mut ray = Ray::new(ray_origin, (ray_origin - self.origin).normalized());
+            color += trace(&mut ray, &scene, 0);
         }
         color / self.num_samples as f64
     }

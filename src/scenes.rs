@@ -2,6 +2,7 @@ use rand::{Rng, SeedableRng};
 use std::{sync::Arc, vec};
 
 use crate::{
+    bvh::BvhNode,
     camera::ProjectionCamera,
     color::Color,
     material::{EmissiveMaterial, Glass, LambertianMaterial, Material, Mirror},
@@ -43,9 +44,9 @@ pub fn simple(num_samples: usize, scale: usize) -> Scene {
             film_width,
             film_height,
         )),
-        primitives: vec![
+        bvh: BvhNode::new(vec![
             // Sky
-            Box::new(ShapePrimitive {
+            Arc::new(ShapePrimitive {
                 shape: Box::new(Sphere {
                     origin: Vector(0.0, 0.0, 0.0),
                     radius: 1000.0,
@@ -53,14 +54,14 @@ pub fn simple(num_samples: usize, scale: usize) -> Scene {
                 material: sky_material,
             }),
             // Ground
-            Box::new(ShapePrimitive {
+            Arc::new(ShapePrimitive {
                 shape: Box::new(Sphere {
                     origin: Vector(0.0, -10000.0, 10.0),
                     radius: 10000.0,
                 }),
                 material: ground_material,
             }),
-            Box::new(ShapePrimitive {
+            Arc::new(ShapePrimitive {
                 shape: Box::new(Sphere {
                     origin: Vector(0.0, 1.5, 12.5),
                     radius: 1.5,
@@ -68,14 +69,14 @@ pub fn simple(num_samples: usize, scale: usize) -> Scene {
                 material: glass_material,
             }),
             // Light
-            Box::new(ShapePrimitive {
+            Arc::new(ShapePrimitive {
                 shape: Box::new(Sphere {
                     origin: Vector(-3.0, 4.0, 13.5),
                     radius: 0.5,
                 }),
                 material: light_material,
             }),
-        ],
+        ]),
     }
 }
 
@@ -86,9 +87,9 @@ pub fn random_spheres(num_samples: usize, scale: usize) -> Scene {
     let seed = [19; 32];
     let mut rng = rand::rngs::StdRng::from_seed(seed);
 
-    let mut primitives: Vec<Box<dyn Primitive>> = vec![
+    let mut primitives: Vec<Arc<dyn Primitive>> = vec![
         // Sky
-        Box::new(ShapePrimitive {
+        Arc::new(ShapePrimitive {
             shape: Box::new(Sphere {
                 origin: Vector(0.0, 0.0, 10.0),
                 radius: 1000.0,
@@ -98,7 +99,7 @@ pub fn random_spheres(num_samples: usize, scale: usize) -> Scene {
             }),
         }),
         // Ground
-        Box::new(ShapePrimitive {
+        Arc::new(ShapePrimitive {
             shape: Box::new(Sphere {
                 origin: Vector(0.0, -1000.0, 10.0),
                 radius: 1000.0,
@@ -143,7 +144,7 @@ pub fn random_spheres(num_samples: usize, scale: usize) -> Scene {
                     ),
                 }),
             };
-            primitives.push(Box::new(ShapePrimitive {
+            primitives.push(Arc::new(ShapePrimitive {
                 shape: Box::new(Sphere {
                     origin: Vector(x as f64, radius, z as f64)
                         + Vector(rng.gen_range(0.0..0.6), 0.0, rng.gen_range(0.0..0.3)),
@@ -167,7 +168,7 @@ pub fn random_spheres(num_samples: usize, scale: usize) -> Scene {
             film_width,
             film_height,
         )),
-        primitives,
+        bvh: BvhNode::new(primitives),
     }
 }
 
@@ -177,7 +178,7 @@ pub fn sheep(num_samples: usize, scale: usize) -> Scene {
 
     let mut primitives = load_obj("objs/Sheep.obj");
 
-    primitives.push(Box::new(ShapePrimitive {
+    primitives.push(Arc::new(ShapePrimitive {
         shape: Box::new(Sphere {
             origin: Vector(0.0, 0.0, 0.0),
             radius: 1000.0,
@@ -187,7 +188,7 @@ pub fn sheep(num_samples: usize, scale: usize) -> Scene {
         }),
     }));
 
-    primitives.push(Box::new(ShapePrimitive {
+    primitives.push(Arc::new(ShapePrimitive {
         shape: Box::new(Sphere {
             origin: Vector(0.0, -100.0, 0.0),
             radius: 100.0,
@@ -210,6 +211,6 @@ pub fn sheep(num_samples: usize, scale: usize) -> Scene {
             film_width,
             film_height,
         )),
-        primitives,
+        bvh: BvhNode::new(primitives),
     }
 }

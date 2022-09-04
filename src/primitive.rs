@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
 use crate::{
-    bounds::Bounds, intersection::Intersection, material::Material, ray::Ray, shape::Shape,
+    bounds::Bounds, intersection::PrimitiveIntersection, material::Material, ray::Ray, shape::Shape,
 };
 
 pub trait Primitive: Sync + Send {
-    fn intersect(&self, ray: &Ray) -> Option<Intersection>;
+    fn intersect(&self, ray: &mut Ray) -> Option<PrimitiveIntersection>;
     fn material(&self) -> Arc<dyn Material>;
     fn bounds(&self) -> Bounds;
 }
@@ -16,12 +16,12 @@ pub struct ShapePrimitive {
 }
 
 impl Primitive for ShapePrimitive {
-    fn intersect(&self, ray: &Ray) -> Option<Intersection> {
-        let (distance, normal) = self.shape.intersect(ray)?;
-        Some(Intersection {
-            distance,
-            normal,
-            location: ray.at(distance),
+    fn intersect(&self, ray: &mut Ray) -> Option<PrimitiveIntersection> {
+        let intersection = self.shape.intersect(ray)?;
+        Some(PrimitiveIntersection {
+            distance: ray.max_distance,
+            normal: intersection.normal,
+            location: intersection.location,
             material: &*self.material,
         })
     }

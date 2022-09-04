@@ -13,6 +13,7 @@ use std::{
 use trace::trace;
 
 mod bounds;
+mod bvh;
 mod camera;
 mod color;
 mod constants;
@@ -200,13 +201,15 @@ enum SceneName {
 fn main() {
     let args = Cli::parse();
 
+    let start = Instant::now();
     let scene = match args.scene {
         SceneName::Simple => scenes::simple(args.samples, args.scale),
         SceneName::RandomSpheres => scenes::random_spheres(args.samples, args.scale),
         SceneName::Sheep => scenes::sheep(args.samples, args.scale),
     };
+    println!("{}", scene.bvh);
+    println!("Scene constructed in {:?}", start.elapsed());
 
-    let start = Instant::now();
     let width = scene.film_width as u32;
     let height = scene.film_height as u32;
     let pixels = render(&scene);

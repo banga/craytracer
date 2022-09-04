@@ -1,8 +1,10 @@
-use crate::{bounds::Bounds, constants::EPSILON, ray::Ray, vector::Vector};
+use crate::{
+    bounds::Bounds, constants::EPSILON, intersection::ShapeIntersection, ray::Ray, vector::Vector,
+};
 
 pub trait Shape: Sync + Send {
-    // Returns distance and normal
-    fn intersect(&self, ray: &Ray) -> Option<(f64, Vector)>;
+    // Should update the ray's max_distance if an intersection is found
+    fn intersect(&self, ray: &mut Ray) -> Option<ShapeIntersection>;
     fn bounds(&self) -> Bounds;
 }
 
@@ -13,21 +15,21 @@ pub struct Sphere {
 
 impl Shape for Sphere {
     fn bounds(&self) -> Bounds {
-        Bounds {
-            min: Vector(
+        Bounds::new(
+            Vector(
                 self.origin.x() - self.radius,
                 self.origin.y() - self.radius,
                 self.origin.z() - self.radius,
             ),
-            max: Vector(
+            Vector(
                 self.origin.x() + self.radius,
                 self.origin.y() + self.radius,
                 self.origin.z() + self.radius,
             ),
-        }
+        )
     }
 
-    fn intersect(&self, ray: &Ray) -> Option<(f64, Vector)> {
+    fn intersect(&self, ray: &mut Ray) -> Option<ShapeIntersection> {
         let oc = ray.origin - self.origin;
         let a = ray.direction.dot(&ray.direction);
         let b = 2.0 * oc.dot(&ray.direction);
@@ -39,14 +41,22 @@ impl Shape for Sphere {
         }
 
         let mut distance = (-b - discriminant.sqrt()) / (2.0 * a);
-        if distance < EPSILON {
-            distance = (-b + discriminant.sqrt()) / (2.0 * a);
+        if let Some(location) = ray.update_max_distance(distance) {
+            return Some(ShapeIntersection {
+                location,
+                normal: (location - self.origin) / self.radius,
+            });
         }
 
-        let location = ray.at(distance);
-        let normal = (location - self.origin) / self.radius;
+        distance = (-b + discriminant.sqrt()) / (2.0 * a);
+        if let Some(location) = ray.update_max_distance(distance) {
+            return Some(ShapeIntersection {
+                location,
+                normal: (location - self.origin) / self.radius,
+            });
+        }
 
-        Some((distance, normal))
+        None
     }
 }
 
@@ -76,22 +86,22 @@ impl Shape for Triangle {
         let v1 = self.v0 + self.e1;
         let v2 = self.v0 + self.e2;
 
-        Bounds {
-            min: Vector(
+        Bounds::new(
+            Vector(
                 v1.x().min(v2.x().min(self.v0.x())),
                 v1.y().min(v2.y().min(self.v0.y())),
                 v1.z().min(v2.z().min(self.v0.z())),
             ),
-            max: Vector(
+            Vector(
                 v1.x().max(v2.x().max(self.v0.x())),
                 v1.y().max(v2.y().max(self.v0.y())),
                 v1.z().max(v2.z().max(self.v0.z())),
             ),
-        }
+        )
     }
 
     #[allow(non_snake_case)]
-    fn intersect(&self, ray: &Ray) -> Option<(f64, Vector)> {
+    fn intersect(&self, ray: &mut Ray) -> Option<ShapeIntersection> {
         // Source: http://www.graphics.cornell.edu/pubs/1997/MT97.pdf
         let P = ray.direction.cross(&self.e2);
 
@@ -114,11 +124,14 @@ impl Shape for Triangle {
         }
 
         let distance = T.cross(&self.e1).dot(&self.e2) * inv_denominator;
-        if distance < EPSILON {
-            return None;
+        if let Some(location) = ray.update_max_distance(distance) {
+            Some(ShapeIntersection {
+                location,
+                normal: self.normal,
+            })
+        } else {
+            None
         }
-
-        Some((distance, self.normal))
     }
 }
 
@@ -127,6 +140,8 @@ mod tests {
     use super::*;
 
     mod sphere {
+        use rand::{Rng, SeedableRng};
+
         use super::*;
 
         #[test]
@@ -137,10 +152,7 @@ mod tests {
                     radius: 1.0,
                 }
                 .bounds(),
-                Bounds {
-                    min: Vector(-1.0, -1.0, -1.0),
-                    max: Vector(1.0, 1.0, 1.0),
-                }
+                Bounds::new(Vector(-1.0, -1.0, -1.0), Vector(1.0, 1.0, 1.0),)
             );
 
             assert_eq!(
@@ -149,48 +161,28 @@ mod tests {
                     radius: 1.0,
                 }
                 .bounds(),
-                Bounds {
-                    min: Vector(-3.0, 2.0, -1.0),
-                    max: Vector(-1.0, 4.0, 1.0),
-                }
+                Bounds::new(Vector(-3.0, 2.0, -1.0), Vector(-1.0, 4.0, 1.0),)
             );
         }
 
         #[test]
         fn intersect() {
-            // Unit sphere at origin
+            let seed = [0; 32];
+            let mut rng = rand::rngs::StdRng::from_seed(seed);
+
+            let offset = Vector(0.0, 0.0, 0.0);
             let sphere = Sphere {
-                origin: Vector(0.0, 0.0, 0.0),
+                origin: Vector(0.0, 0.0, 0.0) + offset,
                 radius: 1.0,
             };
+            let ray_origin = Vector(0.0, 0.0, -2.0) + offset;
 
-            // Shoot ray from outside sphere
-            let (distance, normal) = sphere
-                .intersect(&Ray {
-                    origin: Vector(0.0, 0.0, -2.0),
-                    direction: Vector::Z,
-                })
-                .unwrap();
-            assert_eq!(distance, 1.0);
-            assert_eq!(normal, Vector(0.0, 0.0, -1.0));
-
-            // Shoot ray from inside sphere
-            let (distance, normal) = sphere
-                .intersect(&Ray {
-                    origin: Vector(0.0, 0.0, 0.0),
-                    direction: Vector::Z,
-                })
-                .unwrap();
-            assert_eq!(distance, 1.0);
-            assert_eq!(normal, Vector(0.0, 0.0, 1.0));
-
-            // Shoot ray away from sphere
-            assert!(sphere
-                .intersect(&Ray {
-                    origin: Vector(0.0, 0.0, -2.0),
-                    direction: Vector::X,
-                })
-                .is_none());
+            for _ in 0..100 {
+                let target = Vector(rng.gen(), rng.gen(), rng.gen()) + offset;
+                let ray = &mut Ray::new(ray_origin, (target - ray_origin).normalized());
+                let intersection = sphere.intersect(ray).unwrap();
+                println!("{} {}", target, intersection.normal);
+            }
         }
     }
 
@@ -213,10 +205,7 @@ mod tests {
         fn bounds() {
             assert_eq!(
                 triangle().bounds(),
-                Bounds {
-                    min: Vector(1.0, 0.0, 0.0),
-                    max: Vector(2.0, 1.0, 0.0),
-                }
+                Bounds::new(Vector(1.0, 0.0, 0.0), Vector(2.0, 1.0, 0.0),)
             );
         }
 
@@ -225,14 +214,10 @@ mod tests {
             // Shoot ray to hit v0
             let t = triangle();
             for point in [t.v0, t.v0 + t.e1, t.v0 + t.e2] {
-                let (distance, normal) = t
-                    .intersect(&Ray {
-                        origin: Vector(point.x(), point.y(), -2.0),
-                        direction: Vector::Z,
-                    })
-                    .unwrap();
-                assert_eq!(distance, 2.0);
-                assert_eq!(normal, Vector(0.0, 0.0, -1.0));
+                let ray = &mut Ray::new(Vector(point.x(), point.y(), -2.0), Vector::Z);
+                let intersection = t.intersect(ray).unwrap();
+                assert_eq!(ray.max_distance, 2.0);
+                assert_eq!(intersection.normal, Vector(0.0, 0.0, -1.0));
             }
         }
 
@@ -240,23 +225,19 @@ mod tests {
         fn from_behind() {
             // Shoot ray from the opposite side
             let t = triangle();
-            let (distance, normal) = t
-                .intersect(&Ray {
-                    origin: Vector(1.0, 0.0, 2.0),
-                    direction: -Vector::Z,
-                })
-                .unwrap();
-            assert_eq!(distance, 2.0);
-            assert_eq!(normal, Vector(0.0, 0.0, -1.0));
+            let ray = &mut Ray::new(Vector(1.0, 0.0, 2.0), -Vector::Z);
+            let intersection = t.intersect(ray).unwrap();
+            assert_eq!(ray.max_distance, 2.0);
+            assert_eq!(intersection.normal, Vector(0.0, 0.0, -1.0));
         }
 
         #[test]
         fn parallel_to_triangle() {
             assert!(triangle()
-                .intersect(&Ray {
-                    origin: Vector(0.0, 0.0, 0.0),
-                    direction: Vector(1.0, 1.0, 0.0).normalized(),
-                })
+                .intersect(&mut Ray::new(
+                    Vector(0.0, 0.0, 0.0),
+                    Vector(1.0, 1.0, 0.0).normalized(),
+                ))
                 .is_none());
         }
 
@@ -270,15 +251,17 @@ mod tests {
             let target = t.v0 + t.e1 * u + t.e2 * v;
 
             let origin = Vector(0.0, 0.0, -2.0);
-            let intersection = t.intersect(&Ray {
-                origin,
-                direction: (target - origin).normalized(),
-            });
+            let ray = &mut Ray::new(origin, (target - origin).normalized());
+            let intersection = t.intersect(ray);
 
             if u + v <= 1.0 {
-                let (distance, normal) = intersection.expect("Expected an intersection");
-                assert_abs_diff_eq!(distance, (target - origin).magnitude(), epsilon = EPSILON);
-                assert_eq!(normal, Vector(0.0, 0.0, -1.0));
+                let intersection = intersection.expect("Expected an intersection");
+                assert_abs_diff_eq!(
+                    ray.max_distance,
+                    (target - origin).magnitude(),
+                    epsilon = EPSILON
+                );
+                assert_eq!(intersection.normal, Vector(0.0, 0.0, -1.0));
             } else {
                 assert!(intersection.is_none());
             }

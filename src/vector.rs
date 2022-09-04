@@ -1,17 +1,27 @@
+use crate::constants::EPSILON;
+use approx::AbsDiffEq;
 use std::{
     fmt::Display,
-    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
+    ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 
-use approx::AbsDiffEq;
+#[derive(PartialEq, Clone, Copy, Debug)]
+pub enum Axis {
+    X = 0,
+    Y = 1,
+    Z = 2,
+}
 
-use crate::constants::EPSILON;
+pub const AXES: [Axis; 3] = [Axis::X, Axis::Y, Axis::Z];
 
 #[derive(Clone, Copy, Debug)]
 pub struct Vector(pub f64, pub f64, pub f64);
 
 #[allow(dead_code)]
 impl Vector {
+    pub fn new(x: i32, y: i32, z: i32) -> Vector {
+        Vector(x as f64, y as f64, z as f64)
+    }
     pub const X: Vector = Vector(1.0, 0.0, 0.0);
     pub const Y: Vector = Vector(0.0, 1.0, 0.0);
     pub const Z: Vector = Vector(0.0, 0.0, 1.0);
@@ -120,6 +130,18 @@ impl Neg for Vector {
 
     fn neg(self) -> Self::Output {
         self * -1.0
+    }
+}
+
+impl Index<Axis> for Vector {
+    type Output = f64;
+
+    fn index(&self, index: Axis) -> &Self::Output {
+        match index {
+            Axis::X => &self.0,
+            Axis::Y => &self.1,
+            Axis::Z => &self.2,
+        }
     }
 }
 
