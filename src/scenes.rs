@@ -172,11 +172,22 @@ pub fn random_spheres(num_samples: usize, scale: usize) -> Scene {
     }
 }
 
-pub fn sheep(num_samples: usize, scale: usize) -> Scene {
+pub fn obj(num_samples: usize, scale: usize) -> Scene {
     let film_width: usize = 400 * scale;
     let film_height: usize = 400 * scale;
 
-    let mut primitives = load_obj("objs/Sheep.obj");
+    let mut primitives = load_obj(
+        "objs/xyzrgb_dragon.obj",
+        Arc::new(
+            Glass {
+                eta: 1.5,
+                transmittance: Color::from_rgb(148, 177, 160),
+            },
+            // LambertianMaterial {
+            //     reflectance: Color::from_rgb(200, 255, 200),
+            // },
+        ),
+    );
 
     primitives.push(Arc::new(ShapePrimitive {
         shape: Box::new(Sphere {
@@ -184,27 +195,37 @@ pub fn sheep(num_samples: usize, scale: usize) -> Scene {
             radius: 1000.0,
         }),
         material: Arc::new(EmissiveMaterial {
-            emittance: Color::from_rgb(200, 250, 255),
+            emittance: Color::WHITE,
         }),
     }));
 
+    // primitives.push(Arc::new(ShapePrimitive {
+    //     shape: Box::new(Sphere {
+    //         origin: Vector(0.0, 150.0, 0.0),
+    //         radius: 50.0,
+    //     }),
+    //     material: Arc::new(EmissiveMaterial {
+    //         emittance: Color::from_rgb(255, 225, 100) * 2.0,
+    //     }),
+    // }));
+
     primitives.push(Arc::new(ShapePrimitive {
         shape: Box::new(Sphere {
-            origin: Vector(0.0, -100.0, 0.0),
-            radius: 100.0,
+            origin: Vector(0.0, -10040.0, 0.0),
+            radius: 10000.0,
         }),
         material: Arc::new(LambertianMaterial {
-            reflectance: Color::from_rgb(0, 250, 30),
+            reflectance: Color::WHITE * 0.75,
         }),
     }));
 
     Scene {
-        max_depth: 5,
+        max_depth: 8,
         film_width,
         film_height,
         camera: Box::new(ProjectionCamera::new(
-            Vector(-10.0, 3.0, 0.0),
-            Vector(0.0, 2.0, 0.0),
+            Vector(150.0, 20.0, -150.0),
+            Vector(30.0, -10.0, 0.0),
             Vector::Y,
             1.0,
             num_samples,

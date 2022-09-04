@@ -64,19 +64,45 @@ pub struct Triangle {
     v0: Vector,
     e1: Vector,
     e2: Vector,
-    normal: Vector,
+    n0: Vector,
+    n01: Vector,
+    n02: Vector,
 }
 
 impl Triangle {
     pub fn new(v0: Vector, v1: Vector, v2: Vector) -> Triangle {
         let e1 = v1 - v0;
         let e2 = v2 - v0;
+
+        let n0 = e1.cross(&e2).normalized();
+
         Triangle {
             v0,
             e1,
             e2,
-            // Arbitrary choice, may need to be flipped for some meshes
-            normal: e1.cross(&e2).normalized(),
+            n0,
+            n01: Vector::O,
+            n02: Vector::O,
+        }
+    }
+    pub fn with_normals(
+        v0: Vector,
+        v1: Vector,
+        v2: Vector,
+        n0: Vector,
+        n1: Vector,
+        n2: Vector,
+    ) -> Triangle {
+        let e1 = v1 - v0;
+        let e2 = v2 - v0;
+
+        Triangle {
+            v0,
+            e1,
+            e2,
+            n0,
+            n01: n1 - n0,
+            n02: n2 - n0,
         }
     }
 }
@@ -127,7 +153,7 @@ impl Shape for Triangle {
         if let Some(location) = ray.update_max_distance(distance) {
             Some(ShapeIntersection {
                 location,
-                normal: self.normal,
+                normal: (self.n0 + self.n01 * u + self.n02 * v).normalized(),
             })
         } else {
             None
@@ -140,8 +166,6 @@ mod tests {
     use super::*;
 
     mod sphere {
-        use rand::{Rng, SeedableRng};
-
         use super::*;
 
         #[test]
@@ -163,26 +187,6 @@ mod tests {
                 .bounds(),
                 Bounds::new(Vector(-3.0, 2.0, -1.0), Vector(-1.0, 4.0, 1.0),)
             );
-        }
-
-        #[test]
-        fn intersect() {
-            let seed = [0; 32];
-            let mut rng = rand::rngs::StdRng::from_seed(seed);
-
-            let offset = Vector(0.0, 0.0, 0.0);
-            let sphere = Sphere {
-                origin: Vector(0.0, 0.0, 0.0) + offset,
-                radius: 1.0,
-            };
-            let ray_origin = Vector(0.0, 0.0, -2.0) + offset;
-
-            for _ in 0..100 {
-                let target = Vector(rng.gen(), rng.gen(), rng.gen()) + offset;
-                let ray = &mut Ray::new(ray_origin, (target - ray_origin).normalized());
-                let intersection = sphere.intersect(ray).unwrap();
-                println!("{} {}", target, intersection.normal);
-            }
         }
     }
 

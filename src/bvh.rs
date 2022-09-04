@@ -41,13 +41,9 @@ impl BvhNode {
     pub fn new(primitives: Vec<Arc<dyn Primitive>>) -> Box<BvhNode> {
         let primitive_infos = primitives
             .iter()
-            .map(|p| {
-                let bounds = p.bounds();
-                println!("{:?}", bounds);
-                return PrimitiveInfo {
-                    primitive: Arc::clone(p),
-                    bounds,
-                };
+            .map(|p| PrimitiveInfo {
+                primitive: Arc::clone(p),
+                bounds: p.bounds(),
             })
             .collect();
 

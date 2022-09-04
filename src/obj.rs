@@ -2,13 +2,13 @@ use std::sync::Arc;
 
 use crate::{
     color::Color,
-    material::{EmissiveMaterial, LambertianMaterial, Material},
+    material::{EmissiveMaterial, Glass, LambertianMaterial, Material},
     primitive::{Primitive, ShapePrimitive},
     shape::Triangle,
     vector::Vector,
 };
 
-pub fn load_obj(file_name: &str) -> Vec<Arc<dyn Primitive>> {
+pub fn load_obj(file_name: &str, fallback_material: Arc<dyn Material>) -> Vec<Arc<dyn Primitive>> {
     let (models, input_materials) =
         tobj::load_obj(file_name, &tobj::GPU_LOAD_OPTIONS).expect("Error loading models");
     let input_materials = input_materials.expect("Error loading materials");
@@ -42,15 +42,10 @@ pub fn load_obj(file_name: &str) -> Vec<Arc<dyn Primitive>> {
         }
     }
 
-    let fallback_material: Arc<dyn Material> = Arc::new(LambertianMaterial {
-        reflectance: Color::WHITE,
-    });
     let mut primitives: Vec<Arc<dyn Primitive>> = Vec::new();
     for (i, m) in models.iter().enumerate() {
         let mesh = &m.mesh;
 
-        let positions = &mesh.positions;
-        let indices = &mesh.indices;
         let material = Arc::clone(if let Some(material_id) = mesh.material_id {
             &materials[material_id]
         } else {
@@ -64,24 +59,42 @@ pub fn load_obj(file_name: &str) -> Vec<Arc<dyn Primitive>> {
         );
 
         let mut vertices = Vec::new();
-        for i in (0..mesh.positions.len()).step_by(3) {
-            vertices.push(Vector(
-                positions[i] as f64,
-                positions[i + 1] as f64,
-                positions[i + 2] as f64,
-            ));
+        for chunk in mesh.positions.chunks(3) {
+            if let [x, y, z] = chunk {
+                vertices.push(Vector(*x as f64, *y as f64, *z as f64));
+            }
         }
 
-        for i in (0..indices.len()).step_by(3) {
-            let triangle = Triangle::new(
-                vertices[indices[i] as usize],
-                vertices[indices[i + 1] as usize],
-                vertices[indices[i + 2] as usize],
-            );
-            primitives.push(Arc::new(ShapePrimitive {
-                shape: Box::new(triangle),
-                material: Arc::clone(&material),
-            }));
+        let mut normals = Vec::new();
+        for chunk in mesh.normals.chunks(3) {
+            if let [x, y, z] = chunk {
+                normals.push(Vector(*x as f64, *y as f64, *z as f64));
+            }
+        }
+
+        for chunk in mesh.indices.chunks(3) {
+            if let [i, j, k] = chunk {
+                let triangle = if normals.len() > 0 {
+                    Triangle::with_normals(
+                        vertices[*i as usize],
+                        vertices[*j as usize],
+                        vertices[*k as usize],
+                        normals[*i as usize],
+                        normals[*j as usize],
+                        normals[*k as usize],
+                    )
+                } else {
+                    Triangle::new(
+                        vertices[*i as usize],
+                        vertices[*j as usize],
+                        vertices[*k as usize],
+                    )
+                };
+                primitives.push(Arc::new(ShapePrimitive {
+                    shape: Box::new(triangle),
+                    material: Arc::clone(&material),
+                }));
+            }
         }
     }
     primitives
