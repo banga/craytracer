@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     color::Color,
-    material::{EmissiveMaterial, Glass, LambertianMaterial, Material},
+    material::{EmissiveMaterial, LambertianMaterial, Material},
     primitive::{Primitive, ShapePrimitive},
     shape::Triangle,
     vector::Vector,
@@ -13,6 +13,17 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<dyn Material>) -> Vec<Ar
         tobj::load_obj(file_name, &tobj::GPU_LOAD_OPTIONS).expect("Error loading models");
     let input_materials = input_materials.expect("Error loading materials");
 
+    fn parse_float(s: &str) -> f64 {
+        if let Ok(f) = s.parse::<f64>() {
+            f
+        } else if let Ok(i) = s.parse::<i32>() {
+            i as f64
+        } else {
+            eprintln!("Could not parse float from '{}'", s);
+            0.0
+        }
+    }
+
     let mut materials: Vec<Arc<dyn Material>> = vec![];
     for m in input_materials {
         let diffuse = Color {
@@ -21,7 +32,8 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<dyn Material>) -> Vec<Ar
             b: m.diffuse[2] as f64,
         };
         let ambient = if let Some(emission) = m.unknown_param.get("Ke") {
-            let emission: Vec<f64> = emission.split(' ').map(|s| s.parse().unwrap()).collect();
+            let parts: Vec<&str> = emission.split_whitespace().collect();
+            let emission: Vec<f64> = parts.iter().map(|s| parse_float(s)).collect();
             Some(Color {
                 r: emission[0] as f64,
                 g: emission[1] as f64,
