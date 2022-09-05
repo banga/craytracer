@@ -1,6 +1,7 @@
 use crate::{
     bxdf::{
-        BxDF, Dielectric, Fresnel, FresnelSpecularBxDF, LambertianBRDF, SpecularBRDF, SurfaceSample,
+        BxDF, Dielectric, Fresnel, FresnelSpecularBxDF, LambertianBRDF, OrenNayyarBRDF,
+        SpecularBRDF, SurfaceSample,
     },
     color::Color,
     vector::Vector,
@@ -24,21 +25,27 @@ impl Material for EmissiveMaterial {
     }
 }
 
-pub struct LambertianMaterial {
-    brdf: LambertianBRDF,
+pub enum MatteMaterial {
+    Lambertian(LambertianBRDF),
+    OrenNayyar(OrenNayyarBRDF),
 }
 
-impl LambertianMaterial {
-    pub fn new(r: Color) -> LambertianMaterial {
-        LambertianMaterial {
-            brdf: LambertianBRDF { reflectance: r },
+impl MatteMaterial {
+    pub fn new(reflectance: Color, sigma: f64) -> MatteMaterial {
+        if sigma == 0.0 {
+            MatteMaterial::Lambertian(LambertianBRDF::new(reflectance))
+        } else {
+            MatteMaterial::OrenNayyar(OrenNayyarBRDF::new(reflectance, sigma))
         }
     }
 }
 
-impl Material for LambertianMaterial {
+impl Material for MatteMaterial {
     fn sample(&self, w_o: &Vector, normal: &Vector) -> SurfaceSample {
-        self.brdf.sample(w_o, normal)
+        match self {
+            MatteMaterial::Lambertian(brdf) => brdf.sample(w_o, normal),
+            MatteMaterial::OrenNayyar(brdf) => brdf.sample(w_o, normal),
+        }
     }
 }
 

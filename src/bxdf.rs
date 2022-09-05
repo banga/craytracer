@@ -1,3 +1,5 @@
+use std::f64::consts::PI;
+
 use crate::{color::Color, constants::EPSILON, sampling::sample_hemisphere, vector::Vector};
 use approx::assert_abs_diff_eq;
 use rand::Rng;
@@ -14,7 +16,13 @@ pub trait BxDF {
 }
 
 pub struct LambertianBRDF {
-    pub reflectance: Color,
+    reflectance: Color,
+}
+
+impl LambertianBRDF {
+    pub fn new(reflectance: Color) -> LambertianBRDF {
+        LambertianBRDF { reflectance }
+    }
 }
 
 impl BxDF for LambertianBRDF {
@@ -22,7 +30,52 @@ impl BxDF for LambertianBRDF {
         let w_i = sample_hemisphere(normal);
         SurfaceSample {
             w_i,
-            f: self.reflectance,
+            f: self.reflectance / PI,
+            Le: Color::BLACK,
+        }
+    }
+}
+
+#[allow(non_snake_case)]
+pub struct OrenNayyarBRDF {
+    reflectance: Color,
+    A: f64,
+    B: f64,
+}
+
+#[allow(non_snake_case)]
+impl OrenNayyarBRDF {
+    pub fn new(reflectance: Color, sigma: f64) -> OrenNayyarBRDF {
+        let sigma = sigma.to_radians();
+        let sigma_2 = sigma * sigma;
+        let A = 1.0 - sigma_2 / (2.0 * (sigma_2 + 0.33));
+        let B = 0.45 * sigma_2 / (sigma_2 + 0.09);
+        OrenNayyarBRDF { reflectance, A, B }
+    }
+}
+
+impl BxDF for OrenNayyarBRDF {
+    fn sample(&self, w_o: &Vector, normal: &Vector) -> SurfaceSample {
+        let w_i = sample_hemisphere(normal);
+
+        let cos_theta_i = w_i.dot(normal);
+        assert!(cos_theta_i >= 0.0);
+        let cos_theta_o = w_o.dot(normal).abs();
+
+        let sin_theta_i = (1.0 - cos_theta_i).sqrt();
+        let sin_theta_o = (1.0 - cos_theta_o).sqrt();
+        let max_cos = (cos_theta_i * cos_theta_o + sin_theta_i * sin_theta_o).max(0.0);
+
+        let (sin_alpha, tan_beta) = if cos_theta_i > cos_theta_o {
+            // theta_i <= theta_o
+            (sin_theta_o, sin_theta_i / cos_theta_i)
+        } else {
+            (sin_theta_i, sin_theta_o / cos_theta_o)
+        };
+
+        SurfaceSample {
+            w_i,
+            f: self.reflectance * (self.A + self.B * max_cos * sin_alpha * tan_beta) / PI,
             Le: Color::BLACK,
         }
     }

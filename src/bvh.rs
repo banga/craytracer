@@ -209,7 +209,7 @@ mod tests {
     use super::BvhNode;
     use crate::{
         color::Color,
-        material::{LambertianMaterial, Material},
+        material::{Material, MatteMaterial},
         primitive::ShapePrimitive,
         ray::Ray,
         shape::Sphere,
@@ -218,7 +218,7 @@ mod tests {
 
     #[test]
     fn bvh_node() {
-        let material: Arc<dyn Material> = Arc::new(LambertianMaterial::new(Color::WHITE));
+        let material: Arc<dyn Material> = Arc::new(MatteMaterial::new(Color::WHITE, 0.0));
         let node = BvhNode::new(vec![
             Arc::new(ShapePrimitive {
                 shape: Box::new(Sphere {

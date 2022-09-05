@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     color::Color,
-    material::{EmissiveMaterial, LambertianMaterial, Material},
+    material::{EmissiveMaterial, Material, MatteMaterial},
     primitive::{Primitive, ShapePrimitive},
     shape::Triangle,
     vector::Vector,
@@ -48,7 +48,8 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<dyn Material>) -> Vec<Ar
                 emittance: ambient.unwrap(),
             }));
         } else {
-            materials.push(Arc::new(LambertianMaterial::new(diffuse)));
+            // TODO: read roughness
+            materials.push(Arc::new(MatteMaterial::new(diffuse, 0.0)));
         }
     }
 

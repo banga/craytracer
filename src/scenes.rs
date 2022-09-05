@@ -1,11 +1,11 @@
 use rand::{Rng, SeedableRng};
-use std::{sync::Arc, vec};
+use std::{f64::consts::PI, sync::Arc, vec};
 
 use crate::{
     bvh::BvhNode,
     camera::ProjectionCamera,
     color::Color,
-    material::{EmissiveMaterial, GlassMaterial, LambertianMaterial, Material, MirorMaterial},
+    material::{EmissiveMaterial, GlassMaterial, Material, MatteMaterial, MirorMaterial},
     obj::load_obj,
     primitive::{Primitive, ShapePrimitive},
     scene::Scene,
@@ -20,7 +20,7 @@ pub fn simple(num_samples: usize, scale: usize) -> Scene {
     let sky_material = Arc::new(EmissiveMaterial {
         emittance: Color::from_rgb(0, 10, 60),
     });
-    let ground_material = Arc::new(LambertianMaterial::new(Color::WHITE));
+    let ground_material = Arc::new(MatteMaterial::new(Color::WHITE, 0.0));
     let glass_material = Arc::new(GlassMaterial::new(Color::WHITE, Color::WHITE, 1.5));
     let light_material = Arc::new(EmissiveMaterial {
         emittance: Color::from_rgb(255, 230, 180) * 2.0,
@@ -99,7 +99,7 @@ pub fn random_spheres(num_samples: usize, scale: usize) -> Scene {
                 origin: Vector(0.0, -1000.0, 10.0),
                 radius: 1000.0,
             }),
-            material: Arc::new(LambertianMaterial::new(Color::from_rgb(200, 180, 150))),
+            material: Arc::new(MatteMaterial::new(Color::from_rgb(200, 180, 150), 0.0)),
         }),
     ];
 
@@ -130,11 +130,14 @@ pub fn random_spheres(num_samples: usize, scale: usize) -> Scene {
                         rng.gen_range(0..255),
                     ) * 10.0,
                 }),
-                _ => Arc::new(LambertianMaterial::new(Color::from_rgb(
-                    rng.gen_range(0..255),
-                    rng.gen_range(0..255),
-                    rng.gen_range(0..255),
-                ))),
+                _ => Arc::new(MatteMaterial::new(
+                    Color::from_rgb(
+                        rng.gen_range(0..255),
+                        rng.gen_range(0..255),
+                        rng.gen_range(0..255),
+                    ),
+                    0.0,
+                )),
             };
             primitives.push(Arc::new(ShapePrimitive {
                 shape: Box::new(Sphere {
@@ -171,8 +174,8 @@ pub fn obj(num_samples: usize, scale: usize) -> Scene {
     let mut primitives = load_obj(
         "objs/xyzrgb_dragon.obj",
         Arc::new(
-            GlassMaterial::new(Color::WHITE, Color::from_rgb(148, 177, 160), 2.5),
-            // LambertianMaterial::new(Color::from_rgb(255, 180, 80)),
+            // GlassMaterial::new(Color::WHITE, Color::from_rgb(148, 177, 160), 2.5),
+            MatteMaterial::new(Color::from_rgb(255, 180, 80) * PI, 1000.0),
         ),
     );
 
@@ -182,26 +185,26 @@ pub fn obj(num_samples: usize, scale: usize) -> Scene {
             radius: 1000.0,
         }),
         material: Arc::new(EmissiveMaterial {
-            emittance: Color::WHITE,
+            emittance: Color::WHITE * 0.5,
         }),
     }));
 
-    // primitives.push(Arc::new(ShapePrimitive {
-    //     shape: Box::new(Sphere {
-    //         origin: Vector(0.0, 150.0, 0.0),
-    //         radius: 50.0,
-    //     }),
-    //     material: Arc::new(EmissiveMaterial {
-    //         emittance: Color::from_rgb(255, 225, 100) * 2.0,
-    //     }),
-    // }));
+    primitives.push(Arc::new(ShapePrimitive {
+        shape: Box::new(Sphere {
+            origin: Vector(0.0, 150.0, 0.0),
+            radius: 50.0,
+        }),
+        material: Arc::new(EmissiveMaterial {
+            emittance: Color::from_rgb(255, 225, 100) * 5.0,
+        }),
+    }));
 
     primitives.push(Arc::new(ShapePrimitive {
         shape: Box::new(Sphere {
             origin: Vector(0.0, -10040.0, 0.0),
             radius: 10000.0,
         }),
-        material: Arc::new(LambertianMaterial::new(Color::WHITE * 0.75)),
+        material: Arc::new(MatteMaterial::new(Color::WHITE * 0.75, 0.0)),
     }));
 
     Scene {
