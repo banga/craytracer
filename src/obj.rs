@@ -48,9 +48,7 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<dyn Material>) -> Vec<Ar
                 emittance: ambient.unwrap(),
             }));
         } else {
-            materials.push(Arc::new(LambertianMaterial {
-                reflectance: diffuse,
-            }));
+            materials.push(Arc::new(LambertianMaterial::new(diffuse)));
         }
     }
 

@@ -11,16 +11,16 @@ pub fn trace(ray: &mut Ray, scene: &Scene, depth: u32) -> Color {
         assert!(intersection.distance >= 0.0);
 
         let wo = ray.direction;
-        let (wi, f, Le) = intersection.material.sample(&wo, &intersection.normal);
+        let surface_sample = intersection.material.sample(&wo, &intersection.normal);
 
-        let mut ray = Ray::new(intersection.location, wi);
-        let Li = if depth <= scene.max_depth && !f.is_black() {
-            trace(&mut ray, scene, depth)
+        let mut ray = Ray::new(intersection.location, surface_sample.w_i);
+        if depth <= scene.max_depth && !surface_sample.f.is_black() {
+            let Li = trace(&mut ray, scene, depth);
+            let cos_theta = surface_sample.w_i.dot(&intersection.normal).abs();
+            surface_sample.Le + Li * surface_sample.f * cos_theta
         } else {
-            Color::BLACK
-        };
-
-        Le + Li * f
+            surface_sample.Le
+        }
     } else {
         Color::BLACK
     }

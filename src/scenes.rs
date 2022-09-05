@@ -5,7 +5,7 @@ use crate::{
     bvh::BvhNode,
     camera::ProjectionCamera,
     color::Color,
-    material::{EmissiveMaterial, Glass, LambertianMaterial, Material, Mirror},
+    material::{EmissiveMaterial, GlassMaterial, LambertianMaterial, Material, MirorMaterial},
     obj::load_obj,
     primitive::{Primitive, ShapePrimitive},
     scene::Scene,
@@ -20,13 +20,8 @@ pub fn simple(num_samples: usize, scale: usize) -> Scene {
     let sky_material = Arc::new(EmissiveMaterial {
         emittance: Color::from_rgb(0, 10, 60),
     });
-    let ground_material = Arc::new(LambertianMaterial {
-        reflectance: Color::WHITE,
-    });
-    let glass_material = Arc::new(Glass {
-        eta: 1.8,
-        transmittance: Color::from_rgb(240, 250, 255),
-    });
+    let ground_material = Arc::new(LambertianMaterial::new(Color::WHITE));
+    let glass_material = Arc::new(GlassMaterial::new(Color::WHITE, Color::WHITE, 1.5));
     let light_material = Arc::new(EmissiveMaterial {
         emittance: Color::from_rgb(255, 230, 180) * 2.0,
     });
@@ -104,9 +99,7 @@ pub fn random_spheres(num_samples: usize, scale: usize) -> Scene {
                 origin: Vector(0.0, -1000.0, 10.0),
                 radius: 1000.0,
             }),
-            material: Arc::new(LambertianMaterial {
-                reflectance: Color::from_rgb(200, 180, 150),
-            }),
+            material: Arc::new(LambertianMaterial::new(Color::from_rgb(200, 180, 150))),
         }),
     ];
 
@@ -114,21 +107,22 @@ pub fn random_spheres(num_samples: usize, scale: usize) -> Scene {
         for z in 6..14 {
             let radius = rng.gen_range(0.15..0.3);
             let material: Arc<dyn Material> = match rng.gen_range(0..10) {
-                0 => Arc::new(Mirror {
-                    reflectance: Color::from_rgb(
-                        rng.gen_range(0..255),
-                        rng.gen_range(0..255),
-                        rng.gen_range(0..255),
-                    ),
-                }),
-                1..=3 => Arc::new(Glass {
-                    transmittance: Color::from_rgb(
+                0 => {
+                    let color = Color::from_rgb(
                         rng.gen_range(128..255),
                         rng.gen_range(128..255),
                         rng.gen_range(128..255),
-                    ),
-                    eta: 1.0 + rng.gen::<f64>(),
-                }),
+                    );
+                    Arc::new(MirorMaterial::new(color, 1.5))
+                }
+                1..=3 => {
+                    let color = Color::from_rgb(
+                        rng.gen_range(128..255),
+                        rng.gen_range(128..255),
+                        rng.gen_range(128..255),
+                    );
+                    Arc::new(GlassMaterial::new(color, color, 1.0 + rng.gen::<f64>()))
+                }
                 4 => Arc::new(EmissiveMaterial {
                     emittance: Color::from_rgb(
                         rng.gen_range(0..255),
@@ -136,13 +130,11 @@ pub fn random_spheres(num_samples: usize, scale: usize) -> Scene {
                         rng.gen_range(0..255),
                     ) * 10.0,
                 }),
-                _ => Arc::new(LambertianMaterial {
-                    reflectance: Color::from_rgb(
-                        rng.gen_range(0..255),
-                        rng.gen_range(0..255),
-                        rng.gen_range(0..255),
-                    ),
-                }),
+                _ => Arc::new(LambertianMaterial::new(Color::from_rgb(
+                    rng.gen_range(0..255),
+                    rng.gen_range(0..255),
+                    rng.gen_range(0..255),
+                ))),
             };
             primitives.push(Arc::new(ShapePrimitive {
                 shape: Box::new(Sphere {
@@ -179,13 +171,8 @@ pub fn obj(num_samples: usize, scale: usize) -> Scene {
     let mut primitives = load_obj(
         "objs/xyzrgb_dragon.obj",
         Arc::new(
-            Glass {
-                eta: 1.5,
-                transmittance: Color::from_rgb(148, 177, 160),
-            },
-            // LambertianMaterial {
-            //     reflectance: Color::from_rgb(200, 255, 200),
-            // },
+            GlassMaterial::new(Color::WHITE, Color::from_rgb(148, 177, 160), 2.5),
+            // LambertianMaterial::new(Color::from_rgb(255, 180, 80)),
         ),
     );
 
@@ -214,9 +201,7 @@ pub fn obj(num_samples: usize, scale: usize) -> Scene {
             origin: Vector(0.0, -10040.0, 0.0),
             radius: 10000.0,
         }),
-        material: Arc::new(LambertianMaterial {
-            reflectance: Color::WHITE * 0.75,
-        }),
+        material: Arc::new(LambertianMaterial::new(Color::WHITE * 0.75)),
     }));
 
     Scene {

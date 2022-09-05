@@ -14,6 +14,7 @@ use trace::trace;
 
 mod bounds;
 mod bvh;
+mod bxdf;
 mod camera;
 mod color;
 mod constants;
@@ -158,7 +159,8 @@ fn render(scene: &Scene) -> Vec<f32> {
                             g: pixels[3 * offset + 1] as f64,
                             b: pixels[3 * offset + 2] as f64,
                         }
-                        .gamma_correct(2.2)
+                        // Gamma correction
+                        .powf(1.0 / 2.2)
                         .to_rgb();
                         buffer[offset] = (r as u32) << 16 | (g as u32) << 8 | b as u32;
                     }

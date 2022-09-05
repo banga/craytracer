@@ -1,6 +1,6 @@
 use std::{
     fmt::Display,
-    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign},
+    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub},
 };
 
 #[derive(Clone, Copy, Debug)]
@@ -29,11 +29,11 @@ impl Color {
             b: b as f64 / 255.0,
         }
     }
-    pub fn gamma_correct(self, gamma: f64) -> Color {
+    pub fn powf(self, pow: f64) -> Color {
         Color {
-            r: self.r.powf(1.0 / gamma),
-            g: self.g.powf(1.0 / gamma),
-            b: self.b.powf(1.0 / gamma),
+            r: self.r.powf(pow),
+            g: self.g.powf(pow),
+            b: self.b.powf(pow),
         }
     }
     pub fn to_rgb(self) -> (u8, u8, u8) {
@@ -115,6 +115,29 @@ impl DivAssign<f64> for Color {
         self.r /= rhs;
         self.g /= rhs;
         self.b /= rhs;
+    }
+}
+
+impl Sub for Color {
+    type Output = Color;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Color {
+            r: self.r - rhs.r,
+            g: self.g - rhs.g,
+            b: self.b - rhs.b,
+        }
+    }
+}
+
+impl Div<Color> for Color {
+    type Output = Color;
+    fn div(self, rhs: Color) -> Self::Output {
+        Color {
+            r: self.r / rhs.r,
+            g: self.g / rhs.g,
+            b: self.b / rhs.b,
+        }
     }
 }
 

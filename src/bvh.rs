@@ -218,9 +218,7 @@ mod tests {
 
     #[test]
     fn bvh_node() {
-        let material: Arc<dyn Material> = Arc::new(LambertianMaterial {
-            reflectance: Color::WHITE,
-        });
+        let material: Arc<dyn Material> = Arc::new(LambertianMaterial::new(Color::WHITE));
         let node = BvhNode::new(vec![
             Arc::new(ShapePrimitive {
                 shape: Box::new(Sphere {
