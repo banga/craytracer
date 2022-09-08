@@ -1,11 +1,13 @@
 use rand::{Rng, SeedableRng};
-use std::{f64::consts::PI, sync::Arc, vec};
+use std::{sync::Arc, vec};
 
 use crate::{
     bvh::BvhNode,
     camera::ProjectionCamera,
     color::Color,
-    material::{EmissiveMaterial, GlassMaterial, Material, MatteMaterial, MirorMaterial},
+    material::{
+        EmissiveMaterial, GlassMaterial, Material, MatteMaterial, MirorMaterial, PlasticMaterial,
+    },
     obj::load_obj,
     primitive::{Primitive, ShapePrimitive},
     scene::Scene,
@@ -174,8 +176,13 @@ pub fn obj(num_samples: usize, scale: usize) -> Scene {
     let mut primitives = load_obj(
         "objs/xyzrgb_dragon.obj",
         Arc::new(
-            // GlassMaterial::new(Color::WHITE, Color::from_rgb(148, 177, 160), 2.5),
-            MatteMaterial::new(Color::from_rgb(255, 180, 80) * PI, 1000.0),
+            // GlassMaterial::new(Color::WHITE, Color::WHITE, 1.5),
+            // MatteMaterial::new(Color::from_rgb(255, 0, 0), 0.0),
+            PlasticMaterial::new(
+                Color::from_rgb(255, 0, 0),
+                Color::from_rgb(255, 255, 255),
+                0.0,
+            ),
         ),
     );
 
@@ -185,17 +192,7 @@ pub fn obj(num_samples: usize, scale: usize) -> Scene {
             radius: 1000.0,
         }),
         material: Arc::new(EmissiveMaterial {
-            emittance: Color::WHITE * 0.5,
-        }),
-    }));
-
-    primitives.push(Arc::new(ShapePrimitive {
-        shape: Box::new(Sphere {
-            origin: Vector(0.0, 150.0, 0.0),
-            radius: 50.0,
-        }),
-        material: Arc::new(EmissiveMaterial {
-            emittance: Color::from_rgb(255, 225, 100) * 5.0,
+            emittance: Color::from_rgb(230, 252, 255),
         }),
     }));
 
@@ -204,7 +201,7 @@ pub fn obj(num_samples: usize, scale: usize) -> Scene {
             origin: Vector(0.0, -10040.0, 0.0),
             radius: 10000.0,
         }),
-        material: Arc::new(MatteMaterial::new(Color::WHITE * 0.75, 0.0)),
+        material: Arc::new(MatteMaterial::new(Color::from_rgb(44, 33, 255), 0.0)),
     }));
 
     Scene {

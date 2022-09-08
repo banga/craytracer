@@ -1,6 +1,8 @@
-use std::f64::consts::PI;
+use std::f64::consts::FRAC_1_PI;
 
-use crate::{color::Color, constants::EPSILON, sampling::sample_hemisphere, vector::Vector};
+use crate::{
+    color::Color, constants::EPSILON, pdf::Pdf, sampling::sample_hemisphere, vector::Vector,
+};
 use approx::assert_abs_diff_eq;
 use rand::Rng;
 
@@ -8,11 +10,17 @@ use rand::Rng;
 pub struct SurfaceSample {
     pub w_i: Vector,
     pub f: Color,
+    pub pdf: Pdf,
+    // TODO: Handle lighting separately
     pub Le: Color,
 }
 
-pub trait BxDF {
-    fn sample(&self, w_o: &Vector, normal: &Vector) -> SurfaceSample;
+pub trait BxDF: Sync + Send {
+    fn has_reflection(&self) -> bool;
+    fn has_transmission(&self) -> bool;
+    fn sample(&self, w_o: &Vector, normal: &Vector) -> Option<SurfaceSample>;
+    fn f(&self, w_o: &Vector, w_i: &Vector, normal: &Vector) -> Color;
+    fn pdf(&self, w_o: &Vector, w_i: &Vector) -> Pdf;
 }
 
 pub struct LambertianBRDF {
@@ -26,13 +34,26 @@ impl LambertianBRDF {
 }
 
 impl BxDF for LambertianBRDF {
-    fn sample(&self, _w_o: &Vector, normal: &Vector) -> SurfaceSample {
+    fn sample(&self, w_o: &Vector, normal: &Vector) -> Option<SurfaceSample> {
         let w_i = sample_hemisphere(normal);
-        SurfaceSample {
+        Some(SurfaceSample {
             w_i,
-            f: self.reflectance / PI,
+            f: self.f(w_o, &w_i, normal),
+            pdf: self.pdf(w_o, &w_i),
             Le: Color::BLACK,
-        }
+        })
+    }
+    fn f(&self, _w_o: &Vector, _w_i: &Vector, _normal: &Vector) -> Color {
+        self.reflectance * FRAC_1_PI
+    }
+    fn pdf(&self, _w_o: &Vector, _w_i: &Vector) -> Pdf {
+        Pdf::NonDelta(FRAC_1_PI)
+    }
+    fn has_reflection(&self) -> bool {
+        true
+    }
+    fn has_transmission(&self) -> bool {
+        false
     }
 }
 
@@ -55,9 +76,17 @@ impl OrenNayyarBRDF {
 }
 
 impl BxDF for OrenNayyarBRDF {
-    fn sample(&self, w_o: &Vector, normal: &Vector) -> SurfaceSample {
+    fn sample(&self, w_o: &Vector, normal: &Vector) -> Option<SurfaceSample> {
         let w_i = sample_hemisphere(normal);
 
+        Some(SurfaceSample {
+            w_i,
+            f: self.f(w_o, &w_i, normal),
+            pdf: self.pdf(w_o, &w_i),
+            Le: Color::BLACK,
+        })
+    }
+    fn f(&self, w_o: &Vector, w_i: &Vector, normal: &Vector) -> Color {
         let cos_theta_i = w_i.dot(normal);
         assert!(cos_theta_i >= 0.0);
         let cos_theta_o = w_o.dot(normal).abs();
@@ -73,11 +102,16 @@ impl BxDF for OrenNayyarBRDF {
             (sin_theta_i, sin_theta_o / cos_theta_o)
         };
 
-        SurfaceSample {
-            w_i,
-            f: self.reflectance * (self.A + self.B * max_cos * sin_alpha * tan_beta) / PI,
-            Le: Color::BLACK,
-        }
+        self.reflectance * (self.A + self.B * max_cos * sin_alpha * tan_beta) * FRAC_1_PI
+    }
+    fn pdf(&self, _w_o: &Vector, _w_i: &Vector) -> Pdf {
+        Pdf::NonDelta(FRAC_1_PI)
+    }
+    fn has_reflection(&self) -> bool {
+        true
+    }
+    fn has_transmission(&self) -> bool {
+        false
     }
 }
 
@@ -184,7 +218,7 @@ impl SpecularBRDF {
 }
 
 impl BxDF for SpecularBRDF {
-    fn sample(&self, w_o: &Vector, normal: &Vector) -> SurfaceSample {
+    fn sample(&self, w_o: &Vector, normal: &Vector) -> Option<SurfaceSample> {
         let w_i = reflect(&w_o, &normal);
         assert_abs_diff_eq!(w_i.magnitude(), 1.0, epsilon = EPSILON);
 
@@ -198,13 +232,24 @@ impl BxDF for SpecularBRDF {
                 fresnel_conductor(conductor.eta_i, conductor.eta_t, conductor.k, cos_theta_i)
             }
         };
-        let f = self.reflectance * fresnel / cos_theta_i.abs();
-
-        SurfaceSample {
+        Some(SurfaceSample {
             w_i,
-            f,
+            f: self.reflectance * fresnel / cos_theta_i.abs(),
+            pdf: self.pdf(w_o, &w_i),
             Le: Color::BLACK,
-        }
+        })
+    }
+    fn f(&self, _w_o: &Vector, _w_i: &Vector, _normal: &Vector) -> Color {
+        Color::BLACK
+    }
+    fn pdf(&self, _w_o: &Vector, _w_i: &Vector) -> Pdf {
+        Pdf::Delta
+    }
+    fn has_reflection(&self) -> bool {
+        true
+    }
+    fn has_transmission(&self) -> bool {
+        false
     }
 }
 
@@ -215,27 +260,33 @@ pub struct SpecularBTDF {
 }
 
 impl BxDF for SpecularBTDF {
-    fn sample(&self, w_o: &Vector, normal: &Vector) -> SurfaceSample {
+    fn sample(&self, w_o: &Vector, normal: &Vector) -> Option<SurfaceSample> {
         let cos_theta_i = -w_o.dot(normal);
 
         if let Some(w_i) = refract(&w_o, &normal, cos_theta_i, self.eta_i, self.eta_t) {
             assert_abs_diff_eq!(w_i.magnitude(), 1.0, epsilon = EPSILON);
-
             let fresnel = fresnel_dielectric(self.eta_i, self.eta_t, cos_theta_i);
-            let f = self.transmittance * (1.0 - fresnel) / cos_theta_i.abs();
-
-            SurfaceSample {
+            Some(SurfaceSample {
                 w_i,
-                f,
+                f: self.transmittance * (1.0 - fresnel) / cos_theta_i.abs(),
+                pdf: self.pdf(w_o, &w_i),
                 Le: Color::BLACK,
-            }
+            })
         } else {
-            SurfaceSample {
-                w_i: *w_o,
-                f: Color::BLACK,
-                Le: Color::BLACK,
-            }
+            None
         }
+    }
+    fn f(&self, _w_o: &Vector, _w_i: &Vector, _normal: &Vector) -> Color {
+        Color::BLACK
+    }
+    fn pdf(&self, _w_o: &Vector, _w_i: &Vector) -> Pdf {
+        Pdf::Delta
+    }
+    fn has_reflection(&self) -> bool {
+        false
+    }
+    fn has_transmission(&self) -> bool {
+        true
     }
 }
 
@@ -263,35 +314,42 @@ impl FresnelSpecularBxDF {
 }
 
 impl BxDF for FresnelSpecularBxDF {
-    fn sample(&self, w_o: &Vector, normal: &Vector) -> SurfaceSample {
+    fn sample(&self, w_o: &Vector, normal: &Vector) -> Option<SurfaceSample> {
         let cos_theta_i = -w_o.dot(&normal);
         let fresnel_reflectance = fresnel_dielectric(self.eta_i, self.eta_t, cos_theta_i);
 
-        // Here, `f` doesn't need to be multiplied by the fresnel reflectance
-        // value because that is the `pdf` of the function and will be in the
-        // denominator of the monte-carlo estimator and cancel out
         let mut rng = rand::thread_rng();
         if rng.gen_range(0.0..1.0) < fresnel_reflectance {
-            SurfaceSample {
+            Some(SurfaceSample {
                 w_i: reflect(w_o, normal),
-                f: self.reflectance / cos_theta_i.abs(),
+                f: self.reflectance * fresnel_reflectance / cos_theta_i.abs(),
+                pdf: Pdf::NonDelta(fresnel_reflectance),
                 Le: Color::BLACK,
-            }
+            })
         } else {
             if let Some(w_i) = refract(w_o, normal, cos_theta_i, self.eta_i, self.eta_t) {
-                SurfaceSample {
+                Some(SurfaceSample {
                     w_i,
-                    f: self.transmittance / cos_theta_i.abs(),
+                    f: self.transmittance * (1.0 - fresnel_reflectance) / cos_theta_i.abs(),
+                    pdf: Pdf::NonDelta(1.0 - fresnel_reflectance),
                     Le: Color::BLACK,
-                }
+                })
             } else {
-                SurfaceSample {
-                    w_i: *w_o,
-                    f: Color::BLACK,
-                    Le: Color::BLACK,
-                }
+                None
             }
         }
+    }
+    fn f(&self, _w_o: &Vector, _w_i: &Vector, _normal: &Vector) -> Color {
+        Color::BLACK
+    }
+    fn pdf(&self, _w_o: &Vector, _w_i: &Vector) -> Pdf {
+        Pdf::Delta
+    }
+    fn has_reflection(&self) -> bool {
+        true
+    }
+    fn has_transmission(&self) -> bool {
+        true
     }
 }
 

@@ -13,6 +13,7 @@ use std::{
 use trace::trace;
 
 mod bounds;
+mod bsdf;
 mod bvh;
 mod bxdf;
 mod camera;
@@ -21,6 +22,7 @@ mod constants;
 mod intersection;
 mod material;
 mod obj;
+mod pdf;
 mod primitive;
 mod ray;
 mod sampling;
