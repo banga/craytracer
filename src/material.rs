@@ -3,8 +3,8 @@ use std::{sync::Arc, vec};
 use crate::{
     bsdf::BSDF,
     bxdf::{
-        BxDF, Dielectric, Fresnel, FresnelSpecularBxDF, LambertianBRDF, OrenNayyarBRDF,
-        SpecularBRDF, SurfaceSample,
+        BxDF, Dielectric, Fresnel, FresnelConductorBRDF, FresnelSpecularBxDF, LambertianBRDF,
+        OrenNayyarBRDF, SpecularBRDF, SurfaceSample,
     },
     color::Color,
     pdf::Pdf,
@@ -51,31 +51,6 @@ impl Material for MatteMaterial {
             MatteMaterial::Lambertian(brdf) => brdf.sample(w_o, normal),
             MatteMaterial::OrenNayyar(brdf) => brdf.sample(w_o, normal),
         }
-    }
-}
-
-pub struct MirorMaterial {
-    brdf: SpecularBRDF,
-}
-
-// TODO: Not really a mirror like material, just exposing it for testing
-impl MirorMaterial {
-    pub fn new(reflectance: Color, eta: f64) -> MirorMaterial {
-        MirorMaterial {
-            brdf: SpecularBRDF::new(
-                reflectance,
-                Fresnel::Dielectric(Dielectric {
-                    eta_i: 1.0,
-                    eta_t: eta,
-                }),
-            ),
-        }
-    }
-}
-
-impl Material for MirorMaterial {
-    fn sample(&self, w_o: &Vector, normal: &Vector) -> Option<SurfaceSample> {
-        self.brdf.sample(w_o, normal)
     }
 }
 
@@ -128,6 +103,27 @@ impl PlasticMaterial {
 }
 
 impl Material for PlasticMaterial {
+    fn sample(&self, w_o: &Vector, normal: &Vector) -> Option<SurfaceSample> {
+        self.bsdf.sample(w_o, normal)
+    }
+}
+
+pub struct MetalMaterial {
+    bsdf: BSDF,
+}
+
+impl MetalMaterial {
+    // TODO: Implement microfacet brdf and use here
+    pub fn new(eta: Color, k: Color) -> MetalMaterial {
+        MetalMaterial {
+            bsdf: BSDF {
+                bxdfs: vec![Arc::new(FresnelConductorBRDF::new(eta, k))],
+            },
+        }
+    }
+}
+
+impl Material for MetalMaterial {
     fn sample(&self, w_o: &Vector, normal: &Vector) -> Option<SurfaceSample> {
         self.bsdf.sample(w_o, normal)
     }

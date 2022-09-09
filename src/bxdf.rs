@@ -180,6 +180,7 @@ fn fresnel_dielectric(eta_i: f64, eta_t: f64, cos_theta_i: f64) -> f64 {
 }
 
 fn fresnel_conductor(eta_i: Color, eta_t: Color, k: Color, cos_theta_i: f64) -> Color {
+    assert!(cos_theta_i >= 0.0);
     // Source: https://pbr-book.org/3ed-2018/Reflection_Models/Specular_Reflection_and_Transmission
     let eta_rel = eta_t / eta_i;
     let eta_rel_2 = eta_rel * eta_rel;
@@ -189,7 +190,7 @@ fn fresnel_conductor(eta_i: Color, eta_t: Color, k: Color, cos_theta_i: f64) -> 
     let cos_theta_2 = cos_theta_i * cos_theta_i;
     let sin_theta_2 = 1.0 - cos_theta_2;
     let t0 = eta_rel_2 - k_rel_2 - Color::WHITE * sin_theta_2;
-    let a2_plus_b2 = t0 * t0 + eta_rel_2 * k_rel_2 * 4.0;
+    let a2_plus_b2 = (t0 * t0 + eta_rel_2 * k_rel_2 * 4.0).powf(0.5);
     let a = ((a2_plus_b2 + t0) * 0.5).powf(0.5);
 
     let t1 = a2_plus_b2 + Color::WHITE * cos_theta_2;
@@ -201,6 +202,45 @@ fn fresnel_conductor(eta_i: Color, eta_t: Color, k: Color, cos_theta_i: f64) -> 
     let r_parallel = r_perpendicular * (t3 - t4) / (t3 + t4);
 
     (r_parallel * r_parallel + r_perpendicular * r_perpendicular) * 0.5
+}
+
+pub struct FresnelConductorBRDF {
+    eta: Color,
+    k: Color,
+}
+
+impl FresnelConductorBRDF {
+    pub fn new(eta: Color, k: Color) -> FresnelConductorBRDF {
+        FresnelConductorBRDF { eta, k }
+    }
+}
+
+impl BxDF for FresnelConductorBRDF {
+    fn sample(&self, w_o: &Vector, normal: &Vector) -> Option<SurfaceSample> {
+        let w_i = reflect(&w_o, &normal);
+        assert_abs_diff_eq!(w_i.magnitude(), 1.0, epsilon = EPSILON);
+
+        let cos_theta_i = -w_o.dot(normal);
+        let fresnel = fresnel_conductor(Color::WHITE, self.eta, self.k, cos_theta_i);
+        Some(SurfaceSample {
+            w_i,
+            f: fresnel / cos_theta_i.abs(),
+            pdf: self.pdf(w_o, &w_i),
+            Le: Color::BLACK,
+        })
+    }
+    fn f(&self, _w_o: &Vector, _w_i: &Vector, _normal: &Vector) -> Color {
+        Color::BLACK
+    }
+    fn pdf(&self, _w_o: &Vector, _w_i: &Vector) -> Pdf {
+        Pdf::Delta
+    }
+    fn has_reflection(&self) -> bool {
+        true
+    }
+    fn has_transmission(&self) -> bool {
+        false
+    }
 }
 
 pub struct SpecularBRDF {

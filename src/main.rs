@@ -199,18 +199,21 @@ struct Cli {
 enum SceneName {
     Simple,
     RandomSpheres,
-    Obj,
+    Dragon,
+    Suzanne,
 }
 
 fn main() {
     let args = Cli::parse();
 
     let start = Instant::now();
-    let scene = match args.scene {
-        SceneName::Simple => scenes::simple(args.samples, args.scale),
-        SceneName::RandomSpheres => scenes::random_spheres(args.samples, args.scale),
-        SceneName::Obj => scenes::obj(args.samples, args.scale),
+    let scene_fn = match args.scene {
+        SceneName::Simple => scenes::simple,
+        SceneName::RandomSpheres => scenes::random_spheres,
+        SceneName::Dragon => scenes::dragon,
+        SceneName::Suzanne => scenes::suzanne,
     };
+    let scene = scene_fn(args.samples, args.scale);
     println!("Scene constructed in {:?}", start.elapsed());
 
     let width = scene.film_width as u32;
