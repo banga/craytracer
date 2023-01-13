@@ -6,7 +6,7 @@ use crate::{color::Color, constants::EPSILON, pdf::Pdf, ray::Ray, Scene};
 pub fn trace(ray: &mut Ray, scene: &Scene, depth: u32) -> Color {
     let depth = depth + 1;
 
-    if let Some(intersection) = scene.bvh.intersect(ray) {
+    if let Some(intersection) = scene.intersect(ray) {
         assert_abs_diff_eq!(intersection.normal.magnitude(), 1.0, epsilon = EPSILON);
         assert!(intersection.distance >= 0.0);
 

@@ -2,7 +2,6 @@ use rand::{Rng, SeedableRng};
 use std::{sync::Arc, vec};
 
 use crate::{
-    bvh::BvhNode,
     camera::ProjectionCamera,
     color::Color,
     material::{
@@ -28,11 +27,11 @@ pub fn simple(num_samples: usize, scale: usize) -> Scene {
         emittance: Color::from_rgb(255, 230, 180) * 2.0,
     });
 
-    Scene {
-        max_depth: 3,
+    Scene::new(
+        3,
         film_width,
         film_height,
-        camera: Box::new(ProjectionCamera::new(
+        Box::new(ProjectionCamera::new(
             Vector(0.0, 8.0, -10.0),
             Vector(0.0, 1.5, 12.0),
             Vector::Y,
@@ -41,7 +40,7 @@ pub fn simple(num_samples: usize, scale: usize) -> Scene {
             film_width,
             film_height,
         )),
-        bvh: BvhNode::new(vec![
+        vec![
             // Sky
             Arc::new(ShapePrimitive {
                 shape: Box::new(Sphere {
@@ -73,8 +72,8 @@ pub fn simple(num_samples: usize, scale: usize) -> Scene {
                 }),
                 material: light_material,
             }),
-        ]),
-    }
+        ],
+    )
 }
 
 pub fn random_spheres(num_samples: usize, scale: usize) -> Scene {
@@ -150,11 +149,11 @@ pub fn random_spheres(num_samples: usize, scale: usize) -> Scene {
         }
     }
 
-    Scene {
-        max_depth: 4,
+    Scene::new(
+        4,
         film_width,
         film_height,
-        camera: Box::new(ProjectionCamera::new(
+        Box::new(ProjectionCamera::new(
             Vector(2.0, 2.0, 0.0),
             Vector(0.0, 0.0, 10.0),
             Vector::Y,
@@ -163,8 +162,8 @@ pub fn random_spheres(num_samples: usize, scale: usize) -> Scene {
             film_width,
             film_height,
         )),
-        bvh: BvhNode::new(primitives),
-    }
+        primitives,
+    )
 }
 
 fn brass() -> MetalMaterial {
@@ -234,7 +233,11 @@ pub fn dragon(num_samples: usize, scale: usize) -> Scene {
     let mut primitives = load_obj(
         "objs/xyzrgb_dragon.obj",
         Arc::new(
-            // GlassMaterial::new(Color::WHITE, Color::WHITE, 1.5),
+            // GlassMaterial::new(
+            //     Color::from_rgb(235, 255, 240),
+            //     Color::from_rgb(235, 255, 240),
+            //     1.3,
+            // ),
             // MatteMaterial::new(Color::from_rgb(255, 0, 0), 0.0),
             // PlasticMaterial::new(
             //     Color::from_rgb(255, 0, 0),
@@ -252,7 +255,7 @@ pub fn dragon(num_samples: usize, scale: usize) -> Scene {
             radius: 1000.0,
         }),
         material: Arc::new(EmissiveMaterial {
-            emittance: Color::from_rgb(230, 252, 255) * 0.5,
+            emittance: Color::from_rgb(230, 252, 255) * 0.1,
         }),
     }));
 
@@ -262,7 +265,7 @@ pub fn dragon(num_samples: usize, scale: usize) -> Scene {
             radius: 50.0,
         }),
         material: Arc::new(EmissiveMaterial {
-            emittance: Color::from_rgb(255, 255, 255) * 2.0,
+            emittance: Color::from_rgb(255, 255, 255) * 5.0,
         }),
     }));
 
@@ -271,14 +274,14 @@ pub fn dragon(num_samples: usize, scale: usize) -> Scene {
             origin: Vector(0.0, -10040.0, 0.0),
             radius: 10000.0,
         }),
-        material: Arc::new(MatteMaterial::new(Color::from_rgb(150, 0, 0), 0.0)),
+        material: Arc::new(MatteMaterial::new(Color::from_rgb(255, 255, 255), 0.0)),
     }));
 
-    Scene {
-        max_depth: 8,
+    Scene::new(
+        32,
         film_width,
         film_height,
-        camera: Box::new(ProjectionCamera::new(
+        Box::new(ProjectionCamera::new(
             Vector(150.0, 20.0, -150.0),
             Vector(30.0, -10.0, 0.0),
             Vector::Y,
@@ -287,8 +290,8 @@ pub fn dragon(num_samples: usize, scale: usize) -> Scene {
             film_width,
             film_height,
         )),
-        bvh: BvhNode::new(primitives),
-    }
+        primitives,
+    )
 }
 
 pub fn suzanne(num_samples: usize, scale: usize) -> Scene {
@@ -326,11 +329,11 @@ pub fn suzanne(num_samples: usize, scale: usize) -> Scene {
         material: Arc::new(MatteMaterial::new(Color::from_rgb(44, 33, 255), 0.0)),
     }));
 
-    Scene {
-        max_depth: 8,
+    Scene::new(
+        8,
         film_width,
         film_height,
-        camera: Box::new(ProjectionCamera::new(
+        Box::new(ProjectionCamera::new(
             Vector(0.75, 0.75, 3.0),
             Vector(0.0, 0.0, 0.0),
             Vector::Y,
@@ -339,6 +342,6 @@ pub fn suzanne(num_samples: usize, scale: usize) -> Scene {
             film_width,
             film_height,
         )),
-        bvh: BvhNode::new(primitives),
-    }
+        primitives,
+    )
 }
