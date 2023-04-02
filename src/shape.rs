@@ -11,6 +11,19 @@ pub trait Shape: Sync + Send {
 pub struct Sphere {
     pub origin: Vector,
     pub radius: f64,
+    radius_squared: f64,
+    inv_radius: f64,
+}
+
+impl Sphere {
+    pub fn new(origin: Vector, radius: f64) -> Sphere {
+        Sphere {
+            origin,
+            radius,
+            radius_squared: radius * radius,
+            inv_radius: 1.0 / radius,
+        }
+    }
 }
 
 impl Shape for Sphere {
@@ -31,28 +44,30 @@ impl Shape for Sphere {
 
     fn intersect(&self, ray: &mut Ray) -> Option<ShapeIntersection> {
         let oc = ray.origin - self.origin;
-        let a = ray.direction.dot(&ray.direction);
+        let a = ray.direction.magnitude_squared();
         let b = 2.0 * oc.dot(&ray.direction);
-        let c = oc.dot(&oc) - self.radius * self.radius;
+        let c = oc.magnitude_squared() - self.radius_squared;
         let discriminant = b * b - 4.0 * a * c;
 
         if discriminant < 0.0 {
             return None;
         }
 
-        let mut distance = (-b - discriminant.sqrt()) / (2.0 * a);
+        let discriminant_sqrt = discriminant.sqrt();
+        let inv_2_a = 1.0 / (2.0 * a);
+        let mut distance = (-b - discriminant_sqrt) * inv_2_a;
         if let Some(location) = ray.update_max_distance(distance) {
             return Some(ShapeIntersection {
                 location,
-                normal: (location - self.origin) / self.radius,
+                normal: (location - self.origin) * self.inv_radius,
             });
         }
 
-        distance = (-b + discriminant.sqrt()) / (2.0 * a);
+        distance = (-b + discriminant_sqrt) * inv_2_a;
         if let Some(location) = ray.update_max_distance(distance) {
             return Some(ShapeIntersection {
                 location,
-                normal: (location - self.origin) / self.radius,
+                normal: (location - self.origin) * self.inv_radius,
             });
         }
 
@@ -171,20 +186,12 @@ mod tests {
         #[test]
         fn bounds() {
             assert_eq!(
-                Sphere {
-                    origin: Vector(0.0, 0.0, 0.0),
-                    radius: 1.0,
-                }
-                .bounds(),
+                Sphere::new(Vector(0.0, 0.0, 0.0), 1.0,).bounds(),
                 Bounds::new(Vector(-1.0, -1.0, -1.0), Vector(1.0, 1.0, 1.0),)
             );
 
             assert_eq!(
-                Sphere {
-                    origin: Vector(-2.0, 3.0, 0.0),
-                    radius: 1.0,
-                }
-                .bounds(),
+                Sphere::new(Vector(-2.0, 3.0, 0.0), 1.0,).bounds(),
                 Bounds::new(Vector(-3.0, 2.0, -1.0), Vector(-1.0, 4.0, 1.0),)
             );
         }

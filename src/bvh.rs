@@ -221,17 +221,11 @@ mod tests {
         let material: Arc<dyn Material> = Arc::new(MatteMaterial::new(Color::WHITE, 0.0));
         let node = BvhNode::new(vec![
             Arc::new(ShapePrimitive {
-                shape: Box::new(Sphere {
-                    origin: Vector(0.5, 0.5, 0.5),
-                    radius: 0.5,
-                }),
+                shape: Box::new(Sphere::new(Vector(0.5, 0.5, 0.5), 0.5)),
                 material: Arc::clone(&material),
             }),
             Arc::new(ShapePrimitive {
-                shape: Box::new(Sphere {
-                    origin: Vector(1.5, 0.5, 0.5),
-                    radius: 0.5,
-                }),
+                shape: Box::new(Sphere::new(Vector(1.5, 0.5, 0.5), 0.5)),
                 material: Arc::clone(&material),
             }),
         ]);

@@ -35,8 +35,11 @@ impl Vector {
     pub fn z(&self) -> f64 {
         self.2
     }
+    pub fn magnitude_squared(&self) -> f64 {
+        self.0 * self.0 + self.1 * self.1 + self.2 * self.2
+    }
     pub fn magnitude(&self) -> f64 {
-        (self.0 * self.0 + self.1 * self.1 + self.2 * self.2).sqrt()
+        self.magnitude_squared().sqrt()
     }
     pub fn normalized(&self) -> Vector {
         let mag = self.magnitude();
