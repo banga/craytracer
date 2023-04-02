@@ -35,7 +35,6 @@ impl LambertianBRDF {
 
 impl BxDF for LambertianBRDF {
     fn sample(&self, w_o: &Vector, normal: &Vector) -> Option<SurfaceSample> {
-        // let w_i = sample_hemisphere(normal);
         let w_i = cosine_sample_hemisphere(normal);
         Some(SurfaceSample {
             w_i,
@@ -50,7 +49,6 @@ impl BxDF for LambertianBRDF {
     fn pdf(&self, _w_o: &Vector, w_i: &Vector, normal: &Vector) -> Pdf {
         let cos_theta = w_i.dot(normal).abs();
         Pdf::NonDelta(FRAC_1_PI * cos_theta)
-        // Pdf::NonDelta(FRAC_1_PI)
     }
     fn has_reflection(&self) -> bool {
         true

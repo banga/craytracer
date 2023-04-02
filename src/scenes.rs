@@ -216,15 +216,15 @@ pub fn dragon(num_samples: usize, scale: usize) -> Scene {
         "objs/xyzrgb_dragon.obj",
         Arc::new(
             // GlassMaterial::new(
+            //     Color::from_rgb(235, 255, 240) * 0.5,
             //     Color::from_rgb(235, 255, 240),
-            //     Color::from_rgb(235, 255, 240),
-            //     1.3,
+            //     1.5,
             // ),
-            // MatteMaterial::new(Color::from_rgb(255, 0, 0), 0.0),
+            // MatteMaterial::new(Color::from_rgb(255, 255, 0), 30.0),
             // PlasticMaterial::new(
             //     Color::from_rgb(255, 0, 0),
             //     Color::from_rgb(255, 255, 255),
-            //     0.0,
+            //     100.0,
             // ),
             gold(),
             // brass(),
@@ -234,14 +234,14 @@ pub fn dragon(num_samples: usize, scale: usize) -> Scene {
     primitives.push(Arc::new(ShapePrimitive {
         shape: Box::new(Sphere::new(Vector(0.0, 0.0, 0.0), 1000.0)),
         material: Arc::new(EmissiveMaterial {
-            emittance: Color::from_rgb(230, 252, 255) * 0.1,
+            emittance: Color::from_rgb(200, 220, 235),
         }),
     }));
 
     primitives.push(Arc::new(ShapePrimitive {
-        shape: Box::new(Sphere::new(Vector(0.0, 150.0, 0.0), 50.0)),
+        shape: Box::new(Sphere::new(Vector(0.0, 100.0, -150.0), 50.0)),
         material: Arc::new(EmissiveMaterial {
-            emittance: Color::from_rgb(255, 255, 255) * 5.0,
+            emittance: Color::WHITE * 3.0,
         }),
     }));
 
