@@ -19,21 +19,21 @@ pub fn simple(num_samples: usize, scale: usize) -> Scene {
     let film_height: usize = 560 * scale;
 
     let sky_material = Arc::new(EmissiveMaterial {
-        emittance: Color::from_rgb(0, 10, 60),
+        emittance: Color::from_rgb(0, 10, 60) * 2.0,
     });
-    let ground_material = Arc::new(MatteMaterial::new(Color::WHITE, 0.0));
-    let glass_material = Arc::new(GlassMaterial::new(Color::WHITE, Color::WHITE, 1.5));
+    let ground_material = Arc::new(MatteMaterial::new(Color::WHITE * 0.8, 0.0));
+    let glass_material = Arc::new(GlassMaterial::new(Color::WHITE, Color::WHITE * 0.6, 1.75));
     let light_material = Arc::new(EmissiveMaterial {
-        emittance: Color::from_rgb(255, 230, 180) * 2.0,
+        emittance: Color::from_rgb(255, 230, 20) * 2.0,
     });
 
     Scene::new(
-        3,
+        8,
         film_width,
         film_height,
         Box::new(ProjectionCamera::new(
             Vector(0.0, 8.0, -10.0),
-            Vector(0.0, 1.5, 12.0),
+            Vector(1.0, 1.25, 12.0),
             Vector::Y,
             5.0,
             num_samples,
