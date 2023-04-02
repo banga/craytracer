@@ -151,7 +151,7 @@ fn render(scene: &Scene) -> Vec<f32> {
         let (mut buffer, mut window) =
             setup_preview_window(width, height, tile_width, tile_height, &tiles);
         let mut tile_count = 0;
-        while !window.is_key_released(Key::Escape) && tile_count < tiles.len() {
+        while tile_count < tiles.len() {
             if let Ok(tile_index) = receiver.try_recv() {
                 let (x1, y1, x2, y2) = tiles[tile_index];
                 for x in x1..x2 {
