@@ -1,7 +1,8 @@
-use rand::{distributions::Uniform, prelude::Distribution};
-use rand_distr::UnitSphere;
+use std::f64::consts::{FRAC_PI_2, FRAC_PI_4};
 
-use crate::vector::Vector;
+use rand::{distributions::Uniform, prelude::Distribution};
+
+use crate::{constants::EPSILON, vector::Vector};
 
 pub fn sample_2d() -> (f64, f64) {
     let mut rng = rand::thread_rng();
@@ -9,13 +10,63 @@ pub fn sample_2d() -> (f64, f64) {
     (uniform.sample(&mut rng), uniform.sample(&mut rng))
 }
 
+pub fn sample_disk() -> (f64, f64) {
+    // Concentric sampling: https://pbr-book.org/3ed-2018/Monte_Carlo_Integration/2D_Sampling_with_Multidimensional_Transformations#ConcentricSampleDisk
+    let mut rng = rand::thread_rng();
+    let uniform = Uniform::new_inclusive(-1.0, 1.0);
+    let x: f64 = uniform.sample(&mut rng);
+    let y: f64 = uniform.sample(&mut rng);
+    if x == 0.0 && y == 0.0 {
+        return (0.0, 0.0);
+    }
+
+    let (r, theta) = if x.abs() > y.abs() {
+        (x, FRAC_PI_4 * (y / x))
+    } else {
+        (y, FRAC_PI_2 - FRAC_PI_4 * (x / y))
+    };
+
+    (r * theta.cos(), r * theta.sin())
+}
+
 pub fn sample_hemisphere(normal: &Vector) -> Vector {
     let mut rng = rand::thread_rng();
-    let [x, y, z] = UnitSphere.sample(&mut rng);
-    let v = Vector(x, y, z);
-    if v.dot(normal) > 0.0 {
-        return v;
-    } else {
-        return -v;
+    let uniform = Uniform::new_inclusive(-1.0, 1.0);
+    loop {
+        let v = Vector(
+            uniform.sample(&mut rng),
+            uniform.sample(&mut rng),
+            uniform.sample(&mut rng),
+        );
+        let magnitude_squared = v.dot(&v);
+        if magnitude_squared <= 1.0 {
+            if v.dot(normal) > 0.0 {
+                return v / magnitude_squared.sqrt();
+            } else {
+                return -v / magnitude_squared.sqrt();
+            }
+        }
     }
+}
+
+fn generate_normal_tangents(normal: &Vector) -> (Vector, Vector) {
+    let other = if normal.x().abs() < EPSILON {
+        Vector::X
+    } else if normal.y().abs() < EPSILON {
+        Vector::Y
+    } else {
+        Vector::Z
+    };
+    let tangent = normal.cross(&other).normalized();
+    let bitangent = normal.cross(&tangent).normalized();
+    (tangent, bitangent)
+}
+
+pub fn cosine_sample_hemisphere(normal: &Vector) -> Vector {
+    let (tangent, bitangent) = generate_normal_tangents(normal);
+    let (x, y) = sample_disk();
+    let z = (1.0 - x * x - y * y).max(0.0).sqrt();
+    let v = tangent * x + bitangent * y + *normal * z;
+    assert!(v.dot(normal) >= 0.0);
+    v
 }

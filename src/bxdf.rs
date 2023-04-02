@@ -1,7 +1,7 @@
 use std::f64::consts::FRAC_1_PI;
 
 use crate::{
-    color::Color, constants::EPSILON, pdf::Pdf, sampling::sample_hemisphere, vector::Vector,
+    color::Color, constants::EPSILON, pdf::Pdf, sampling::cosine_sample_hemisphere, vector::Vector,
 };
 use approx::assert_abs_diff_eq;
 use rand::Rng;
@@ -20,7 +20,7 @@ pub trait BxDF: Sync + Send {
     fn has_transmission(&self) -> bool;
     fn sample(&self, w_o: &Vector, normal: &Vector) -> Option<SurfaceSample>;
     fn f(&self, w_o: &Vector, w_i: &Vector, normal: &Vector) -> Color;
-    fn pdf(&self, w_o: &Vector, w_i: &Vector) -> Pdf;
+    fn pdf(&self, w_o: &Vector, w_i: &Vector, normal: &Vector) -> Pdf;
 }
 
 pub struct LambertianBRDF {
@@ -35,19 +35,22 @@ impl LambertianBRDF {
 
 impl BxDF for LambertianBRDF {
     fn sample(&self, w_o: &Vector, normal: &Vector) -> Option<SurfaceSample> {
-        let w_i = sample_hemisphere(normal);
+        // let w_i = sample_hemisphere(normal);
+        let w_i = cosine_sample_hemisphere(normal);
         Some(SurfaceSample {
             w_i,
             f: self.f(w_o, &w_i, normal),
-            pdf: self.pdf(w_o, &w_i),
+            pdf: self.pdf(w_o, &w_i, normal),
             Le: Color::BLACK,
         })
     }
     fn f(&self, _w_o: &Vector, _w_i: &Vector, _normal: &Vector) -> Color {
         self.reflectance * FRAC_1_PI
     }
-    fn pdf(&self, _w_o: &Vector, _w_i: &Vector) -> Pdf {
-        Pdf::NonDelta(FRAC_1_PI)
+    fn pdf(&self, _w_o: &Vector, w_i: &Vector, normal: &Vector) -> Pdf {
+        let cos_theta = w_i.dot(normal).abs();
+        Pdf::NonDelta(FRAC_1_PI * cos_theta)
+        // Pdf::NonDelta(FRAC_1_PI)
     }
     fn has_reflection(&self) -> bool {
         true
@@ -77,12 +80,13 @@ impl OrenNayyarBRDF {
 
 impl BxDF for OrenNayyarBRDF {
     fn sample(&self, w_o: &Vector, normal: &Vector) -> Option<SurfaceSample> {
-        let w_i = sample_hemisphere(normal);
+        // TODO: switch to cosine sampling
+        let w_i = cosine_sample_hemisphere(normal);
 
         Some(SurfaceSample {
             w_i,
             f: self.f(w_o, &w_i, normal),
-            pdf: self.pdf(w_o, &w_i),
+            pdf: self.pdf(w_o, &w_i, normal),
             Le: Color::BLACK,
         })
     }
@@ -104,8 +108,9 @@ impl BxDF for OrenNayyarBRDF {
 
         self.reflectance * (self.A + self.B * max_cos * sin_alpha * tan_beta) * FRAC_1_PI
     }
-    fn pdf(&self, _w_o: &Vector, _w_i: &Vector) -> Pdf {
-        Pdf::NonDelta(FRAC_1_PI)
+    fn pdf(&self, _w_o: &Vector, w_i: &Vector, normal: &Vector) -> Pdf {
+        let cos_theta = w_i.dot(normal).abs();
+        Pdf::NonDelta(FRAC_1_PI * cos_theta)
     }
     fn has_reflection(&self) -> bool {
         true
@@ -225,14 +230,14 @@ impl BxDF for FresnelConductorBRDF {
         Some(SurfaceSample {
             w_i,
             f: fresnel / cos_theta_i.abs(),
-            pdf: self.pdf(w_o, &w_i),
+            pdf: self.pdf(w_o, &w_i, normal),
             Le: Color::BLACK,
         })
     }
     fn f(&self, _w_o: &Vector, _w_i: &Vector, _normal: &Vector) -> Color {
         Color::BLACK
     }
-    fn pdf(&self, _w_o: &Vector, _w_i: &Vector) -> Pdf {
+    fn pdf(&self, _w_o: &Vector, _w_i: &Vector, _normal: &Vector) -> Pdf {
         Pdf::Delta
     }
     fn has_reflection(&self) -> bool {
@@ -275,14 +280,14 @@ impl BxDF for SpecularBRDF {
         Some(SurfaceSample {
             w_i,
             f: self.reflectance * fresnel / cos_theta_i.abs(),
-            pdf: self.pdf(w_o, &w_i),
+            pdf: self.pdf(w_o, &w_i, normal),
             Le: Color::BLACK,
         })
     }
     fn f(&self, _w_o: &Vector, _w_i: &Vector, _normal: &Vector) -> Color {
         Color::BLACK
     }
-    fn pdf(&self, _w_o: &Vector, _w_i: &Vector) -> Pdf {
+    fn pdf(&self, _w_o: &Vector, _w_i: &Vector, _normal: &Vector) -> Pdf {
         Pdf::Delta
     }
     fn has_reflection(&self) -> bool {
@@ -309,7 +314,7 @@ impl BxDF for SpecularBTDF {
             Some(SurfaceSample {
                 w_i,
                 f: self.transmittance * (1.0 - fresnel) / cos_theta_i.abs(),
-                pdf: self.pdf(w_o, &w_i),
+                pdf: self.pdf(w_o, &w_i, normal),
                 Le: Color::BLACK,
             })
         } else {
@@ -319,7 +324,7 @@ impl BxDF for SpecularBTDF {
     fn f(&self, _w_o: &Vector, _w_i: &Vector, _normal: &Vector) -> Color {
         Color::BLACK
     }
-    fn pdf(&self, _w_o: &Vector, _w_i: &Vector) -> Pdf {
+    fn pdf(&self, _w_o: &Vector, _w_i: &Vector, _normal: &Vector) -> Pdf {
         Pdf::Delta
     }
     fn has_reflection(&self) -> bool {
@@ -382,7 +387,7 @@ impl BxDF for FresnelSpecularBxDF {
     fn f(&self, _w_o: &Vector, _w_i: &Vector, _normal: &Vector) -> Color {
         Color::BLACK
     }
-    fn pdf(&self, _w_o: &Vector, _w_i: &Vector) -> Pdf {
+    fn pdf(&self, _w_o: &Vector, _w_i: &Vector, _normal: &Vector) -> Pdf {
         Pdf::Delta
     }
     fn has_reflection(&self) -> bool {

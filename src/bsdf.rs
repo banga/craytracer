@@ -45,7 +45,7 @@ impl BSDF {
             for (index, other_bxdf) in relevant_bxdfs.iter().enumerate() {
                 if index != sample_index {
                     f += other_bxdf.f(w_o, &sample.w_i, &normal);
-                    if let Pdf::NonDelta(other_pdf) = other_bxdf.pdf(w_o, &sample.w_i) {
+                    if let Pdf::NonDelta(other_pdf) = other_bxdf.pdf(w_o, &sample.w_i, normal) {
                         pdf += other_pdf;
                     }
                 }
