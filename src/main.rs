@@ -24,6 +24,7 @@ mod constants;
 mod intersection;
 mod material;
 mod obj;
+mod parser;
 mod pdf;
 mod primitive;
 mod ray;

@@ -3,7 +3,7 @@ use approx::assert_abs_diff_eq;
 use crate::{color::Color, constants::EPSILON, pdf::Pdf, ray::Ray, Scene};
 
 #[allow(non_snake_case)]
-pub fn trace(ray: &mut Ray, scene: &Scene, depth: u32) -> Color {
+pub fn trace(ray: &mut Ray, scene: &Scene, depth: usize) -> Color {
     let depth = depth + 1;
 
     if let Some(intersection) = scene.intersect(ray) {

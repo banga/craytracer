@@ -1,9 +1,10 @@
 use crate::{color::Color, ray::Ray, sampling::sample_2d, scene::Scene, trace, vector::Vector};
 
-pub trait Camera: Send + Sync {
+pub trait Camera: std::fmt::Debug + Send + Sync {
     fn sample(&self, x: usize, y: usize, scene: &Scene) -> Color;
 }
 
+#[derive(Debug)]
 pub struct ProjectionCamera {
     origin: Vector,
     x: Vector,

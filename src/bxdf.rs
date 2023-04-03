@@ -15,7 +15,7 @@ pub struct SurfaceSample {
     pub Le: Color,
 }
 
-pub trait BxDF: Sync + Send {
+pub trait BxDF: std::fmt::Debug + Sync + Send {
     fn has_reflection(&self) -> bool;
     fn has_transmission(&self) -> bool;
     fn sample(&self, w_o: &Vector, normal: &Vector) -> Option<SurfaceSample>;
@@ -23,6 +23,7 @@ pub trait BxDF: Sync + Send {
     fn pdf(&self, w_o: &Vector, w_i: &Vector, normal: &Vector) -> Pdf;
 }
 
+#[derive(Debug)]
 pub struct LambertianBRDF {
     reflectance: Color,
 }
@@ -58,6 +59,7 @@ impl BxDF for LambertianBRDF {
     }
 }
 
+#[derive(Debug)]
 #[allow(non_snake_case)]
 pub struct OrenNayyarBRDF {
     reflectance: Color,
@@ -145,17 +147,20 @@ fn refract(
     Some(r_perpendicular + r_parallel)
 }
 
+#[derive(Debug)]
 pub struct Dielectric {
     pub eta_i: f64,
     pub eta_t: f64,
 }
 
+#[derive(Debug)]
 pub struct Conductor {
     pub eta_i: Color,
     pub eta_t: Color,
     pub k: Color,
 }
 
+#[derive(Debug)]
 pub enum Fresnel {
     Dielectric(Dielectric),
     Conductor(Conductor),
@@ -207,6 +212,7 @@ fn fresnel_conductor(eta_i: Color, eta_t: Color, k: Color, cos_theta_i: f64) -> 
     (r_parallel * r_parallel + r_perpendicular * r_perpendicular) * 0.5
 }
 
+#[derive(Debug)]
 pub struct FresnelConductorBRDF {
     eta: Color,
     k: Color,
@@ -246,6 +252,7 @@ impl BxDF for FresnelConductorBRDF {
     }
 }
 
+#[derive(Debug)]
 pub struct SpecularBRDF {
     reflectance: Color,
     fresnel: Fresnel,
@@ -296,6 +303,7 @@ impl BxDF for SpecularBRDF {
     }
 }
 
+#[derive(Debug)]
 pub struct SpecularBTDF {
     pub transmittance: Color,
     pub eta_i: f64,
@@ -333,6 +341,7 @@ impl BxDF for SpecularBTDF {
     }
 }
 
+#[derive(Debug)]
 pub struct FresnelSpecularBxDF {
     reflectance: Color,
     transmittance: Color,

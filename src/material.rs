@@ -11,10 +11,10 @@ use crate::{
     vector::Vector,
 };
 
-pub trait Material: Sync + Send {
+pub trait Material: std::fmt::Debug + Sync + Send {
     fn sample(&self, w_o: &Vector, normal: &Vector) -> Option<SurfaceSample>;
 }
-
+#[derive(Debug)]
 pub struct EmissiveMaterial {
     pub emittance: Color,
 }
@@ -30,6 +30,7 @@ impl Material for EmissiveMaterial {
     }
 }
 
+#[derive(Debug)]
 pub enum MatteMaterial {
     Lambertian(LambertianBRDF),
     OrenNayyar(OrenNayyarBRDF),
@@ -54,6 +55,7 @@ impl Material for MatteMaterial {
     }
 }
 
+#[derive(Debug)]
 pub struct GlassMaterial {
     bxdf: FresnelSpecularBxDF,
 }
@@ -72,6 +74,7 @@ impl Material for GlassMaterial {
     }
 }
 
+#[derive(Debug)]
 pub struct PlasticMaterial {
     bsdf: BSDF,
 }
@@ -108,6 +111,7 @@ impl Material for PlasticMaterial {
     }
 }
 
+#[derive(Debug)]
 pub struct MetalMaterial {
     bsdf: BSDF,
 }

@@ -48,9 +48,9 @@ impl Color {
     }
 }
 
-impl Into<(f32, f32, f32)> for Color {
-    fn into(self) -> (f32, f32, f32) {
-        (self.r as f32, self.g as f32, self.b as f32)
+impl From<Color> for (f32, f32, f32) {
+    fn from(color: Color) -> (f32, f32, f32) {
+        (color.r as f32, color.g as f32, color.b as f32)
     }
 }
 

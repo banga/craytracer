@@ -8,6 +8,7 @@ use crate::{
     vector::Vector,
 };
 
+#[derive(Debug)]
 pub struct BSDF {
     pub bxdfs: Vec<Arc<dyn BxDF>>,
 }

@@ -6,7 +6,7 @@ use crate::{
 };
 
 pub struct Scene {
-    pub max_depth: u32,
+    pub max_depth: usize,
     pub film_width: usize,
     pub film_height: usize,
     pub camera: Box<dyn Camera>,
@@ -15,7 +15,7 @@ pub struct Scene {
 
 impl Scene {
     pub fn new(
-        max_depth: u32,
+        max_depth: usize,
         film_width: usize,
         film_height: usize,
         camera: Box<dyn Camera>,
