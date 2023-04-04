@@ -14,7 +14,6 @@ pub mod ray;
 pub mod sampling;
 pub mod scene;
 pub mod scene_parser;
-pub mod scenes;
 pub mod shape;
 pub mod trace;
 pub mod vector;

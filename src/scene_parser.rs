@@ -233,10 +233,7 @@ pub mod parser {
             Some(Token::LeftBrace) => Ok(RawValue::Map(RawValueMap::from_tokens(tokens)?)),
             Some(Token::LeftBracket) => Ok(RawValue::Array(RawValueArray::from_tokens(tokens)?)),
             Some(token) => Err(ParserError {
-                message: format!(
-                    "Expected number, string, identifier, map or array. Got: {:?}",
-                    token
-                ),
+                message: format!("Expected a raw value. Got {:?}", token),
             }),
             None => Err(ParserError {
                 message: "Unexpected end of input".to_string(),
@@ -259,18 +256,12 @@ pub mod parser {
             tokens: &mut Peekable<std::slice::Iter<Token>>,
         ) -> Result<Self, ParserError> {
             let mut map = HashMap::new();
-            let mut needs_comma = true;
 
             expect_token_variant(tokens, &Token::LeftBrace)?;
             loop {
+                // Parse an entry
                 match tokens.peek() {
                     Some(Token::RightParen) => break,
-                    Some(Token::Comma) => {
-                        if !needs_comma {
-                            break;
-                        }
-                        tokens.next();
-                    }
                     Some(Token::Identifier(key)) => {
                         tokens.next();
 
@@ -282,8 +273,15 @@ pub mod parser {
                                 message: format!("Duplicate key {}", key),
                             });
                         }
+                    }
+                    _ => break,
+                }
 
-                        needs_comma = true;
+                // Parse a comma
+                match tokens.peek() {
+                    Some(Token::RightBrace) => break,
+                    Some(Token::Comma) => {
+                        tokens.next();
                     }
                     _ => break,
                 }
@@ -335,27 +333,29 @@ pub mod parser {
     impl RawValueArray {
         /// Array := '[' Items ']'
         /// Items := ɸ | RawValue (',' Items)* ','?
-        fn from_tokens(
+        pub fn from_tokens(
             tokens: &mut Peekable<std::slice::Iter<Token>>,
         ) -> Result<Self, ParserError> {
             let mut array = Vec::new();
-            let mut needs_comma = true;
 
             expect_token_variant(tokens, &Token::LeftBracket)?;
             loop {
+                // Parse an item
                 match tokens.peek() {
                     Some(Token::RightBracket) => break,
-                    Some(Token::Comma) => {
-                        if !needs_comma {
-                            break;
-                        }
-                        tokens.next();
-                    }
                     _ => {
                         let value = parse_raw_value(tokens)?;
                         array.push(value);
-                        needs_comma = true;
                     }
+                }
+
+                // Parse a comma
+                match tokens.peek() {
+                    Some(Token::RightBracket) => break,
+                    Some(Token::Comma) => {
+                        tokens.next();
+                    }
+                    _ => break,
                 }
             }
             expect_token_variant(tokens, &Token::RightBracket)?;

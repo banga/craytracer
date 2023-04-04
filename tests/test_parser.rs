@@ -247,142 +247,165 @@ mod parser {
         vector::Vector,
     };
 
-    #[test]
-    fn raw_value() {
-        // TODO: Fix trailing comma parsing. We currently allow skipping the comma in many cases
-        [
-            ("1.23", RawValue::Number(1.23)),
-            ("'hello'", RawValue::String("hello".to_string())),
-            (
-                "Vector(1, -2, 3.1)",
-                RawValue::Vector(Vector(1.0, -2.0, 3.1)),
-            ),
-            (
-                "Color(0, 0.5, 1)",
-                RawValue::Color(Color {
-                    r: 0.0,
-                    g: 0.5,
-                    b: 1.0,
-                }),
-            ),
-            (
-                "{}",
-                RawValue::Map(RawValueMap {
-                    map: HashMap::new(),
-                }),
-            ),
-            (
-                "{ x: 1, y: 'z' }",
-                RawValue::Map(RawValueMap {
-                    map: HashMap::from([
-                        ("x".to_string(), RawValue::Number(1.0)),
-                        ("y".to_string(), RawValue::String("z".to_string())),
-                    ]),
-                }),
-            ),
-            (
-                "Sphere { center: Vector(0, 0, 0), radius: 1000 }",
-                RawValue::TypedMap(TypedRawValueMap {
-                    name: "Sphere".to_string(),
-                    map: RawValueMap {
-                        map: HashMap::from([
-                            ("center".to_string(), RawValue::Vector(Vector::O)),
-                            ("radius".to_string(), RawValue::Number(1000.0)),
-                        ]),
-                    },
-                }),
-            ),
-            ("[]", RawValue::Array(RawValueArray { array: Vec::new() })),
-            (
-                "[1, 'foo', {}]",
-                RawValue::Array(RawValueArray {
-                    array: vec![
-                        RawValue::Number(1.0),
-                        RawValue::String("foo".to_string()),
-                        RawValue::Map(RawValueMap {
-                            map: HashMap::new(),
-                        }),
-                    ],
-                }),
-            ),
-        ]
-        .iter()
-        .for_each(|(s, v)| {
-            match parse_raw_value(&mut tokenize(s).unwrap().iter().peekable()) {
-                Ok(result) => assert_eq!(result, *v, "Failed to parse {}", s),
-                Err(e) => panic!("Failed to parse {}: {:?}", s, e),
-            }
-        });
+    fn expect_raw_value(s: &str, expected: RawValue) {
+        let result = parse_raw_value(&mut tokenize(s).unwrap().iter().peekable())
+            .expect(&format!("{:?} failed to parse", s));
+        assert_eq!(result, expected, "{:?} parsed to unexpected value", s);
+    }
 
+    fn expect_raw_value_map(s: &str, expected: HashMap<String, RawValue>) {
+        expect_raw_value(s, RawValue::Map(RawValueMap { map: expected }));
+    }
+
+    fn expect_raw_value_array(s: &str, expected: Vec<RawValue>) {
+        expect_raw_value(s, RawValue::Array(RawValueArray { array: expected }));
+    }
+
+    fn expect_parse_error(s: &str, error: &str) {
+        let result = parse_raw_value(&mut tokenize(s).unwrap().iter().peekable())
+            .expect_err(&format!("{:?} parsed succesfully", s));
         assert_eq!(
-            parse_raw_value(&mut tokenize("x").unwrap().iter().peekable()),
-            Err(ParserError {
-                message: "Expected LeftBrace, got Eof".to_string()
-            })
+            result,
+            ParserError {
+                message: error.to_string()
+            },
         );
     }
 
     #[test]
-    fn raw_map() {
-        [
-            (
-                "{}",
-                RawValueMap {
-                    map: HashMap::new(),
-                },
-            ),
-            (
-                "{ hello: 'world' }",
-                RawValueMap {
-                    map: HashMap::from([(
-                        "hello".to_string(),
-                        RawValue::String("world".to_string()),
-                    )]),
-                },
-            ),
-            (
-                // Trailing comma
-                "{ hello: 'world', }",
-                RawValueMap {
-                    map: HashMap::from([(
-                        "hello".to_string(),
-                        RawValue::String("world".to_string()),
-                    )]),
-                },
-            ),
-            (
-                "{ x: 1, y: 'z', v: Vector(1,2,3), c: Color(1,0,0) }",
-                RawValueMap {
+    fn raw_value() {
+        // TODO: Fix trailing comma parsing. We currently allow skipping the comma in many cases
+        expect_raw_value("1.23", RawValue::Number(1.23));
+        expect_raw_value("'hello'", RawValue::String("hello".to_string()));
+        expect_raw_value(
+            "Vector(1, -2, 3.1)",
+            RawValue::Vector(Vector(1.0, -2.0, 3.1)),
+        );
+        expect_raw_value(
+            "Color(0, 0.5, 1)",
+            RawValue::Color(Color {
+                r: 0.0,
+                g: 0.5,
+                b: 1.0,
+            }),
+        );
+        expect_raw_value(
+            "{}",
+            RawValue::Map(RawValueMap {
+                map: HashMap::new(),
+            }),
+        );
+        expect_raw_value(
+            "{ x: 1, y: 'z' }",
+            RawValue::Map(RawValueMap {
+                map: HashMap::from([
+                    ("x".to_string(), RawValue::Number(1.0)),
+                    ("y".to_string(), RawValue::String("z".to_string())),
+                ]),
+            }),
+        );
+        expect_raw_value(
+            "Sphere { center: Vector(0, 0, 0), radius: 1000 }",
+            RawValue::TypedMap(TypedRawValueMap {
+                name: "Sphere".to_string(),
+                map: RawValueMap {
                     map: HashMap::from([
-                        ("x".to_string(), RawValue::Number(1.0)),
-                        ("y".to_string(), RawValue::String("z".to_string())),
-                        ("v".to_string(), RawValue::Vector(Vector(1.0, 2.0, 3.0))),
-                        (
-                            "c".to_string(),
-                            RawValue::Color(Color {
-                                r: 1.0,
-                                g: 0.0,
-                                b: 0.0,
-                            }),
-                        ),
+                        ("center".to_string(), RawValue::Vector(Vector::O)),
+                        ("radius".to_string(), RawValue::Number(1000.0)),
                     ]),
                 },
-            ),
-        ]
-        .iter()
-        .for_each(|(input, entries)| {
-            assert_eq!(
-                RawValueMap::from_tokens(&mut tokenize(input).unwrap().iter().peekable()).unwrap(),
-                *entries
-            )
-        });
-
-        assert_eq!(
-            RawValueMap::from_tokens(&mut tokenize("{ x: 1, x: 2 }").unwrap().iter().peekable()),
-            Err(ParserError {
-                message: "Duplicate key x".to_string()
-            })
+            }),
         );
+        expect_raw_value("[]", RawValue::Array(RawValueArray { array: Vec::new() }));
+        expect_raw_value(
+            "[1, 'foo', {}]",
+            RawValue::Array(RawValueArray {
+                array: vec![
+                    RawValue::Number(1.0),
+                    RawValue::String("foo".to_string()),
+                    RawValue::Map(RawValueMap {
+                        map: HashMap::new(),
+                    }),
+                ],
+            }),
+        );
+
+        expect_parse_error("x", "Expected LeftBrace, got Eof");
+        expect_parse_error(",", "Expected a raw value. Got Comma");
+    }
+
+    #[test]
+    fn raw_value_map() {
+        expect_raw_value_map("{}", HashMap::new());
+        expect_raw_value_map(
+            "{ hello: 'world' }",
+            HashMap::from([("hello".to_string(), RawValue::String("world".to_string()))]),
+        );
+        expect_raw_value_map(
+            // Trailing comma
+            "{ hello: 'world', }",
+            HashMap::from([("hello".to_string(), RawValue::String("world".to_string()))]),
+        );
+        expect_raw_value_map(
+            "{ x: 1, y: 'z', v: Vector(1,2,3), c: Color(1,0,0) }",
+            HashMap::from([
+                ("x".to_string(), RawValue::Number(1.0)),
+                ("y".to_string(), RawValue::String("z".to_string())),
+                ("v".to_string(), RawValue::Vector(Vector(1.0, 2.0, 3.0))),
+                (
+                    "c".to_string(),
+                    RawValue::Color(Color {
+                        r: 1.0,
+                        g: 0.0,
+                        b: 0.0,
+                    }),
+                ),
+            ]),
+        );
+
+        expect_parse_error("{ x: 1, x: 2 }", "Duplicate key x");
+        expect_parse_error("{ x: 1", "Expected RightBrace, got Eof");
+        expect_parse_error("{ x 1 }", "Expected Colon, got Number(1.0)");
+        expect_parse_error("{ 1: x }", "Expected RightBrace, got Number(1.0)");
+        expect_parse_error(
+            "{ x: 1 y: 2 }",
+            "Expected RightBrace, got Identifier(\"y\")",
+        );
+    }
+
+    #[test]
+    fn raw_value_array() {
+        expect_raw_value_array("[]", Vec::new());
+        expect_raw_value_array(
+            "[1, 2, 3]",
+            vec![
+                RawValue::Number(1.0),
+                RawValue::Number(2.0),
+                RawValue::Number(3.0),
+            ],
+        );
+        expect_raw_value_array(
+            "[1, 2, 3,]",
+            vec![
+                RawValue::Number(1.0),
+                RawValue::Number(2.0),
+                RawValue::Number(3.0),
+            ],
+        );
+        expect_raw_value_array(
+            "[1, 'foo', {}]",
+            vec![
+                RawValue::Number(1.0),
+                RawValue::String("foo".to_string()),
+                RawValue::Map(RawValueMap {
+                    map: HashMap::new(),
+                }),
+            ],
+        );
+
+        expect_parse_error("[", "Expected a raw value. Got Eof");
+        expect_parse_error("[,]", "Expected a raw value. Got Comma");
+        expect_parse_error("[1 2]", "Expected RightBracket, got Number(2.0)");
     }
 
     #[test]
