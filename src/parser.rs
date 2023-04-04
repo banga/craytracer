@@ -3,10 +3,12 @@ use std::{
     convert::{TryFrom, TryInto},
     iter::Peekable,
     str::Chars,
+    sync::Arc,
 };
 
 use crate::{
-    camera::Camera, color::Color, material::Material, scene::Scene, shape::Shape, vector::Vector,
+    camera::Camera, color::Color, material::Material, primitive::Primitive, scene::Scene,
+    shape::Shape, vector::Vector,
 };
 
 #[derive(Debug, PartialEq, Clone)]
@@ -705,7 +707,7 @@ impl TryFrom<&RawValue> for Box<Camera> {
 }
 
 /// Material
-impl TryFrom<&RawValue> for Box<Material> {
+impl TryFrom<&RawValue> for Arc<Material> {
     type Error = ParserError;
     fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
         let typed_map = match value {
@@ -716,22 +718,22 @@ impl TryFrom<&RawValue> for Box<Material> {
         }?;
         let map = &typed_map.map;
         match typed_map.name.as_str() {
-            "Emissive" => Ok(Box::new(Material::new_emissive(map.get("emittance")?))),
-            "Matte" => Ok(Box::new(Material::new_matte(
+            "Emissive" => Ok(Arc::new(Material::new_emissive(map.get("emittance")?))),
+            "Matte" => Ok(Arc::new(Material::new_matte(
                 map.get("reflectance")?,
                 map.get("sigma")?,
             ))),
-            "Glass" => Ok(Box::new(Material::new_glass(
+            "Glass" => Ok(Arc::new(Material::new_glass(
                 map.get("reflectance")?,
                 map.get("transmittance")?,
                 map.get("eta")?,
             ))),
-            "Plastic" => Ok(Box::new(Material::new_plastic(
+            "Plastic" => Ok(Arc::new(Material::new_plastic(
                 map.get("diffuse")?,
                 map.get("specular")?,
                 map.get("roughness")?,
             ))),
-            "Metal" => Ok(Box::new(Material::new_metal(
+            "Metal" => Ok(Arc::new(Material::new_metal(
                 map.get("eta")?,
                 map.get("k")?,
             ))),
@@ -743,7 +745,7 @@ impl TryFrom<&RawValue> for Box<Material> {
 }
 
 /// Shape
-impl TryFrom<&RawValue> for Box<Shape> {
+impl TryFrom<&RawValue> for Arc<Shape> {
     type Error = ParserError;
     fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
         let typed_map = match value {
@@ -754,11 +756,11 @@ impl TryFrom<&RawValue> for Box<Shape> {
         }?;
         let map = &typed_map.map;
         match typed_map.name.as_str() {
-            "Sphere" => Ok(Box::new(Shape::new_sphere(
+            "Sphere" => Ok(Arc::new(Shape::new_sphere(
                 map.get("origin")?,
                 map.get("radius")?,
             ))),
-            "Triangle" => Ok(Box::new(Shape::new_triangle(
+            "Triangle" => Ok(Arc::new(Shape::new_triangle(
                 map.get("v0")?,
                 map.get("v1")?,
                 map.get("v2")?,
@@ -826,23 +828,45 @@ pub fn parse_scene(input: &str) -> Result<Scene, ParserError> {
 
     let max_depth: usize = scene_map.get("max_depth")?;
     let camera: Box<Camera> = scene_map.get("camera")?;
-    let materials: HashMap<String, Box<Material>> = scene_map.get("materials")?;
-    let shapes: HashMap<String, Box<Shape>> = scene_map.get("shapes")?;
-    let primitives: Vec<HashMap<String, String>> = scene_map.get("primitives")?;
+    let materials: HashMap<String, Arc<Material>> = scene_map.get("materials")?;
+    let shapes: HashMap<String, Arc<Shape>> = scene_map.get("shapes")?;
+    let primitive_defs: Vec<HashMap<String, String>> = scene_map.get("primitives")?;
 
-    for primitive in primitives {
-        let shape = shapes.get(&primitive["shape"]).ok_or(ParserError {
-            message: format!("Cannot find shape named '{}'", primitive["shape"]),
-        })?;
-        let material = materials.get(&primitive["material"]).ok_or(ParserError {
-            message: format!("Cannot find material named '{}'", primitive["material"]),
+    let mut primitives: Vec<Arc<Primitive>> = Vec::new();
+    for primitive_def in primitive_defs {
+        let shape_name = &primitive_def["shape"];
+        let shape = shapes.get(shape_name).ok_or(ParserError {
+            message: format!("Cannot find shape named '{}'", shape_name),
         })?;
 
-        // TODO: Construct Primitive objects. This is hard because we are
-        // attempting to share shapes and materials
+        let material_name = &primitive_def["shape"];
+        let material = materials.get(material_name).ok_or(ParserError {
+            message: format!("Cannot find material named '{}'", material_name),
+        })?;
+
+        let primitive = Arc::new(Primitive::new_shape_primitive(
+            Arc::clone(shape),
+            Arc::clone(material),
+        ));
+        primitives.push(primitive);
     }
 
-    todo!()
+    // TODO: move film dimensions to Scene
+    let (film_width, film_height) = match *camera {
+        Camera::Projection {
+            film_width,
+            film_height,
+            ..
+        } => (film_width, film_height),
+    };
+
+    Ok(Scene::new(
+        max_depth,
+        film_width,
+        film_height,
+        camera,
+        primitives,
+    ))
 }
 
 #[cfg(test)]

@@ -6,52 +6,6 @@ use crate::{
     scene::Scene, shape::Shape, vector::Vector,
 };
 
-pub fn simple(num_samples: usize, scale: usize) -> Scene {
-    let film_width: usize = 896 * scale;
-    let film_height: usize = 560 * scale;
-
-    let sky_material = Material::new_emissive(Color::from_rgb(0, 10, 60) * 2.0);
-    let ground_material = Material::new_matte(Color::WHITE * 0.8, 0.0);
-    let glass_material = Material::new_glass(Color::WHITE, Color::WHITE * 0.6, 1.75);
-    let light_material = Material::new_emissive(Color::from_rgb(255, 230, 20) * 2.0);
-
-    Scene::new(
-        8,
-        film_width,
-        film_height,
-        Box::new(Camera::new_projection_camera(
-            Vector(0.0, 8.0, -10.0),
-            Vector(1.0, 1.25, 12.0),
-            Vector::Y,
-            5.0,
-            num_samples,
-            film_width,
-            film_height,
-        )),
-        vec![
-            // Sky
-            Arc::new(Primitive::new_shape_primitive(
-                Box::new(Shape::new_sphere(Vector(0.0, 0.0, 0.0), 1000.0)),
-                Arc::new(sky_material),
-            )),
-            // Ground
-            Arc::new(Primitive::new_shape_primitive(
-                Box::new(Shape::new_sphere(Vector(0.0, -10000.0, 10.0), 10000.0)),
-                Arc::new(ground_material),
-            )),
-            Arc::new(Primitive::new_shape_primitive(
-                Box::new(Shape::new_sphere(Vector(0.0, 1.5, 12.5), 1.5)),
-                Arc::new(glass_material),
-            )),
-            // Light
-            Arc::new(Primitive::new_shape_primitive(
-                Box::new(Shape::new_sphere(Vector(-3.0, 4.0, 13.5), 0.5)),
-                Arc::new(light_material),
-            )),
-        ],
-    )
-}
-
 pub fn random_spheres(num_samples: usize, scale: usize) -> Scene {
     let film_width: usize = 600 * scale;
     let film_height: usize = 400 * scale;
@@ -62,12 +16,12 @@ pub fn random_spheres(num_samples: usize, scale: usize) -> Scene {
     let mut primitives: Vec<Arc<Primitive>> = vec![
         // Sky
         Arc::new(Primitive::new_shape_primitive(
-            Box::new(Shape::new_sphere(Vector(0.0, 0.0, 10.0), 1000.0)),
+            Arc::new(Shape::new_sphere(Vector(0.0, 0.0, 10.0), 1000.0)),
             Arc::new(Material::new_emissive(Color::from_rgb(240, 245, 255))),
         )),
         // Ground
         Arc::new(Primitive::new_shape_primitive(
-            Box::new(Shape::new_sphere(Vector(0.0, -1000.0, 10.0), 1000.0)),
+            Arc::new(Shape::new_sphere(Vector(0.0, -1000.0, 10.0), 1000.0)),
             Arc::new(Material::new_matte(Color::from_rgb(200, 180, 150), 0.0)),
         )),
     ];
@@ -107,7 +61,7 @@ pub fn random_spheres(num_samples: usize, scale: usize) -> Scene {
                 ),
             };
             primitives.push(Arc::new(Primitive::new_shape_primitive(
-                Box::new(Shape::new_sphere(
+                Arc::new(Shape::new_sphere(
                     Vector(x as f64, radius, z as f64)
                         + Vector(rng.gen_range(0.0..0.6), 0.0, rng.gen_range(0.0..0.3)),
                     radius,
@@ -218,17 +172,17 @@ pub fn dragon(num_samples: usize, scale: usize) -> Scene {
     );
 
     primitives.push(Arc::new(Primitive::new_shape_primitive(
-        Box::new(Shape::new_sphere(Vector(0.0, 0.0, 0.0), 1000.0)),
+        Arc::new(Shape::new_sphere(Vector(0.0, 0.0, 0.0), 1000.0)),
         Arc::new(Material::new_emissive(Color::from_rgb(200, 220, 235))),
     )));
 
     primitives.push(Arc::new(Primitive::new_shape_primitive(
-        Box::new(Shape::new_sphere(Vector(0.0, 100.0, -150.0), 50.0)),
+        Arc::new(Shape::new_sphere(Vector(0.0, 100.0, -150.0), 50.0)),
         Arc::new(Material::new_emissive(Color::WHITE * 3.0)),
     )));
 
     primitives.push(Arc::new(Primitive::new_shape_primitive(
-        Box::new(Shape::new_sphere(Vector(0.0, -10040.0, 0.0), 10000.0)),
+        Arc::new(Shape::new_sphere(Vector(0.0, -10040.0, 0.0), 10000.0)),
         Arc::new(Material::new_matte(Color::from_rgb(255, 255, 255), 0.0)),
     )));
 
@@ -267,12 +221,12 @@ pub fn suzanne(num_samples: usize, scale: usize) -> Scene {
     );
 
     primitives.push(Arc::new(Primitive::new_shape_primitive(
-        Box::new(Shape::new_sphere(Vector(0.0, 0.0, 0.0), 1000.0)),
+        Arc::new(Shape::new_sphere(Vector(0.0, 0.0, 0.0), 1000.0)),
         Arc::new(Material::new_emissive(Color::from_rgb(230, 252, 255))),
     )));
 
     primitives.push(Arc::new(Primitive::new_shape_primitive(
-        Box::new(Shape::new_sphere(Vector(0.0, -10001.0, 0.0), 10000.0)),
+        Arc::new(Shape::new_sphere(Vector(0.0, -10001.0, 0.0), 10000.0)),
         Arc::new(Material::new_matte(Color::from_rgb(44, 33, 255), 0.0)),
     )));
 

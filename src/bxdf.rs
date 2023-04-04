@@ -15,6 +15,7 @@ pub struct SurfaceSample {
     pub Le: Color,
 }
 
+#[allow(non_snake_case)]
 #[derive(Debug)]
 pub enum BxDF {
     LambertianBRDF {
@@ -81,7 +82,7 @@ impl BxDF {
 
     pub fn sample(&self, w_o: &Vector, normal: &Vector) -> Option<SurfaceSample> {
         match self {
-            BxDF::LambertianBRDF { reflectance } => {
+            BxDF::LambertianBRDF { .. } => {
                 let w_i = cosine_sample_hemisphere(normal);
                 Some(SurfaceSample {
                     w_i,
@@ -90,7 +91,7 @@ impl BxDF {
                     Le: Color::BLACK,
                 })
             }
-            BxDF::OrenNayyarBRDF { reflectance, .. } => {
+            BxDF::OrenNayyarBRDF { .. } => {
                 let w_i = cosine_sample_hemisphere(normal);
                 Some(SurfaceSample {
                     w_i,
@@ -223,13 +224,13 @@ impl BxDF {
         }
     }
 
-    pub fn pdf(&self, w_o: &Vector, w_i: &Vector, normal: &Vector) -> Pdf {
+    pub fn pdf(&self, _w_o: &Vector, w_i: &Vector, normal: &Vector) -> Pdf {
         match self {
-            BxDF::LambertianBRDF { reflectance } => {
+            BxDF::LambertianBRDF { .. } => {
                 let cos_theta = w_i.dot(normal).abs();
                 Pdf::NonDelta(FRAC_1_PI * cos_theta)
             }
-            BxDF::OrenNayyarBRDF { reflectance, A, B } => {
+            BxDF::OrenNayyarBRDF { .. } => {
                 let cos_theta = w_i.dot(normal).abs();
                 Pdf::NonDelta(FRAC_1_PI * cos_theta)
             }

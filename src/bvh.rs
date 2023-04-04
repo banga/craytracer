@@ -216,11 +216,11 @@ mod tests {
     fn bvh_node() {
         let node = BvhNode::new(vec![
             Arc::new(Primitive::new_shape_primitive(
-                Box::new(Shape::new_sphere(Vector(0.5, 0.5, 0.5), 0.5)),
+                Arc::new(Shape::new_sphere(Vector(0.5, 0.5, 0.5), 0.5)),
                 Arc::new(Material::new_matte(Color::WHITE, 0.0)),
             )),
             Arc::new(Primitive::new_shape_primitive(
-                Box::new(Shape::new_sphere(Vector(1.5, 0.5, 0.5), 0.5)),
+                Arc::new(Shape::new_sphere(Vector(1.5, 0.5, 0.5), 0.5)),
                 Arc::new(Material::new_matte(Color::WHITE, 0.0)),
             )),
         ]);

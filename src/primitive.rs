@@ -6,13 +6,13 @@ use crate::{
 
 pub enum Primitive {
     ShapePrimitive {
-        shape: Box<Shape>,
+        shape: Arc<Shape>,
         material: Arc<Material>,
     },
 }
 
 impl Primitive {
-    pub fn new_shape_primitive(shape: Box<Shape>, material: Arc<Material>) -> Self {
+    pub fn new_shape_primitive(shape: Arc<Shape>, material: Arc<Material>) -> Self {
         Self::ShapePrimitive { shape, material }
     }
 

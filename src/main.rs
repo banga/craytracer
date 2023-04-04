@@ -14,10 +14,7 @@ use std::{
 use trace::trace;
 use vector::Vector;
 
-use crate::{
-    parser::parse_scene,
-    scenes::{dragon, simple},
-};
+use crate::parser::parse_scene;
 
 mod bounds;
 mod bsdf;
@@ -244,9 +241,8 @@ fn main() {
     let args = Cli::parse();
 
     let start = Instant::now();
-    // let input = std::fs::read_to_string(&args.scene).expect("Error reading scene file");
-    // let scene = parse_scene(&input).expect("Error parsing scene file");
-    let scene = simple(250, 1);
+    let input = std::fs::read_to_string(&args.scene).expect("Error reading scene file");
+    let scene = parse_scene(&input).expect("Error parsing scene file");
     println!("Scene constructed in {:?}", start.elapsed());
 
     let width = scene.film_width as u32;

@@ -1,0 +1,53 @@
+{
+    max_depth: 5,
+    camera: Projection {
+        origin: Vector(0, 8, -10),
+        target: Vector(1, 1.25, 12),
+        up: Vector(0, 1, 0),
+        focal_distance: 5,
+        film_width: 896,
+        film_height: 560,
+        num_samples: 100
+    },
+    materials: {
+        sky: Emissive {
+            emittance: Color(0, 0.08, 0.48)
+        },
+        ground: Matte {
+            reflectance: Color(0.8, 0.8, 0.8),
+            sigma: 0
+        },
+        glass: Glass {
+            reflectance: Color(1, 1, 1),
+            transmittance: Color(0.6, 0.6, 0.6),
+            eta: 1.75
+        },
+        light: Emissive {
+            emittance: Color(2, 1.8, 0.16)
+        }
+    },
+    shapes: {
+        sky: Sphere {
+            origin: Vector(0, 0, 0),
+            radius: 1000
+        },
+        ground: Sphere {
+            origin: Vector(0, -10000, 10),
+            radius: 10000
+        },
+        glass: Sphere {
+            origin: Vector(0, 1.5, 12.5),
+            radius: 1.5
+        },
+        light: Sphere {
+            origin: Vector(-3, 4, 13.5),
+            radius: 0.5
+        }
+    },
+    primitives: [
+        { shape: 'sky', material: 'sky' },
+        { shape: 'ground', material: 'ground' },
+        { shape: 'glass', material: 'glass' },
+        { shape: 'light', material: 'light' }
+    ]
+}

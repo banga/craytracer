@@ -70,9 +70,9 @@ impl Shape {
         match self {
             Shape::Sphere {
                 origin,
-                radius,
                 _radius_squared: radius_squared,
                 _inv_radius: inv_radius,
+                ..
             } => {
                 let oc = ray.origin - *origin;
                 let a = ray.direction.magnitude_squared();
