@@ -2,11 +2,13 @@ use crate::{
     bounds::Bounds, constants::EPSILON, intersection::ShapeIntersection, ray::Ray, vector::Vector,
 };
 
-pub trait Shape: Sync + Send {
+pub trait Shape: std::fmt::Debug + Sync + Send {
     // Should update the ray's max_distance if an intersection is found
     fn intersect(&self, ray: &mut Ray) -> Option<ShapeIntersection>;
     fn bounds(&self) -> Bounds;
 }
+
+#[derive(Debug)]
 
 pub struct Sphere {
     pub origin: Vector,
@@ -75,6 +77,7 @@ impl Shape for Sphere {
     }
 }
 
+#[derive(Debug)]
 pub struct Triangle {
     v0: Vector,
     e1: Vector,

@@ -1,4 +1,4 @@
-use clap::{Parser, ValueEnum};
+use clap::Parser;
 use color::Color;
 use crossbeam::thread;
 use minifb::{Key, Scale, ScaleMode, Window, WindowOptions};
@@ -13,6 +13,8 @@ use std::{
 };
 use trace::trace;
 use vector::Vector;
+
+use crate::parser::parse_scene;
 
 mod bounds;
 mod bsdf;
@@ -185,25 +187,11 @@ fn render(scene: &Scene) -> Vec<f32> {
 
 #[derive(Parser)]
 struct Cli {
-    #[clap(arg_enum, value_parser)]
-    scene: SceneName,
-
-    #[clap(short, long, default_value_t = 64)]
-    samples: usize,
-
-    #[clap(short = 'S', long, default_value_t = 1)]
-    scale: usize,
+    #[clap(short, long)]
+    scene: String,
 
     #[clap(short, long, default_value_t = String::from("out.exr"))]
     output: String,
-}
-
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
-enum SceneName {
-    Simple,
-    RandomSpheres,
-    Dragon,
-    Suzanne,
 }
 
 // For verifying sampling methods
@@ -253,13 +241,8 @@ fn main() {
     let args = Cli::parse();
 
     let start = Instant::now();
-    let scene_fn = match args.scene {
-        SceneName::Simple => scenes::simple,
-        SceneName::RandomSpheres => scenes::random_spheres,
-        SceneName::Dragon => scenes::dragon,
-        SceneName::Suzanne => scenes::suzanne,
-    };
-    let scene = scene_fn(args.samples, args.scale);
+    let input = std::fs::read_to_string(&args.scene).expect("Error reading scene file");
+    let scene = parse_scene(&input).expect("Error parsing scene file");
     println!("Scene constructed in {:?}", start.elapsed());
 
     let width = scene.film_width as u32;
