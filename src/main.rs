@@ -81,7 +81,7 @@ fn setup_preview_window(
         }
     }
 
-    let mut window = Window::new(
+    let window = Window::new(
         "craytracer",
         width,
         height,
@@ -97,21 +97,17 @@ fn setup_preview_window(
         },
     )
     .unwrap();
-    window.update_with_buffer(&buffer, width, height).unwrap();
 
     (buffer, window)
 }
 
 fn render(scene: &Scene) -> Vec<f32> {
     let num_threads = num_cpus::get();
-    // We will create roughly scale^2 tiles, so generate around enough to
-    // saturate the threads
-    let scale = (num_threads as f64 * 2.0).sqrt();
 
     let width = scene.film_width;
     let height = scene.film_height;
-    let tile_width = (width as f64 / scale) as usize;
-    let tile_height = (height as f64 / scale) as usize;
+    let tile_width = 64;
+    let tile_height = 64;
     let tiles = generate_tiles(height, width, tile_width, tile_height);
 
     let tiles = Arc::new(tiles);
@@ -158,6 +154,7 @@ fn render(scene: &Scene) -> Vec<f32> {
             setup_preview_window(width, height, tile_width, tile_height, &tiles);
         let mut tile_count = 0;
         while tile_count < tiles.len() {
+            window.update_with_buffer(&buffer, width, height).unwrap();
             if let Ok(tile_index) = receiver.try_recv() {
                 let (x1, y1, x2, y2) = tiles[tile_index];
                 for x in x1..x2 {
@@ -178,7 +175,6 @@ fn render(scene: &Scene) -> Vec<f32> {
                 tile_count += 1;
                 window.update_with_buffer(&buffer, width, height).unwrap();
             }
-            window.update();
             std::thread::sleep(Duration::from_millis(16));
         }
     })
