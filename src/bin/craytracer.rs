@@ -1,5 +1,5 @@
 use clap::Parser;
-use craytracer::{color::Color, parser::parse_scene, scene::Scene};
+use craytracer::{color::Color, scene::Scene, scene_parser::scene_parser::parse_scene};
 use crossbeam::thread;
 use minifb::{Scale, ScaleMode, Window, WindowOptions};
 use std::{

@@ -1,6 +1,6 @@
 #[cfg(test)]
-mod tokenizer_tests {
-    use craytracer::parser::{tokenize, ParserError, Token};
+mod tokenizer {
+    use craytracer::scene_parser::tokenizer::{tokenize, ParserError, Token};
 
     #[test]
     fn simple() {
@@ -230,15 +230,16 @@ mod tokenizer_tests {
 }
 
 #[cfg(test)]
-mod parser_tests {
+mod parser {
     use std::collections::HashMap;
 
     use craytracer::{
         color::Color,
-        parser::{
-            parse_raw_value, parse_scene, tokenize, ParserError, RawValue, RawValueArray,
-            RawValueMap, TypedRawValueMap,
+        scene_parser::parser::{
+            parse_raw_value, RawValue, RawValueArray, RawValueMap, TypedRawValueMap,
         },
+        scene_parser::scene_parser::parse_scene,
+        scene_parser::tokenizer::{tokenize, ParserError},
         vector::Vector,
     };
 
