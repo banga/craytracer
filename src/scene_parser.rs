@@ -293,9 +293,10 @@ pub mod parser {
             Ok(RawValueMap { map })
         }
 
-        pub fn get<'a, T>(&'a self, key: &str) -> Result<T, ParserError>
+        pub fn get<'a, T, E>(&'a self, key: &str) -> Result<T, ParserError>
         where
-            T: TryFrom<&'a RawValue, Error = ParserError>,
+            T: TryFrom<&'a RawValue, Error = E>,
+            E: std::fmt::Debug,
         {
             self.map
                 .get(key)
@@ -303,6 +304,9 @@ pub mod parser {
                     message: format!("{} not found in map", key),
                 })?
                 .try_into()
+                .map_err(|e| ParserError {
+                    message: format!("{} cannot be converted to expected type: {:?}", key, e),
+                })
         }
     }
 
@@ -359,22 +363,6 @@ pub mod parser {
             Ok(RawValueArray { array })
         }
     }
-}
-
-pub mod scene_parser {
-    use super::{
-        parser::{RawValue, RawValueMap, TypedRawValueMap},
-        tokenizer::{tokenize, ParserError},
-    };
-    use crate::{
-        camera::Camera, color::Color, material::Material, primitive::Primitive, scene::Scene,
-        shape::Shape, vector::Vector,
-    };
-    use std::{
-        collections::HashMap,
-        convert::{TryFrom, TryInto},
-        sync::Arc,
-    };
 
     /// Methods for converting RawValues into various concrete values
 
@@ -438,129 +426,13 @@ pub mod scene_parser {
         }
     }
 
-    impl<'a: 'b, 'b> TryFrom<&'a RawValue> for &'b RawValueMap {
-        type Error = ParserError;
-        fn try_from(value: &'a RawValue) -> Result<Self, Self::Error> {
-            match value {
-                RawValue::Map(value) => Ok(value),
-                _ => Err(ParserError {
-                    message: format!("Cannot get Map, found {:?}", value),
-                }),
-            }
-        }
-    }
-
     impl<'a: 'b, 'b> TryFrom<&'a RawValue> for &'b TypedRawValueMap {
         type Error = ParserError;
         fn try_from(value: &'a RawValue) -> Result<Self, Self::Error> {
             match value {
                 RawValue::TypedMap(value) => Ok(value),
                 _ => Err(ParserError {
-                    message: format!("Cannot get TypedMap, found {:?}", value),
-                }),
-            }
-        }
-    }
-
-    /// Camera
-    impl TryFrom<&RawValue> for Box<Camera> {
-        type Error = ParserError;
-        fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
-            let typed_map = match value {
-                RawValue::TypedMap(typed_map) => Ok(typed_map),
-                _ => Err(ParserError {
-                    message: format!("Cannot get Camera, found {:?}", value),
-                }),
-            }?;
-            let map = &typed_map.map;
-            match typed_map.name.as_str() {
-                "Projection" => {
-                    let origin: Vector = map.get("origin")?;
-                    let target: Vector = map.get("target")?;
-                    let up: Vector = map.get("up")?;
-                    let focal_distance: f64 = map.get("focal_distance")?;
-                    let num_samples: usize = map.get("num_samples")?;
-                    let film_width: usize = map.get("film_width")?;
-                    let film_height: usize = map.get("film_height")?;
-
-                    Ok(Box::new(Camera::new_projection_camera(
-                        origin,
-                        target,
-                        up,
-                        focal_distance,
-                        num_samples,
-                        film_width,
-                        film_height,
-                    )))
-                }
-                _ => Err(ParserError {
-                    message: format!("Unexpected name for Projection camera: {}", typed_map.name),
-                }),
-            }
-        }
-    }
-
-    /// Material
-    impl TryFrom<&RawValue> for Arc<Material> {
-        type Error = ParserError;
-        fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
-            let typed_map = match value {
-                RawValue::TypedMap(typed_map) => Ok(typed_map),
-                _ => Err(ParserError {
-                    message: format!("Cannot get Material, found {:?}", value),
-                }),
-            }?;
-            let map = &typed_map.map;
-            match typed_map.name.as_str() {
-                "Emissive" => Ok(Arc::new(Material::new_emissive(map.get("emittance")?))),
-                "Matte" => Ok(Arc::new(Material::new_matte(
-                    map.get("reflectance")?,
-                    map.get("sigma")?,
-                ))),
-                "Glass" => Ok(Arc::new(Material::new_glass(
-                    map.get("reflectance")?,
-                    map.get("transmittance")?,
-                    map.get("eta")?,
-                ))),
-                "Plastic" => Ok(Arc::new(Material::new_plastic(
-                    map.get("diffuse")?,
-                    map.get("specular")?,
-                    map.get("roughness")?,
-                ))),
-                "Metal" => Ok(Arc::new(Material::new_metal(
-                    map.get("eta")?,
-                    map.get("k")?,
-                ))),
-                _ => Err(ParserError {
-                    message: format!("Unknown material type: {}", typed_map.name),
-                }),
-            }
-        }
-    }
-
-    /// Shape
-    impl TryFrom<&RawValue> for Arc<Shape> {
-        type Error = ParserError;
-        fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
-            let typed_map = match value {
-                RawValue::TypedMap(typed_map) => Ok(typed_map),
-                _ => Err(ParserError {
-                    message: format!("Cannot get Shape, found {:?}", value),
-                }),
-            }?;
-            let map = &typed_map.map;
-            match typed_map.name.as_str() {
-                "Sphere" => Ok(Arc::new(Shape::new_sphere(
-                    map.get("origin")?,
-                    map.get("radius")?,
-                ))),
-                "Triangle" => Ok(Arc::new(Shape::new_triangle(
-                    map.get("v0")?,
-                    map.get("v1")?,
-                    map.get("v2")?,
-                ))),
-                _ => Err(ParserError {
-                    message: format!("Unknown shape type: {}", typed_map.name),
+                    message: format!("Cannot get TypedRawValueMap, found {:?}", value),
                 }),
             }
         }
@@ -613,6 +485,166 @@ pub mod scene_parser {
             Ok(result)
         }
     }
+}
+
+pub mod scene_parser {
+    use super::{
+        parser::{RawValue, RawValueMap, TypedRawValueMap},
+        tokenizer::{tokenize, ParserError},
+    };
+    use crate::{
+        camera::Camera, material::Material, obj::load_obj, primitive::Primitive, scene::Scene,
+        shape::Shape, vector::Vector,
+    };
+    use std::{collections::HashMap, convert::TryFrom, sync::Arc};
+
+    /// RawValue -> Camera
+    impl TryFrom<&RawValue> for Box<Camera> {
+        type Error = ParserError;
+        fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
+            let typed_map = match value {
+                RawValue::TypedMap(typed_map) => Ok(typed_map),
+                _ => Err(ParserError {
+                    message: format!("Cannot get Camera, found {:?}", value),
+                }),
+            }?;
+            let map = &typed_map.map;
+            match typed_map.name.as_str() {
+                "Projection" => {
+                    let origin: Vector = map.get("origin")?;
+                    let target: Vector = map.get("target")?;
+                    let up: Vector = map.get("up")?;
+                    let focal_distance: f64 = map.get("focal_distance")?;
+                    let num_samples: usize = map.get("num_samples")?;
+                    let film_width: usize = map.get("film_width")?;
+                    let film_height: usize = map.get("film_height")?;
+
+                    Ok(Box::new(Camera::new_projection_camera(
+                        origin,
+                        target,
+                        up,
+                        focal_distance,
+                        num_samples,
+                        film_width,
+                        film_height,
+                    )))
+                }
+                _ => Err(ParserError {
+                    message: format!("Unexpected name for Projection camera: {}", typed_map.name),
+                }),
+            }
+        }
+    }
+
+    /// RawValue -> Material
+    impl TryFrom<&RawValue> for Arc<Material> {
+        type Error = ParserError;
+        fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
+            let typed_map = match value {
+                RawValue::TypedMap(typed_map) => Ok(typed_map),
+                _ => Err(ParserError {
+                    message: format!("Cannot get Material, found {:?}", value),
+                }),
+            }?;
+            let map = &typed_map.map;
+            match typed_map.name.as_str() {
+                "Emissive" => Ok(Arc::new(Material::new_emissive(map.get("emittance")?))),
+                "Matte" => Ok(Arc::new(Material::new_matte(
+                    map.get("reflectance")?,
+                    map.get("sigma")?,
+                ))),
+                "Glass" => Ok(Arc::new(Material::new_glass(
+                    map.get("reflectance")?,
+                    map.get("transmittance")?,
+                    map.get("eta")?,
+                ))),
+                "Plastic" => Ok(Arc::new(Material::new_plastic(
+                    map.get("diffuse")?,
+                    map.get("specular")?,
+                    map.get("roughness")?,
+                ))),
+                "Metal" => Ok(Arc::new(Material::new_metal(
+                    map.get("eta")?,
+                    map.get("k")?,
+                ))),
+                _ => Err(ParserError {
+                    message: format!("Unknown material type: {}", typed_map.name),
+                }),
+            }
+        }
+    }
+
+    /// RawValue -> Shape
+    impl TryFrom<&RawValue> for Arc<Shape> {
+        type Error = ParserError;
+        fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
+            let typed_map = match value {
+                RawValue::TypedMap(typed_map) => Ok(typed_map),
+                _ => Err(ParserError {
+                    message: format!("Cannot get Shape, found {:?}", value),
+                }),
+            }?;
+            let map = &typed_map.map;
+            match typed_map.name.as_str() {
+                "Sphere" => Ok(Arc::new(Shape::new_sphere(
+                    map.get("origin")?,
+                    map.get("radius")?,
+                ))),
+                "Triangle" => Ok(Arc::new(Shape::new_triangle(
+                    map.get("v0")?,
+                    map.get("v1")?,
+                    map.get("v2")?,
+                ))),
+                _ => Err(ParserError {
+                    message: format!("Unknown shape type: {}", typed_map.name),
+                }),
+            }
+        }
+    }
+
+    /// TypedRawValueMap -> Primitive
+    ///
+    /// Unfortunately we can't use the TryFrom pattern for this because it
+    /// relies on state (shapes and materials) outside the raw value itself.
+    fn create_primitives(
+        primitive_def: &TypedRawValueMap,
+        shapes: &HashMap<String, Arc<Shape>>,
+        materials: &HashMap<String, Arc<Material>>,
+    ) -> Result<Vec<Arc<Primitive>>, ParserError> {
+        match primitive_def.name.as_str() {
+            "Shape" => {
+                let shape_name: String = primitive_def.map.get("shape")?;
+                let shape = shapes.get(&shape_name).ok_or(ParserError {
+                    message: format!("Cannot find shape named '{}'", shape_name),
+                })?;
+
+                let material_name: String = primitive_def.map.get("material")?;
+                let material = materials.get(&material_name).ok_or(ParserError {
+                    message: format!("Cannot find material named '{}'", material_name),
+                })?;
+
+                Ok(vec![Arc::new(Primitive::new_shape_primitive(
+                    Arc::clone(shape),
+                    Arc::clone(material),
+                ))])
+            }
+            "Mesh" => {
+                let file_name: String = primitive_def.map.get("file_name")?;
+
+                let material_name: String = primitive_def.map.get("fallback_material")?;
+                let fallback_material = materials.get(&material_name).ok_or(ParserError {
+                    message: format!("Cannot find material named '{}'", material_name),
+                })?;
+
+                let primitives = load_obj(&file_name, Arc::clone(fallback_material));
+
+                Ok(primitives)
+            }
+            _ => Err(ParserError {
+                message: format!("Unknown primitive type: {}", primitive_def.name),
+            }),
+        }
+    }
 
     pub fn parse_scene(input: &str) -> Result<Scene, ParserError> {
         let tokens = tokenize(input)?;
@@ -624,25 +656,11 @@ pub mod scene_parser {
         let camera: Box<Camera> = scene_map.get("camera")?;
         let materials: HashMap<String, Arc<Material>> = scene_map.get("materials")?;
         let shapes: HashMap<String, Arc<Shape>> = scene_map.get("shapes")?;
-        let primitive_defs: Vec<HashMap<String, String>> = scene_map.get("primitives")?;
+        let primitive_defs: Vec<&TypedRawValueMap> = scene_map.get("primitives")?;
 
         let mut primitives: Vec<Arc<Primitive>> = Vec::new();
         for primitive_def in primitive_defs {
-            let shape_name = &primitive_def["shape"];
-            let shape = shapes.get(shape_name).ok_or(ParserError {
-                message: format!("Cannot find shape named '{}'", shape_name),
-            })?;
-
-            let material_name = &primitive_def["shape"];
-            let material = materials.get(material_name).ok_or(ParserError {
-                message: format!("Cannot find material named '{}'", material_name),
-            })?;
-
-            let primitive = Arc::new(Primitive::new_shape_primitive(
-                Arc::clone(shape),
-                Arc::clone(material),
-            ));
-            primitives.push(primitive);
+            primitives.extend(create_primitives(primitive_def, &shapes, &materials)?);
         }
 
         // TODO: move film dimensions to Scene

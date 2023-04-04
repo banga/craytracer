@@ -1,0 +1,48 @@
+{
+    max_depth: 5,
+    camera: Projection {
+        origin: Vector(150, 20, -150),
+        target: Vector(30, -10, 0),
+        up: Vector(0, 1, 0),
+        focal_distance: 1,
+        film_width: 600,
+        film_height: 400,
+        num_samples: 10
+    },
+    materials: {
+        sky: Emissive {
+            emittance: Color(0.8, 0.86, 0.92)
+        },
+        light: Emissive {
+            emittance: Color(3, 3, 3),
+        },
+        ground: Matte {
+            reflectance: Color(1, 1, 1),
+            sigma: 0
+        }
+        dragon: Metal {
+            eta: Color(0.18299, 0.42108, 1.37340),
+            k: Color(3.42420, 2.34590, 1.77040),
+        }
+    },
+    shapes: {
+        sky: Sphere {
+            origin: Vector(0, 0, 0),
+            radius: 1000
+        },
+        light: Sphere {
+            origin: Vector(0, 100, -150),
+            radius: 50
+        },
+        ground: Sphere {
+            origin: Vector(0, -10040, 10),
+            radius: 10000
+        },
+    },
+    primitives: [
+        Shape { shape: 'sky', material: 'sky' },
+        Shape { shape: 'ground', material: 'ground' },
+        Shape { shape: 'light', material: 'light' }
+        Mesh { file_name: 'objs/xyzrgb_dragon.obj', fallback_material: 'dragon' }
+    ]
+}

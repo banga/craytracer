@@ -229,6 +229,7 @@ mod tokenizer {
 
 #[cfg(test)]
 mod parser {
+    use pretty_assertions::assert_eq;
     use std::{collections::HashMap, sync::Arc};
 
     use craytracer::{
@@ -248,6 +249,7 @@ mod parser {
 
     #[test]
     fn raw_value() {
+        // TODO: Fix trailing comma parsing. We currently allow skipping the comma in many cases
         [
             ("1.23", RawValue::Number(1.23)),
             ("'hello'", RawValue::String("hello".to_string())),
@@ -412,7 +414,8 @@ mod parser {
         },
     },
     primitives: [
-        { shape: 'ball', material: 'ball' },
+       Shape { shape: 'ball', material: 'ball' },
+       Mesh { file_name: 'objs/triangle.obj', fallback_material: 'ball' },
     ]
 }
 ",
@@ -431,10 +434,21 @@ mod parser {
                     400,
                     300
                 )),
-                vec![Arc::new(Primitive::new_shape_primitive(
-                    Arc::new(Shape::new_sphere(Vector(0.0, 0.0, 2.0), 1.0)),
-                    Arc::new(Material::new_matte(Color::WHITE, 0.0))
-                ))]
+                vec![
+                    Arc::new(Primitive::new_shape_primitive(
+                        Arc::new(Shape::new_sphere(Vector(0.0, 0.0, 2.0), 1.0)),
+                        Arc::new(Material::new_matte(Color::WHITE, 0.0))
+                    )),
+                    Arc::new(Primitive::new_shape_primitive(
+                        // source: objs/triangle.obj
+                        Arc::new(Shape::new_triangle(
+                            Vector(1.0, 0.0, 0.0),
+                            Vector(0.0, 1.0, 0.0),
+                            Vector(0.0, 0.0, 1.0),
+                        )),
+                        Arc::new(Material::new_matte(Color::WHITE, 0.0))
+                    ))
+                ],
             )
         );
     }

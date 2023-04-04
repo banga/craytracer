@@ -45,9 +45,9 @@
         }
     },
     primitives: [
-        { shape: 'sky', material: 'sky' },
-        { shape: 'ground', material: 'ground' },
-        { shape: 'glass', material: 'glass' },
-        { shape: 'light', material: 'light' }
+        Shape { shape: 'sky', material: 'sky' },
+        Shape { shape: 'ground', material: 'ground' },
+        Shape { shape: 'glass', material: 'glass' },
+        Shape { shape: 'light', material: 'light' }
     ]
 }
