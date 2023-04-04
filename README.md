@@ -8,15 +8,17 @@ Another hobby raytracer in Rust
 
 ![simple image](https://github.com/banga/craytracer/blob/master/images/simple.png)
 
+Source: [scenes/simple.cry](https://github.com/banga/craytracer/blob/master/scenes/simple.cry)
+
 ### XYZ RGB Dragon
 
 ![dragon image](https://github.com/banga/craytracer/blob/master/images/dragon.png)
-Source: https://github.com/alecjacobson/common-3d-test-models/blob/master/data/xyzrgb_dragon.obj
 
-### Logo
+Source: [scenes/dragon.cry](https://github.com/banga/craytracer/blob/master/scenes/dragon.cry)
 
-![logo image](https://github.com/banga/craytracer/blob/master/images/logo.png)
+Model: https://github.com/alecjacobson/common-3d-test-models/blob/master/data/xyzrgb_dragon.obj
 
-### Random spheres
+### Materials
 
-![random spheres image](https://github.com/banga/craytracer/blob/master/images/random_spheres.png)
+![materials image](https://github.com/banga/craytracer/blob/master/images/materials.png)
+Source: [scenes/materials.cry](https://github.com/banga/craytracer/blob/master/scenes/materials.cry)
