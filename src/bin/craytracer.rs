@@ -1,9 +1,7 @@
 use clap::Parser;
-use color::Color;
+use craytracer::{color::Color, parser::parse_scene, scene::Scene};
 use crossbeam::thread;
-use minifb::{Key, Scale, ScaleMode, Window, WindowOptions};
-use sampling::sample_hemisphere;
-use scene::Scene;
+use minifb::{Scale, ScaleMode, Window, WindowOptions};
 use std::{
     sync::{
         atomic::{AtomicUsize, Ordering},
@@ -11,31 +9,6 @@ use std::{
     },
     time::{Duration, Instant},
 };
-use trace::trace;
-use vector::Vector;
-
-use crate::parser::parse_scene;
-
-mod bounds;
-mod bsdf;
-mod bvh;
-mod bxdf;
-mod camera;
-mod color;
-mod constants;
-mod intersection;
-mod material;
-mod obj;
-mod parser;
-mod pdf;
-mod primitive;
-mod ray;
-mod sampling;
-mod scene;
-mod scenes;
-mod shape;
-mod trace;
-mod vector;
 
 fn generate_tiles(
     height: usize,
@@ -193,50 +166,7 @@ struct Cli {
     output: String,
 }
 
-// For verifying sampling methods
-#[allow(unused)]
-fn test_sampling() {
-    let width = 400;
-    let height = 400;
-    let mut window = Window::new(
-        "craytracer",
-        width,
-        height,
-        WindowOptions {
-            borderless: false,
-            transparency: false,
-            title: true,
-            resize: true,
-            scale: Scale::X1,
-            scale_mode: ScaleMode::AspectRatioStretch,
-            topmost: false,
-            none: false,
-        },
-    )
-    .unwrap();
-
-    let mut buffer = vec![0u32; width * height];
-    let normal = Vector(0.0, 0.0, 1.0).normalized();
-
-    while !window.is_key_released(Key::Escape) {
-        for _ in 0..10 {
-            let v = sample_hemisphere(&normal);
-            let x = v.0;
-            let y = v.1;
-            let bx = ((x + 1.0) * 0.5 * (width - 1) as f64).round();
-            let by = ((y + 1.0) * 0.5 * (height - 1) as f64).round();
-            assert!(bx >= 0.0 && bx < width as f64);
-            assert!(by >= 0.0 && by < height as f64);
-            buffer[(bx + by * width as f64) as usize] = 0xFFFF0000;
-        }
-        window.update_with_buffer(&buffer, width, height).unwrap();
-    }
-}
-
 fn main() {
-    // test_sampling();
-    // return;
-
     let args = Cli::parse();
 
     let start = Instant::now();

@@ -1,4 +1,6 @@
-use crate::{color::Color, ray::Ray, sampling::sample_2d, scene::Scene, trace, vector::Vector};
+use crate::{
+    color::Color, ray::Ray, sampling::sample_2d, scene::Scene, trace::trace, vector::Vector,
+};
 
 pub enum Camera {
     Projection {

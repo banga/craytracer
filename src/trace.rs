@@ -1,6 +1,6 @@
 use approx::assert_abs_diff_eq;
 
-use crate::{color::Color, constants::EPSILON, pdf::Pdf, ray::Ray, Scene};
+use crate::{color::Color, constants::EPSILON, pdf::Pdf, ray::Ray, scene::Scene};
 
 #[allow(non_snake_case)]
 pub fn trace(ray: &mut Ray, scene: &Scene, depth: usize) -> Color {

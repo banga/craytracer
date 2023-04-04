@@ -242,11 +242,11 @@ impl BxDF {
     }
 }
 
-fn reflect(direction: &Vector, normal: &Vector) -> Vector {
+pub fn reflect(direction: &Vector, normal: &Vector) -> Vector {
     *direction - *normal * (normal.dot(direction) * 2.0)
 }
 
-fn refract(
+pub fn refract(
     direction: &Vector,
     normal: &Vector,
     cos_theta_i: f64,
@@ -332,30 +332,4 @@ fn fresnel_conductor(eta_i: &Color, eta_t: &Color, k: &Color, cos_theta_i: f64) 
     let r_parallel = r_perpendicular * (t3 - t4) / (t3 + t4);
 
     (r_parallel * r_parallel + r_perpendicular * r_perpendicular) * 0.5
-}
-
-#[cfg(test)]
-mod tests {
-    use approx::assert_abs_diff_eq;
-
-    use super::*;
-    use crate::vector::*;
-
-    #[test]
-    fn reflect_test() {
-        assert_abs_diff_eq!(
-            reflect(&Vector(1.0, -1.0, 0.0).normalized(), &Vector(0.0, 1.0, 0.0)),
-            Vector(1.0, 1.0, 0.0).normalized()
-        );
-    }
-
-    #[test]
-    fn refract_test() {
-        let direction = &Vector::new(1, -1, 0).normalized();
-        let normal = Vector::Y.normalized();
-        assert_abs_diff_eq!(
-            refract(&direction, &normal, -direction.dot(&normal), 1.0, 1.0).unwrap(),
-            Vector::new(1, -1, 0).normalized()
-        );
-    }
 }
