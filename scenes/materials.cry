@@ -1,0 +1,208 @@
+{
+    max_depth: 6,
+    camera: Projection {
+        origin: Vector(-10, 10, -30),
+        target: Vector(0, 0, 1),
+        up: Vector(0, 1, 0.2),
+        focal_distance: 4,
+        film_width: 2560,
+        film_height: 1664,
+        num_samples: 5000
+    },
+    materials: {
+        sky: Emissive {
+            emittance: Color(0.8, 0.86, 0.92)
+        },
+        light: Emissive {
+            emittance: Color(5, 5, 5),
+        },
+        ground: Matte {
+            reflectance: Color(1, 1, 1),
+            sigma: 90
+        },
+
+        matte1: Matte {
+            reflectance: Color(0.36, 0.86, 0.54),
+            sigma: 0,
+        },
+        matte2: Matte {
+            reflectance: Color(0.57, 0.52, 0.85),
+            sigma: 5,
+        },
+        matte3: Matte {
+            reflectance: Color(0.8, 0.2, 0.5),
+            sigma: 30,
+        },
+        matte4: Matte {
+            reflectance: Color(0.6, 0.7, 0.8),
+            sigma: 60,
+        },
+
+        brass: Metal {
+            eta: Color(0.44400, 0.52700, 1.09400),
+            k: Color(3.69500, 2.76500, 1.82900),
+        },
+        chrome: Metal {
+            eta: Color(0.944, 0.776, 0.373),
+            k: Color(4.0, 3.0, 2.0),
+        },
+        copper: Metal {
+            eta: Color(0.27105, 0.67693, 1.31640),
+            k: Color(3.60920, 2.62480, 2.29210),
+        },
+        gold: Metal {
+            eta: Color(0.18299, 0.42108, 1.37340),
+            k: Color(3.42420, 2.34590, 1.77040),
+        }
+
+        glass: Glass {
+            reflectance: Color(1, 1, 1),
+            transmittance: Color(0.93, 0.95, 0.94),
+            eta: 1.5,
+        },
+        water: Glass {
+            reflectance: Color(0.7, 0.9, 1),
+            transmittance: Color(1, 1, 1),
+            eta: 1.325,
+        },
+        diamond: Glass {
+            reflectance: Color(0.5, 0.5, 0.5),
+            transmittance: Color(1, 1, 1),
+            eta: 2.4,
+        },
+        emerald: Glass {
+            reflectance: Color(0.12, 0.3, 0.18),
+            transmittance: Color(0.88, 1, 0.9),
+            eta: 1.56,
+        },
+
+
+        plastic1: Plastic {
+            diffuse: Color(0.9, 0.9, 0.2),
+            specular: Color(1, 1, 1),
+            roughness: 0,
+        },
+        plastic2: Plastic {
+            diffuse: Color(0.2, 0.2, 1),
+            specular: Color(0.7, 0.7, 1),
+            roughness: 1,
+        },
+        plastic3: Plastic {
+            diffuse: Color(0.9, 0.1, 0.1),
+            specular: Color(1, 1, 1),
+            roughness: 10,
+        },
+        plastic4: Plastic {
+            diffuse: Color(0.4, 0.8, 0.9),
+            specular: Color(1, 1, 1),
+            roughness: 90,
+        },
+    },
+    shapes: {
+        sky: Sphere {
+            origin: Vector(0, 0, 0),
+            radius: 1000
+        },
+        light: Sphere {
+            origin: Vector(0, 100, -150),
+            radius: 50
+        },
+        ground: Sphere {
+            origin: Vector(0, -100000, 10),
+            radius: 100000
+        },
+
+        matte1: Sphere {
+            origin: Vector(-3, 0.5, -2),
+            radius: 0.5
+        },
+        matte2: Sphere {
+            origin: Vector(-1, 0.5, -2),
+            radius: 0.5
+        },
+        matte3: Sphere {
+            origin: Vector(1, 0.5, -2),
+            radius: 0.5
+        },
+        matte4: Sphere {
+            origin: Vector(3, 0.5, -2),
+            radius: 0.5
+        },
+
+        brass: Sphere {
+            origin: Vector(-3, 0.5, 0),
+            radius: 0.5
+        },
+        chrome: Sphere {
+            origin: Vector(-1, 0.5, 0),
+            radius: 0.5
+        },
+        copper: Sphere {
+            origin: Vector(1, 0.5, 0),
+            radius: 0.5
+        },
+        gold: Sphere {
+            origin: Vector(3, 0.5, 0),
+            radius: 0.5
+        },
+
+        glass: Sphere {
+            origin: Vector(-3, 0.5, 2),
+            radius: 0.5
+        },
+        water: Sphere {
+            origin: Vector(-1, 0.5, 2),
+            radius: 0.5
+        },
+        diamond: Sphere {
+            origin: Vector(1, 0.5, 2),
+            radius: 0.5
+        },
+        emerald: Sphere {
+            origin: Vector(3, 0.5, 2),
+            radius: 0.5
+        },
+
+        plastic1: Sphere {
+            origin: Vector(-3, 0.5, 4),
+            radius: 0.5
+        },
+        plastic2: Sphere {
+            origin: Vector(-1, 0.5, 4),
+            radius: 0.5
+        },
+        plastic3: Sphere {
+            origin: Vector(1, 0.5, 4),
+            radius: 0.5
+        },
+        plastic4: Sphere {
+            origin: Vector(3, 0.5, 4),
+            radius: 0.5
+        },
+    },
+    primitives: [
+        Shape { shape: 'sky', material: 'sky' },
+        Shape { shape: 'ground', material: 'ground' },
+        Shape { shape: 'light', material: 'light' },
+
+        Shape { shape: 'matte1', material: 'matte1' },
+        Shape { shape: 'matte2', material: 'matte2' },
+        Shape { shape: 'matte3', material: 'matte3' },
+        Shape { shape: 'matte4', material: 'matte4' },
+
+        Shape { shape: 'brass', material: 'brass' },
+        Shape { shape: 'chrome', material: 'chrome' },
+        Shape { shape: 'copper', material: 'copper' },
+        Shape { shape: 'gold', material: 'gold' },
+
+        Shape { shape: 'glass', material: 'glass' },
+        Shape { shape: 'water', material: 'water' },
+        Shape { shape: 'diamond', material: 'diamond' },
+        Shape { shape: 'emerald', material: 'emerald' },
+
+        Shape { shape: 'plastic1', material: 'plastic1' },
+        Shape { shape: 'plastic2', material: 'plastic2' },
+        Shape { shape: 'plastic3', material: 'plastic3' },
+        Shape { shape: 'plastic4', material: 'plastic4' },
+    ]
+}
