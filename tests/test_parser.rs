@@ -229,15 +229,20 @@ mod tokenizer {
 
 #[cfg(test)]
 mod parser {
-    use std::collections::HashMap;
+    use std::{collections::HashMap, sync::Arc};
 
     use craytracer::{
+        camera::Camera,
         color::Color,
+        material::Material,
+        primitive::Primitive,
+        scene::Scene,
         scene_parser::parser::{
             parse_raw_value, RawValue, RawValueArray, RawValueMap, TypedRawValueMap,
         },
         scene_parser::scene_parser::parse_scene,
         scene_parser::tokenizer::{tokenize, ParserError},
+        shape::Shape,
         vector::Vector,
     };
 
@@ -380,63 +385,57 @@ mod parser {
 
     #[test]
     fn scene() {
-        parse_scene(
-            "
+        assert_eq!(
+            parse_scene(
+                "
 {
     max_depth: 5,
     camera: Projection {
-        origin: Vector(0, 8, -10),
-        target: Vector(1, 1.25, 12),
+        origin: Vector(0, 0, 0),
+        target: Vector(0, 0, 1),
         up: Vector(0, 1, 0),
-        focal_distance: 5,
-        film_width: 896,
-        film_height: 560,
-        num_samples: 10
+        focal_distance: 1,
+        film_width: 400,
+        film_height: 300,
+        num_samples: 1
     },
     materials: {
-        sky: Emissive {
-            emittance: Color(0, 10, 60)
-        },
-        ground: Matte {
+        ball: Matte {
             reflectance: Color(1, 1, 1),
             sigma: 0
         },
-        glass: Glass {
-            reflectance: Color(1, 1, 1),
-            transmittance: Color(1, 1, 1),
-            eta: 1.75
-        },
-        light: Emissive {
-            emittance: Color(255, 230, 20)
-        }
     },
     shapes: {
-        sky: Sphere {
-            origin: Vector(0, 0, 0),
-            radius: 1000
+        ball: Sphere {
+            origin: Vector(0, 0, 2),
+            radius: 1
         },
-        ground: Sphere {
-            origin: Vector(0, -10000, 10),
-            radius: 10000
-        },
-        glass: Sphere {
-            origin: Vector(0, 1.5, 12.5),
-            radius: 1.5
-        },
-        light: Sphere {
-            origin: Vector(-3, 4, 13.5),
-            radius: 0.5
-        }
     },
     primitives: [
-        { shape: 'sky', material: 'sky' },
-        { shape: 'ground', material: 'ground' },
-        { shape: 'glass', material: 'glass' },
-        { shape: 'light', material: 'light' }
+        { shape: 'ball', material: 'ball' },
     ]
 }
 ",
-        )
-        .unwrap();
+            )
+            .unwrap(),
+            Scene::new(
+                5,
+                400,
+                300,
+                Box::new(Camera::new_projection_camera(
+                    Vector::O,
+                    Vector::Z,
+                    Vector::Y,
+                    1.0,
+                    1,
+                    400,
+                    300
+                )),
+                vec![Arc::new(Primitive::new_shape_primitive(
+                    Arc::new(Shape::new_sphere(Vector(0.0, 0.0, 2.0), 1.0)),
+                    Arc::new(Material::new_matte(Color::WHITE, 0.0))
+                ))]
+            )
+        );
     }
 }

@@ -2,6 +2,7 @@ use crate::{
     color::Color, ray::Ray, sampling::sample_2d, scene::Scene, trace::trace, vector::Vector,
 };
 
+#[derive(Debug, PartialEq)]
 pub enum Camera {
     Projection {
         origin: Vector,

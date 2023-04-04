@@ -8,16 +8,19 @@ use crate::{
     vector::{Axis, AXES},
 };
 
+#[derive(Debug, PartialEq)]
 pub struct Split {
     axis: Axis,
     location: f64,
 }
 
+#[derive(Debug, PartialEq)]
 pub struct PrimitiveInfo {
     primitive: Arc<Primitive>,
     bounds: Bounds,
 }
 
+#[derive(Debug, PartialEq)]
 pub enum BvhNode {
     InteriorNode {
         bounds: Bounds,

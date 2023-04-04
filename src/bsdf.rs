@@ -6,7 +6,7 @@ use crate::{
     vector::Vector,
 };
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct BSDF {
     pub bxdfs: Vec<BxDF>,
 }

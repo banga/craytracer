@@ -4,6 +4,7 @@ use crate::{
     bounds::Bounds, intersection::PrimitiveIntersection, material::Material, ray::Ray, shape::Shape,
 };
 
+#[derive(Debug, PartialEq)]
 pub enum Primitive {
     ShapePrimitive {
         shape: Arc<Shape>,

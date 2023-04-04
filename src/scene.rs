@@ -5,6 +5,7 @@ use crate::{
     ray::Ray,
 };
 
+#[derive(Debug, PartialEq)]
 pub struct Scene {
     pub max_depth: usize,
     pub film_width: usize,

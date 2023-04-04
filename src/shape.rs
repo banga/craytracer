@@ -2,6 +2,7 @@ use crate::{
     bounds::Bounds, constants::EPSILON, intersection::ShapeIntersection, ray::Ray, vector::Vector,
 };
 
+#[derive(Debug, PartialEq)]
 pub enum Shape {
     Sphere {
         origin: Vector,

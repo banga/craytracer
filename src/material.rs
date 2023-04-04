@@ -8,6 +8,7 @@ use crate::{
     vector::Vector,
 };
 
+#[derive(Debug, PartialEq)]
 pub enum Material {
     // TODO: implement lights and remove this
     Emissive { emittance: Color },

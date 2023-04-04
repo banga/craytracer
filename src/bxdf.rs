@@ -16,7 +16,7 @@ pub struct SurfaceSample {
 }
 
 #[allow(non_snake_case)]
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum BxDF {
     LambertianBRDF {
         reflectance: Color,
@@ -269,20 +269,23 @@ pub fn refract(
     Some(r_perpendicular + r_parallel)
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
+
 pub struct Dielectric {
     pub eta_i: f64,
     pub eta_t: f64,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
+
 pub struct Conductor {
     pub eta_i: Color,
     pub eta_t: Color,
     pub k: Color,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
+
 pub enum Fresnel {
     Dielectric(Dielectric),
     Conductor(Conductor),
