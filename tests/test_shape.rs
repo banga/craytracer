@@ -1,5 +1,6 @@
 mod sphere {
     use craytracer::{bounds::Bounds, shape::Shape, vector::Vector};
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn bounds() {
@@ -18,6 +19,7 @@ mod sphere {
 mod triangle {
     use approx::assert_abs_diff_eq;
     use craytracer::{bounds::Bounds, constants::EPSILON, ray::Ray, shape::Shape, vector::Vector};
+    use pretty_assertions::assert_eq;
     use rand::{thread_rng, Rng};
 
     // Triangle in XY plane

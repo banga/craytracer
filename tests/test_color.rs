@@ -1,4 +1,5 @@
 use craytracer::color::Color;
+use pretty_assertions::assert_eq;
 
 #[test]
 fn from_rgb() {

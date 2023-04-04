@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tokenizer {
     use craytracer::scene_parser::tokenizer::{tokenize, ParserError, Token};
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn simple() {
@@ -128,9 +129,6 @@ mod tokenizer {
         Shape {
             shape: 'sky',
             material: 'sky'
-        }
-        Mesh {
-            file: 'objs/triangle.obj'
         }
     ]
 }

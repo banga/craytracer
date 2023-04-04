@@ -1,4 +1,5 @@
 use craytracer::vector::Vector;
+use pretty_assertions::assert_eq;
 
 #[test]
 fn normalized() {

@@ -1,4 +1,5 @@
 use approx::assert_abs_diff_eq;
+use pretty_assertions::assert_eq;
 use rand::{thread_rng, Rng};
 
 use craytracer::{bounds::Bounds, constants::EPSILON, ray::Ray, vector::Vector};
