@@ -2,16 +2,16 @@
     max_depth: 5,
     camera: Projection {
         origin: Vector(0, 8, -10),
-        target: Vector(1, 1.25, 12),
+        target: Vector(2.5, 0.5, 12),
         up: Vector(0, 1, 0),
-        focal_distance: 5,
-        film_width: 896,
-        film_height: 560,
-        num_samples: 100
+        focal_distance: 4.5,
+        film_width: 1400,
+        film_height: 800,
+        num_samples: 5000
     },
     materials: {
         sky: Emissive {
-            emittance: Color(0, 0.08, 0.48)
+            emittance: Color(0.01, 0.04, 0.3)
         },
         ground: Matte {
             reflectance: Color(0.8, 0.8, 0.8),
@@ -23,7 +23,7 @@
             eta: 1.75
         },
         light: Emissive {
-            emittance: Color(2, 1.8, 0.16)
+            emittance: Color(8, 4, 0)
         }
     },
     shapes: {
@@ -40,8 +40,8 @@
             radius: 1.5
         },
         light: Sphere {
-            origin: Vector(-3, 4, 13.5),
-            radius: 0.5
+            origin: Vector(-4, 5, 16),
+            radius: 1.0
         }
     },
     primitives: [
