@@ -14,7 +14,10 @@ use std::{
 use trace::trace;
 use vector::Vector;
 
-use crate::parser::parse_scene;
+use crate::{
+    parser::parse_scene,
+    scenes::{dragon, simple},
+};
 
 mod bounds;
 mod bsdf;
@@ -187,7 +190,7 @@ fn render(scene: &Scene) -> Vec<f32> {
 
 #[derive(Parser)]
 struct Cli {
-    #[clap(short, long)]
+    #[clap(short, long, default_value_t = String::from("in.cry"))]
     scene: String,
 
     #[clap(short, long, default_value_t = String::from("out.exr"))]
@@ -241,8 +244,9 @@ fn main() {
     let args = Cli::parse();
 
     let start = Instant::now();
-    let input = std::fs::read_to_string(&args.scene).expect("Error reading scene file");
-    let scene = parse_scene(&input).expect("Error parsing scene file");
+    // let input = std::fs::read_to_string(&args.scene).expect("Error reading scene file");
+    // let scene = parse_scene(&input).expect("Error parsing scene file");
+    let scene = simple(250, 1);
     println!("Scene constructed in {:?}", start.elapsed());
 
     let width = scene.film_width as u32;

@@ -9,7 +9,7 @@ pub struct Scene {
     pub max_depth: usize,
     pub film_width: usize,
     pub film_height: usize,
-    pub camera: Box<dyn Camera>,
+    pub camera: Box<Camera>,
     bvh: Box<BvhNode>,
 }
 
@@ -18,8 +18,8 @@ impl Scene {
         max_depth: usize,
         film_width: usize,
         film_height: usize,
-        camera: Box<dyn Camera>,
-        primitives: Vec<Arc<dyn Primitive>>,
+        camera: Box<Camera>,
+        primitives: Vec<Arc<Primitive>>,
     ) -> Self {
         Self {
             max_depth,

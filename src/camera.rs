@@ -1,23 +1,20 @@
 use crate::{color::Color, ray::Ray, sampling::sample_2d, scene::Scene, trace, vector::Vector};
 
-pub trait Camera: std::fmt::Debug + Send + Sync {
-    fn sample(&self, x: usize, y: usize, scene: &Scene) -> Color;
+pub enum Camera {
+    Projection {
+        origin: Vector,
+        x: Vector,
+        y: Vector,
+        z: Vector,
+        focal_distance: f64,
+        num_samples: usize,
+        delta_x: f64,
+        delta_y: f64,
+    },
 }
 
-#[derive(Debug)]
-pub struct ProjectionCamera {
-    origin: Vector,
-    x: Vector,
-    y: Vector,
-    z: Vector,
-    focal_distance: f64,
-    num_samples: usize,
-    delta_x: f64,
-    delta_y: f64,
-}
-
-impl ProjectionCamera {
-    pub fn new(
+impl Camera {
+    pub fn new_projection_camera(
         origin: Vector,
         target: Vector,
         up: Vector,
@@ -25,7 +22,7 @@ impl ProjectionCamera {
         num_samples: usize,
         film_width: usize,
         film_height: usize,
-    ) -> ProjectionCamera {
+    ) -> Camera {
         let z = (target - origin).normalized();
         let x = up.normalized().cross(&z) * (film_width as f64 / film_height as f64);
         let y = z.cross(&x).normalized();
@@ -33,7 +30,7 @@ impl ProjectionCamera {
         let delta_x = 1.0 / film_width as f64;
         let delta_y = 1.0 / film_height as f64;
 
-        ProjectionCamera {
+        Camera::Projection {
             origin,
             x,
             y,
@@ -44,28 +41,38 @@ impl ProjectionCamera {
             delta_y,
         }
     }
-}
 
-impl Camera for ProjectionCamera {
-    fn sample(&self, x: usize, y: usize, scene: &Scene) -> Color {
-        // Adjust sx and sy to center the screen space center to the center
-        // of the film
-        let sx = x as f64 * self.delta_x - 0.5;
-        let sy = y as f64 * self.delta_y as f64 - 0.5;
-        let ray_origin = self.origin
-            + self.z * self.focal_distance
-            // Screen space x and y co-ordinates are flipped (and we use
-            // right-handed co-ordinates)
-            - self.x * sx
-            - self.y * sy;
+    pub fn sample(&self, sx: usize, sy: usize, scene: &Scene) -> Color {
+        match self {
+            Camera::Projection {
+                origin,
+                x,
+                y,
+                z,
+                focal_distance,
+                num_samples,
+                delta_x,
+                delta_y,
+            } => {
+                // Adjust sx and sy to center the screen space center to the center
+                // of the film
+                let sx = sx as f64 * delta_x - 0.5;
+                let sy = sy as f64 * delta_y - 0.5;
+                let ray_origin = *origin + (*z) * *focal_distance
+                    // Screen space x and y co-ordinates are flipped (and we use
+                    // right-handed co-ordinates)
+                    - *x * sx
+                    - *y * sy;
 
-        let mut color = Color::BLACK;
-        for _ in 0..self.num_samples {
-            let (dx, dy) = sample_2d();
-            let ray_origin = ray_origin + self.x * dx * self.delta_x + self.y * dy * self.delta_y;
-            let mut ray = Ray::new(ray_origin, (ray_origin - self.origin).normalized());
-            color += trace(&mut ray, &scene, 0);
+                let mut color = Color::BLACK;
+                for _ in 0..*num_samples {
+                    let (dx, dy) = sample_2d();
+                    let ray_origin = ray_origin + *x * dx * *delta_x + *y * dy * *delta_y;
+                    let mut ray = Ray::new(ray_origin, (ray_origin - *origin).normalized());
+                    color += trace(&mut ray, &scene, 0);
+                }
+                color / *num_samples as f64
+            }
         }
-        color / self.num_samples as f64
     }
 }

@@ -10,5 +10,5 @@ pub struct PrimitiveIntersection<'a> {
     pub distance: f64,
     pub location: Vector,
     pub normal: Vector,
-    pub material: &'a dyn Material,
+    pub material: &'a Material,
 }

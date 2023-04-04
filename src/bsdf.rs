@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use rand::Rng;
 
 use crate::{
@@ -10,13 +8,13 @@ use crate::{
 
 #[derive(Debug)]
 pub struct BSDF {
-    pub bxdfs: Vec<Arc<dyn BxDF>>,
+    pub bxdfs: Vec<BxDF>,
 }
 
 impl BSDF {
     pub fn sample(&self, w_o: &Vector, normal: &Vector) -> Option<SurfaceSample> {
         let is_reflecting = w_o.dot(&normal) < 0.0;
-        let relevant_bxdfs: Vec<&Arc<dyn BxDF>> = self
+        let relevant_bxdfs: Vec<&BxDF> = self
             .bxdfs
             .iter()
             .filter(|b| {

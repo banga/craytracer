@@ -4,33 +4,35 @@ use crate::{
     bounds::Bounds, intersection::PrimitiveIntersection, material::Material, ray::Ray, shape::Shape,
 };
 
-pub trait Primitive: Sync + Send {
-    fn intersect(&self, ray: &mut Ray) -> Option<PrimitiveIntersection>;
-    fn material(&self) -> Arc<dyn Material>;
-    fn bounds(&self) -> Bounds;
+pub enum Primitive {
+    ShapePrimitive {
+        shape: Box<Shape>,
+        material: Arc<Material>,
+    },
 }
 
-pub struct ShapePrimitive {
-    pub shape: Box<dyn Shape>,
-    pub material: Arc<dyn Material>,
-}
-
-impl Primitive for ShapePrimitive {
-    fn intersect(&self, ray: &mut Ray) -> Option<PrimitiveIntersection> {
-        let intersection = self.shape.intersect(ray)?;
-        Some(PrimitiveIntersection {
-            distance: ray.max_distance,
-            normal: intersection.normal,
-            location: intersection.location,
-            material: &*self.material,
-        })
+impl Primitive {
+    pub fn new_shape_primitive(shape: Box<Shape>, material: Arc<Material>) -> Self {
+        Self::ShapePrimitive { shape, material }
     }
 
-    fn material(&self) -> Arc<dyn Material> {
-        Arc::clone(&self.material)
+    pub fn intersect(&self, ray: &mut Ray) -> Option<PrimitiveIntersection> {
+        match self {
+            Primitive::ShapePrimitive { shape, material } => {
+                let intersection = shape.intersect(ray)?;
+                Some(PrimitiveIntersection {
+                    distance: ray.max_distance,
+                    normal: intersection.normal,
+                    location: intersection.location,
+                    material,
+                })
+            }
+        }
     }
 
-    fn bounds(&self) -> Bounds {
-        self.shape.bounds()
+    pub fn bounds(&self) -> Bounds {
+        match self {
+            Primitive::ShapePrimitive { shape, .. } => shape.bounds(),
+        }
     }
 }

@@ -14,7 +14,7 @@ pub struct Split {
 }
 
 pub struct PrimitiveInfo {
-    primitive: Arc<dyn Primitive>,
+    primitive: Arc<Primitive>,
     bounds: Bounds,
 }
 
@@ -38,7 +38,7 @@ impl Display for PrimitiveInfo {
 }
 
 impl BvhNode {
-    pub fn new(primitives: Vec<Arc<dyn Primitive>>) -> Box<BvhNode> {
+    pub fn new(primitives: Vec<Arc<Primitive>>) -> Box<BvhNode> {
         let primitive_infos = primitives
             .iter()
             .map(|p| PrimitiveInfo {
@@ -208,26 +208,21 @@ mod tests {
 
     use super::BvhNode;
     use crate::{
-        color::Color,
-        material::{Material, MatteMaterial},
-        primitive::ShapePrimitive,
-        ray::Ray,
-        shape::Sphere,
+        color::Color, material::Material, primitive::Primitive, ray::Ray, shape::Shape,
         vector::Vector,
     };
 
     #[test]
     fn bvh_node() {
-        let material: Arc<dyn Material> = Arc::new(MatteMaterial::new(Color::WHITE, 0.0));
         let node = BvhNode::new(vec![
-            Arc::new(ShapePrimitive {
-                shape: Box::new(Sphere::new(Vector(0.5, 0.5, 0.5), 0.5)),
-                material: Arc::clone(&material),
-            }),
-            Arc::new(ShapePrimitive {
-                shape: Box::new(Sphere::new(Vector(1.5, 0.5, 0.5), 0.5)),
-                material: Arc::clone(&material),
-            }),
+            Arc::new(Primitive::new_shape_primitive(
+                Box::new(Shape::new_sphere(Vector(0.5, 0.5, 0.5), 0.5)),
+                Arc::new(Material::new_matte(Color::WHITE, 0.0)),
+            )),
+            Arc::new(Primitive::new_shape_primitive(
+                Box::new(Shape::new_sphere(Vector(1.5, 0.5, 0.5), 0.5)),
+                Arc::new(Material::new_matte(Color::WHITE, 0.0)),
+            )),
         ]);
 
         // Intersect from left

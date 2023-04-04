@@ -1,14 +1,8 @@
 use std::sync::Arc;
 
-use crate::{
-    color::Color,
-    material::{EmissiveMaterial, Material, MatteMaterial},
-    primitive::{Primitive, ShapePrimitive},
-    shape::Triangle,
-    vector::Vector,
-};
+use crate::{color::Color, material::Material, primitive::Primitive, shape::Shape, vector::Vector};
 
-pub fn load_obj(file_name: &str, fallback_material: Arc<dyn Material>) -> Vec<Arc<dyn Primitive>> {
+pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Primitive>> {
     let (models, input_materials) =
         tobj::load_obj(file_name, &tobj::GPU_LOAD_OPTIONS).expect("Error loading models");
     let input_materials = input_materials.expect("Error loading materials");
@@ -24,7 +18,7 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<dyn Material>) -> Vec<Ar
         }
     }
 
-    let mut materials: Vec<Arc<dyn Material>> = vec![];
+    let mut materials: Vec<Arc<Material>> = vec![];
     for m in input_materials {
         let diffuse = Color {
             r: m.diffuse[0] as f64,
@@ -44,24 +38,22 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<dyn Material>) -> Vec<Ar
         };
 
         if ambient.is_some() && !ambient.unwrap().is_black() {
-            materials.push(Arc::new(EmissiveMaterial {
-                emittance: ambient.unwrap(),
-            }));
+            materials.push(Arc::new(Material::new_emissive(ambient.unwrap())));
         } else {
             // TODO: read roughness
-            materials.push(Arc::new(MatteMaterial::new(diffuse, 0.0)));
+            materials.push(Arc::new(Material::new_matte(diffuse, 0.0)));
         }
     }
 
-    let mut primitives: Vec<Arc<dyn Primitive>> = Vec::new();
+    let mut primitives: Vec<Arc<Primitive>> = Vec::new();
     for (i, m) in models.iter().enumerate() {
         let mesh = &m.mesh;
 
-        let material = Arc::clone(if let Some(material_id) = mesh.material_id {
+        let material = if let Some(material_id) = mesh.material_id {
             &materials[material_id]
         } else {
             &fallback_material
-        });
+        };
 
         println!("Loading model {}: '{}'", i, m.name);
         assert!(
@@ -86,7 +78,7 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<dyn Material>) -> Vec<Ar
         for chunk in mesh.indices.chunks(3) {
             if let [i, j, k] = chunk {
                 let triangle = if normals.len() > 0 {
-                    Triangle::with_normals(
+                    Shape::new_triangle_with_normals(
                         vertices[*i as usize],
                         vertices[*j as usize],
                         vertices[*k as usize],
@@ -95,16 +87,16 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<dyn Material>) -> Vec<Ar
                         normals[*k as usize],
                     )
                 } else {
-                    Triangle::new(
+                    Shape::new_triangle(
                         vertices[*i as usize],
                         vertices[*j as usize],
                         vertices[*k as usize],
                     )
                 };
-                primitives.push(Arc::new(ShapePrimitive {
-                    shape: Box::new(triangle),
-                    material: Arc::clone(&material),
-                }));
+                primitives.push(Arc::new(Primitive::new_shape_primitive(
+                    Box::new(triangle),
+                    Arc::clone(material),
+                )));
             }
         }
     }

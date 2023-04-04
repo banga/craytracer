@@ -6,14 +6,7 @@ use std::{
 };
 
 use crate::{
-    camera::{Camera, ProjectionCamera},
-    color::Color,
-    material::{
-        EmissiveMaterial, GlassMaterial, Material, MatteMaterial, MetalMaterial, PlasticMaterial,
-    },
-    scene::Scene,
-    shape::{Shape, Sphere, Triangle},
-    vector::Vector,
+    camera::Camera, color::Color, material::Material, scene::Scene, shape::Shape, vector::Vector,
 };
 
 #[derive(Debug, PartialEq, Clone)]
@@ -674,7 +667,7 @@ impl<'a: 'b, 'b> TryFrom<&'a RawValue> for &'b TypedRawValueMap {
 }
 
 /// Camera
-impl TryFrom<&RawValue> for Box<dyn Camera> {
+impl TryFrom<&RawValue> for Box<Camera> {
     type Error = ParserError;
     fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
         let typed_map = match value {
@@ -694,7 +687,7 @@ impl TryFrom<&RawValue> for Box<dyn Camera> {
                 let film_width: usize = map.get("film_width")?;
                 let film_height: usize = map.get("film_height")?;
 
-                Ok(Box::new(ProjectionCamera::new(
+                Ok(Box::new(Camera::new_projection_camera(
                     origin,
                     target,
                     up,
@@ -712,7 +705,7 @@ impl TryFrom<&RawValue> for Box<dyn Camera> {
 }
 
 /// Material
-impl TryFrom<&RawValue> for Box<dyn Material> {
+impl TryFrom<&RawValue> for Box<Material> {
     type Error = ParserError;
     fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
         let typed_map = match value {
@@ -723,24 +716,25 @@ impl TryFrom<&RawValue> for Box<dyn Material> {
         }?;
         let map = &typed_map.map;
         match typed_map.name.as_str() {
-            "Emissive" => Ok(Box::new(EmissiveMaterial {
-                emittance: map.get("emittance")?,
-            })),
-            "Matte" => Ok(Box::new(MatteMaterial::new(
+            "Emissive" => Ok(Box::new(Material::new_emissive(map.get("emittance")?))),
+            "Matte" => Ok(Box::new(Material::new_matte(
                 map.get("reflectance")?,
                 map.get("sigma")?,
             ))),
-            "Glass" => Ok(Box::new(GlassMaterial::new(
+            "Glass" => Ok(Box::new(Material::new_glass(
                 map.get("reflectance")?,
                 map.get("transmittance")?,
                 map.get("eta")?,
             ))),
-            "Plastic" => Ok(Box::new(PlasticMaterial::new(
+            "Plastic" => Ok(Box::new(Material::new_plastic(
                 map.get("diffuse")?,
                 map.get("specular")?,
                 map.get("roughness")?,
             ))),
-            "Metal" => Ok(Box::new(MetalMaterial::new(map.get("eta")?, map.get("k")?))),
+            "Metal" => Ok(Box::new(Material::new_metal(
+                map.get("eta")?,
+                map.get("k")?,
+            ))),
             _ => Err(ParserError {
                 message: format!("Unknown material type: {}", typed_map.name),
             }),
@@ -749,7 +743,7 @@ impl TryFrom<&RawValue> for Box<dyn Material> {
 }
 
 /// Shape
-impl TryFrom<&RawValue> for Box<dyn Shape> {
+impl TryFrom<&RawValue> for Box<Shape> {
     type Error = ParserError;
     fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
         let typed_map = match value {
@@ -760,11 +754,11 @@ impl TryFrom<&RawValue> for Box<dyn Shape> {
         }?;
         let map = &typed_map.map;
         match typed_map.name.as_str() {
-            "Sphere" => Ok(Box::new(Sphere::new(
+            "Sphere" => Ok(Box::new(Shape::new_sphere(
                 map.get("origin")?,
                 map.get("radius")?,
             ))),
-            "Triangle" => Ok(Box::new(Triangle::new(
+            "Triangle" => Ok(Box::new(Shape::new_triangle(
                 map.get("v0")?,
                 map.get("v1")?,
                 map.get("v2")?,
@@ -831,9 +825,9 @@ pub fn parse_scene(input: &str) -> Result<Scene, ParserError> {
     let scene_map = RawValueMap::from_tokens(&mut tokens)?;
 
     let max_depth: usize = scene_map.get("max_depth")?;
-    let camera: Box<dyn Camera> = scene_map.get("camera")?;
-    let materials: HashMap<String, Box<dyn Material>> = scene_map.get("materials")?;
-    let shapes: HashMap<String, Box<dyn Shape>> = scene_map.get("shapes")?;
+    let camera: Box<Camera> = scene_map.get("camera")?;
+    let materials: HashMap<String, Box<Material>> = scene_map.get("materials")?;
+    let shapes: HashMap<String, Box<Shape>> = scene_map.get("shapes")?;
     let primitives: Vec<HashMap<String, String>> = scene_map.get("primitives")?;
 
     for primitive in primitives {
