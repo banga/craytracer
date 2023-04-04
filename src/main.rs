@@ -103,10 +103,15 @@ fn setup_preview_window(
 }
 
 fn render(scene: &Scene) -> Vec<f32> {
+    let num_threads = num_cpus::get();
+    // We will create roughly scale^2 tiles, so generate around enough to
+    // saturate the threads
+    let scale = (num_threads as f64 * 2.0).sqrt();
+
     let width = scene.film_width;
     let height = scene.film_height;
-    let tile_width = 64;
-    let tile_height = 64;
+    let tile_width = (width as f64 / scale) as usize;
+    let tile_height = (height as f64 / scale) as usize;
     let tiles = generate_tiles(height, width, tile_width, tile_height);
 
     let tiles = Arc::new(tiles);
@@ -115,8 +120,6 @@ fn render(scene: &Scene) -> Vec<f32> {
 
     let tile_index = Arc::new(AtomicUsize::new(0));
     let (sender, receiver) = mpsc::channel();
-
-    let num_threads = num_cpus::get();
 
     thread::scope(|scope| {
         for _ in 0..num_threads {
