@@ -53,7 +53,7 @@
         gold: Metal {
             eta: Color(0.18299, 0.42108, 1.37340),
             k: Color(3.42420, 2.34590, 1.77040),
-        }
+        },
 
         glass: Glass {
             reflectance: Color(1, 1, 1),

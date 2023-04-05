@@ -7,7 +7,7 @@
         focal_distance: 1,
         film_width: 600,
         film_height: 400,
-        num_samples: 10
+        num_samples: 100
     },
     materials: {
         sky: Emissive {
@@ -19,7 +19,7 @@
         ground: Matte {
             reflectance: Color(1, 1, 1),
             sigma: 0
-        }
+        },
         dragon: Metal {
             eta: Color(0.18299, 0.42108, 1.37340),
             k: Color(3.42420, 2.34590, 1.77040),
@@ -42,7 +42,7 @@
     primitives: [
         Shape { shape: 'sky', material: 'sky' },
         Shape { shape: 'ground', material: 'ground' },
-        Shape { shape: 'light', material: 'light' }
+        Shape { shape: 'light', material: 'light' },
         Mesh { file_name: 'objs/xyzrgb_dragon.obj', fallback_material: 'dragon' }
     ]
 }

@@ -1,65 +1,98 @@
 #[cfg(test)]
 mod tokenizer {
-    use craytracer::scene_parser::tokenizer::{tokenize, ParserError, Token};
+    use craytracer::scene_parser::{
+        tokenizer::{tokenize, ParserError, Token, TokenValue},
+        Location,
+    };
     use pretty_assertions::assert_eq;
+
+    fn assert_token_values(input: &str, expected: &[TokenValue]) {
+        assert_eq!(
+            tokenize(input)
+                .unwrap()
+                .iter()
+                .map(|token| token.value.clone())
+                .collect::<Vec<TokenValue>>(),
+            expected
+        );
+    }
+
+    fn assert_tokens(input: &str, expected: &[Token]) {
+        assert_eq!(tokenize(input).unwrap(), expected);
+    }
 
     #[test]
     fn simple() {
-        assert_eq!(tokenize("").unwrap(), [Token::Eof]);
-        assert_eq!(tokenize(" \r\t\n").unwrap(), [Token::Eof]);
-        assert_eq!(
-            tokenize("{}").unwrap(),
-            [Token::LeftBrace, Token::RightBrace, Token::Eof]
+        assert_token_values("", &[TokenValue::Eof]);
+        assert_token_values(" \r\t\n", &[TokenValue::Eof]);
+        assert_token_values(
+            "{}",
+            &[
+                TokenValue::LeftBrace,
+                TokenValue::RightBrace,
+                TokenValue::Eof,
+            ],
         );
-        assert_eq!(
-            tokenize("[]").unwrap(),
-            [Token::LeftBracket, Token::RightBracket, Token::Eof]
+        assert_token_values(
+            "[]",
+            &[
+                TokenValue::LeftBracket,
+                TokenValue::RightBracket,
+                TokenValue::Eof,
+            ],
         );
-        assert_eq!(
-            tokenize("()").unwrap(),
-            [Token::LeftParen, Token::RightParen, Token::Eof]
+        assert_token_values(
+            "()",
+            &[
+                TokenValue::LeftParen,
+                TokenValue::RightParen,
+                TokenValue::Eof,
+            ],
         );
-        assert_eq!(tokenize("1").unwrap(), [Token::Number(1.0), Token::Eof]);
-        assert_eq!(
-            tokenize("'hello'").unwrap(),
-            [Token::String("hello".to_string()), Token::Eof]
+        assert_token_values("1", &[TokenValue::Number(1.0), TokenValue::Eof]);
+        assert_token_values(
+            "'hello'",
+            &[TokenValue::String("hello".to_string()), TokenValue::Eof],
         );
     }
 
     #[test]
     fn numbers() {
-        assert_eq!(tokenize("1").unwrap(), [Token::Number(1.0), Token::Eof]);
-        assert_eq!(tokenize("1.0").unwrap(), [Token::Number(1.0), Token::Eof]);
-        assert_eq!(
-            tokenize("1.0000").unwrap(),
-            [Token::Number(1.0), Token::Eof]
-        );
-        assert_eq!(
-            tokenize("001.0000").unwrap(),
-            [Token::Number(1.0), Token::Eof]
-        );
+        assert_token_values("1", &[TokenValue::Number(1.0), TokenValue::Eof]);
+        assert_token_values("1.0", &[TokenValue::Number(1.0), TokenValue::Eof]);
+        assert_token_values("1.0000", &[TokenValue::Number(1.0), TokenValue::Eof]);
+        assert_token_values("001.0000", &[TokenValue::Number(1.0), TokenValue::Eof]);
 
-        assert_eq!(tokenize("-1").unwrap(), [Token::Number(-1.0), Token::Eof]);
-        assert_eq!(tokenize("+1").unwrap(), [Token::Number(1.0), Token::Eof]);
-        assert_eq!(tokenize("-1.1").unwrap(), [Token::Number(-1.1), Token::Eof]);
-        assert_eq!(tokenize("+1.1").unwrap(), [Token::Number(1.1), Token::Eof]);
+        assert_token_values("-1", &[TokenValue::Number(-1.0), TokenValue::Eof]);
+        assert_token_values("+1", &[TokenValue::Number(1.0), TokenValue::Eof]);
+        assert_token_values("-1.1", &[TokenValue::Number(-1.1), TokenValue::Eof]);
+        assert_token_values("+1.1", &[TokenValue::Number(1.1), TokenValue::Eof]);
 
         // no expression support
-        assert_eq!(
-            tokenize("2+3").unwrap(),
-            [Token::Number(2.0), Token::Number(3.0), Token::Eof]
+        assert_token_values(
+            "2+3",
+            &[
+                TokenValue::Number(2.0),
+                TokenValue::Number(3.0),
+                TokenValue::Eof,
+            ],
         );
-        assert_eq!(
-            tokenize("4-5").unwrap(),
-            [Token::Number(4.0), Token::Number(-5.0), Token::Eof]
+        assert_token_values(
+            "4-5",
+            &[
+                TokenValue::Number(4.0),
+                TokenValue::Number(-5.0),
+                TokenValue::Eof,
+            ],
         );
 
         // malformed numbers
         assert_eq!(
             tokenize("9.8.7").expect_err("Expected ParserError"),
-            ParserError {
-                message: "Unexpected character: '.'".to_string()
-            }
+            ParserError::new(
+                "Unexpected character: '.'",
+                &Location { line: 1, column: 4 }
+            )
         );
     }
 
@@ -78,9 +111,12 @@ mod tokenizer {
         ]
         .iter()
         .for_each(|s| {
-            assert_eq!(
-                tokenize(s).unwrap(),
-                [Token::String(s[1..s.len() - 1].to_string()), Token::Eof],
+            assert_token_values(
+                s,
+                &[
+                    TokenValue::String(s[1..s.len() - 1].to_string()),
+                    TokenValue::Eof,
+                ],
             );
         });
     }
@@ -96,18 +132,84 @@ mod tokenizer {
         ]
         .iter()
         .for_each(|s| {
-            assert_eq!(
-                tokenize(s).unwrap(),
-                [Token::Identifier(s.to_string()), Token::Eof]
-            );
+            assert_token_values(s, &[TokenValue::Identifier(s.to_string()), TokenValue::Eof]);
         });
     }
 
     #[test]
+    fn locations() {
+        assert_tokens(
+            "{}",
+            &[
+                Token::new(TokenValue::LeftBrace, Location { line: 1, column: 1 }),
+                Token::new(TokenValue::RightBrace, Location { line: 1, column: 2 }),
+                Token::new(TokenValue::Eof, Location { line: 1, column: 3 }),
+            ],
+        );
+
+        assert_tokens(
+            "
+{
+    x: 1,
+    y: ['foo', 3.14],
+}",
+            &[
+                Token::new(TokenValue::LeftBrace, Location { line: 2, column: 1 }),
+                Token::new(
+                    TokenValue::Identifier("x".to_string()),
+                    Location { line: 3, column: 5 },
+                ),
+                Token::new(TokenValue::Colon, Location { line: 3, column: 6 }),
+                Token::new(TokenValue::Number(1.0), Location { line: 3, column: 8 }),
+                Token::new(TokenValue::Comma, Location { line: 3, column: 9 }),
+                Token::new(
+                    TokenValue::Identifier("y".to_string()),
+                    Location { line: 4, column: 5 },
+                ),
+                Token::new(TokenValue::Colon, Location { line: 4, column: 6 }),
+                Token::new(TokenValue::LeftBracket, Location { line: 4, column: 8 }),
+                Token::new(
+                    TokenValue::String("foo".to_string()),
+                    Location { line: 4, column: 9 },
+                ),
+                Token::new(
+                    TokenValue::Comma,
+                    Location {
+                        line: 4,
+                        column: 14,
+                    },
+                ),
+                Token::new(
+                    TokenValue::Number(3.14),
+                    Location {
+                        line: 4,
+                        column: 16,
+                    },
+                ),
+                Token::new(
+                    TokenValue::RightBracket,
+                    Location {
+                        line: 4,
+                        column: 20,
+                    },
+                ),
+                Token::new(
+                    TokenValue::Comma,
+                    Location {
+                        line: 4,
+                        column: 21,
+                    },
+                ),
+                Token::new(TokenValue::RightBrace, Location { line: 5, column: 1 }),
+                Token::new(TokenValue::Eof, Location { line: 5, column: 2 }),
+            ],
+        );
+    }
+
+    #[test]
     fn full() {
-        assert_eq!(
-            tokenize(
-                r#"
+        assert_token_values(
+            r#"
 {
     max_depth: 8,
     camera: ProjectionCamera {
@@ -132,97 +234,95 @@ mod tokenizer {
         }
     ]
 }
-"#
-            )
-            .unwrap(),
-            [
-                Token::LeftBrace,
-                Token::Identifier("max_depth".to_string()),
-                Token::Colon,
-                Token::Number(8.0),
-                Token::Comma,
-                Token::Identifier("camera".to_string()),
-                Token::Colon,
-                Token::Identifier("ProjectionCamera".to_string()),
-                Token::LeftBrace,
-                Token::Identifier("origin".to_string()),
-                Token::Colon,
-                Token::Identifier("Vector".to_string()),
-                Token::LeftParen,
-                Token::Number(0.0),
-                Token::Comma,
-                Token::Number(8.0),
-                Token::Comma,
-                Token::Number(-10.0),
-                Token::RightParen,
-                Token::Comma,
-                Token::Identifier("fov".to_string()),
-                Token::Colon,
-                Token::Number(5.0),
-                Token::Comma,
-                Token::RightBrace,
-                Token::Comma,
-                Token::Identifier("materials".to_string()),
-                Token::Colon,
-                Token::LeftBrace,
-                Token::Identifier("sky".to_string()),
-                Token::Colon,
-                Token::Identifier("Emissive".to_string()),
-                Token::LeftBrace,
-                Token::Identifier("emittance".to_string()),
-                Token::Colon,
-                Token::Identifier("Color".to_string()),
-                Token::LeftParen,
-                Token::Number(0.0),
-                Token::Comma,
-                Token::Number(10.0),
-                Token::Comma,
-                Token::Number(60.0),
-                Token::RightParen,
-                Token::RightBrace,
-                Token::RightBrace,
-                Token::Comma,
-                Token::Identifier("shapes".to_string()),
-                Token::Colon,
-                Token::LeftBrace,
-                Token::Identifier("sky".to_string()),
-                Token::Colon,
-                Token::Identifier("Sphere".to_string()),
-                Token::LeftBrace,
-                Token::Identifier("center".to_string()),
-                Token::Colon,
-                Token::Identifier("Vector".to_string()),
-                Token::LeftParen,
-                Token::Number(0.0),
-                Token::Comma,
-                Token::Number(0.0),
-                Token::Comma,
-                Token::Number(0.0),
-                Token::RightParen,
-                Token::Comma,
-                Token::Identifier("radius".to_string()),
-                Token::Colon,
-                Token::Number(1000.0),
-                Token::RightBrace,
-                Token::RightBrace,
-                Token::Comma,
-                Token::Identifier("primitives".to_string()),
-                Token::Colon,
-                Token::LeftBracket,
-                Token::Identifier("Shape".to_string()),
-                Token::LeftBrace,
-                Token::Identifier("shape".to_string()),
-                Token::Colon,
-                Token::String("sky".to_string()),
-                Token::Comma,
-                Token::Identifier("material".to_string()),
-                Token::Colon,
-                Token::String("sky".to_string()),
-                Token::RightBrace,
-                Token::RightBracket,
-                Token::RightBrace,
-                Token::Eof
-            ]
+"#,
+            &[
+                TokenValue::LeftBrace,
+                TokenValue::Identifier("max_depth".to_string()),
+                TokenValue::Colon,
+                TokenValue::Number(8.0),
+                TokenValue::Comma,
+                TokenValue::Identifier("camera".to_string()),
+                TokenValue::Colon,
+                TokenValue::Identifier("ProjectionCamera".to_string()),
+                TokenValue::LeftBrace,
+                TokenValue::Identifier("origin".to_string()),
+                TokenValue::Colon,
+                TokenValue::Identifier("Vector".to_string()),
+                TokenValue::LeftParen,
+                TokenValue::Number(0.0),
+                TokenValue::Comma,
+                TokenValue::Number(8.0),
+                TokenValue::Comma,
+                TokenValue::Number(-10.0),
+                TokenValue::RightParen,
+                TokenValue::Comma,
+                TokenValue::Identifier("fov".to_string()),
+                TokenValue::Colon,
+                TokenValue::Number(5.0),
+                TokenValue::Comma,
+                TokenValue::RightBrace,
+                TokenValue::Comma,
+                TokenValue::Identifier("materials".to_string()),
+                TokenValue::Colon,
+                TokenValue::LeftBrace,
+                TokenValue::Identifier("sky".to_string()),
+                TokenValue::Colon,
+                TokenValue::Identifier("Emissive".to_string()),
+                TokenValue::LeftBrace,
+                TokenValue::Identifier("emittance".to_string()),
+                TokenValue::Colon,
+                TokenValue::Identifier("Color".to_string()),
+                TokenValue::LeftParen,
+                TokenValue::Number(0.0),
+                TokenValue::Comma,
+                TokenValue::Number(10.0),
+                TokenValue::Comma,
+                TokenValue::Number(60.0),
+                TokenValue::RightParen,
+                TokenValue::RightBrace,
+                TokenValue::RightBrace,
+                TokenValue::Comma,
+                TokenValue::Identifier("shapes".to_string()),
+                TokenValue::Colon,
+                TokenValue::LeftBrace,
+                TokenValue::Identifier("sky".to_string()),
+                TokenValue::Colon,
+                TokenValue::Identifier("Sphere".to_string()),
+                TokenValue::LeftBrace,
+                TokenValue::Identifier("center".to_string()),
+                TokenValue::Colon,
+                TokenValue::Identifier("Vector".to_string()),
+                TokenValue::LeftParen,
+                TokenValue::Number(0.0),
+                TokenValue::Comma,
+                TokenValue::Number(0.0),
+                TokenValue::Comma,
+                TokenValue::Number(0.0),
+                TokenValue::RightParen,
+                TokenValue::Comma,
+                TokenValue::Identifier("radius".to_string()),
+                TokenValue::Colon,
+                TokenValue::Number(1000.0),
+                TokenValue::RightBrace,
+                TokenValue::RightBrace,
+                TokenValue::Comma,
+                TokenValue::Identifier("primitives".to_string()),
+                TokenValue::Colon,
+                TokenValue::LeftBracket,
+                TokenValue::Identifier("Shape".to_string()),
+                TokenValue::LeftBrace,
+                TokenValue::Identifier("shape".to_string()),
+                TokenValue::Colon,
+                TokenValue::String("sky".to_string()),
+                TokenValue::Comma,
+                TokenValue::Identifier("material".to_string()),
+                TokenValue::Colon,
+                TokenValue::String("sky".to_string()),
+                TokenValue::RightBrace,
+                TokenValue::RightBracket,
+                TokenValue::RightBrace,
+                TokenValue::Eof,
+            ],
         )
     }
 }
@@ -238,38 +338,41 @@ mod parser {
         material::Material,
         primitive::Primitive,
         scene::Scene,
-        scene_parser::parser::{
-            parse_raw_value, RawValue, RawValueArray, RawValueMap, TypedRawValueMap,
-        },
         scene_parser::scene_parser::parse_scene,
         scene_parser::tokenizer::{tokenize, ParserError},
+        scene_parser::{
+            parser::{RawValue, RawValueArray, RawValueMap, TypedRawValueMap},
+            Location,
+        },
         shape::Shape,
         vector::Vector,
     };
 
     fn expect_raw_value(s: &str, expected: RawValue) {
-        let result = parse_raw_value(&mut tokenize(s).unwrap().iter().peekable())
+        let result = RawValue::from_tokens(&mut tokenize(s).unwrap().iter().peekable())
             .expect(&format!("{:?} failed to parse", s));
         assert_eq!(result, expected, "{:?} parsed to unexpected value", s);
     }
 
     fn expect_raw_value_map(s: &str, expected: HashMap<String, RawValue>) {
-        expect_raw_value(s, RawValue::Map(RawValueMap { map: expected }));
+        expect_raw_value(
+            s,
+            RawValue::Map(RawValueMap {
+                map: expected,
+                location: Location { line: 1, column: 1 },
+            }),
+        );
     }
 
     fn expect_raw_value_array(s: &str, expected: Vec<RawValue>) {
         expect_raw_value(s, RawValue::Array(RawValueArray { array: expected }));
     }
 
-    fn expect_parse_error(s: &str, error: &str) {
-        let result = parse_raw_value(&mut tokenize(s).unwrap().iter().peekable())
+    fn expect_parse_error(s: &str, error: &str, location: Option<Location>) {
+        let result = RawValue::from_tokens(&mut tokenize(s).unwrap().iter().peekable())
             .expect_err(&format!("{:?} parsed succesfully", s));
-        assert_eq!(
-            result,
-            ParserError {
-                message: error.to_string()
-            },
-        );
+        assert_eq!(result.message, error);
+        assert_eq!(result.location, location);
     }
 
     #[test]
@@ -293,6 +396,7 @@ mod parser {
             "{}",
             RawValue::Map(RawValueMap {
                 map: HashMap::new(),
+                location: Location { line: 1, column: 1 },
             }),
         );
         expect_raw_value(
@@ -302,6 +406,7 @@ mod parser {
                     ("x".to_string(), RawValue::Number(1.0)),
                     ("y".to_string(), RawValue::String("z".to_string())),
                 ]),
+                location: Location { line: 1, column: 1 },
             }),
         );
         expect_raw_value(
@@ -313,6 +418,7 @@ mod parser {
                         ("center".to_string(), RawValue::Vector(Vector::O)),
                         ("radius".to_string(), RawValue::Number(1000.0)),
                     ]),
+                    location: Location { line: 1, column: 8 },
                 },
             }),
         );
@@ -325,13 +431,25 @@ mod parser {
                     RawValue::String("foo".to_string()),
                     RawValue::Map(RawValueMap {
                         map: HashMap::new(),
+                        location: Location {
+                            line: 1,
+                            column: 12,
+                        },
                     }),
                 ],
             }),
         );
 
-        expect_parse_error("x", "Expected LeftBrace, got Eof");
-        expect_parse_error(",", "Expected a raw value. Got Comma");
+        expect_parse_error(
+            "x",
+            "Expected '{', got EOF",
+            Some(Location { line: 1, column: 2 }),
+        );
+        expect_parse_error(
+            ",",
+            "Expected a raw value. Got ','",
+            Some(Location { line: 1, column: 1 }),
+        );
     }
 
     #[test]
@@ -363,13 +481,30 @@ mod parser {
             ]),
         );
 
-        expect_parse_error("{ x: 1, x: 2 }", "Duplicate key x");
-        expect_parse_error("{ x: 1", "Expected RightBrace, got Eof");
-        expect_parse_error("{ x 1 }", "Expected Colon, got Number(1.0)");
-        expect_parse_error("{ 1: x }", "Expected RightBrace, got Number(1.0)");
+        expect_parse_error(
+            "{ x: 1, x: 2 }",
+            "Duplicate key x",
+            Some(Location { line: 1, column: 1 }),
+        );
+        expect_parse_error(
+            "{ x: 1",
+            "Expected '}', got EOF",
+            Some(Location { line: 1, column: 7 }),
+        );
+        expect_parse_error(
+            "{ x 1 }",
+            "Expected ':', got '1'",
+            Some(Location { line: 1, column: 5 }),
+        );
+        expect_parse_error(
+            "{ 1: x }",
+            "Expected '}', got '1'",
+            Some(Location { line: 1, column: 3 }),
+        );
         expect_parse_error(
             "{ x: 1 y: 2 }",
-            "Expected RightBrace, got Identifier(\"y\")",
+            "Expected '}', got 'y'",
+            Some(Location { line: 1, column: 8 }),
         );
     }
 
@@ -399,13 +534,29 @@ mod parser {
                 RawValue::String("foo".to_string()),
                 RawValue::Map(RawValueMap {
                     map: HashMap::new(),
+                    location: Location {
+                        line: 1,
+                        column: 12,
+                    },
                 }),
             ],
         );
 
-        expect_parse_error("[", "Expected a raw value. Got Eof");
-        expect_parse_error("[,]", "Expected a raw value. Got Comma");
-        expect_parse_error("[1 2]", "Expected RightBracket, got Number(2.0)");
+        expect_parse_error(
+            "[",
+            "Expected a raw value. Got EOF",
+            Some(Location { line: 1, column: 2 }),
+        );
+        expect_parse_error(
+            "[,]",
+            "Expected a raw value. Got ','",
+            Some(Location { line: 1, column: 2 }),
+        );
+        expect_parse_error(
+            "[1 2]",
+            "Expected ']', got '2'",
+            Some(Location { line: 1, column: 4 }),
+        );
     }
 
     #[test]

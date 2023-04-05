@@ -1,5 +1,9 @@
 use clap::Parser;
-use craytracer::{color::Color, scene::Scene, scene_parser::scene_parser::parse_scene};
+use craytracer::{
+    color::Color,
+    scene::Scene,
+    scene_parser::{scene_parser::parse_scene, tokenizer::ParserError},
+};
 use crossbeam::thread;
 use minifb::{Scale, ScaleMode, Window, WindowOptions};
 use std::{
@@ -166,12 +170,21 @@ struct Cli {
     output: String,
 }
 
-fn main() {
+fn main() -> Result<(), ParserError> {
     let args = Cli::parse();
 
     let start = Instant::now();
     let input = std::fs::read_to_string(&args.scene).expect("Error reading scene file");
-    let scene = parse_scene(&input).expect("Error parsing scene file");
+    let scene = match parse_scene(&input) {
+        Ok(scene) => scene,
+        Err(e) => {
+            match e.location {
+                Some(location) => println!("Error: {} at {}:{}", e.message, args.scene, location),
+                None => println!("Error: {} in {}", e.message, args.scene),
+            }
+            return Ok(());
+        }
+    };
     println!("Scene constructed in {:?}", start.elapsed());
 
     let width = scene.film_width as u32;
@@ -183,4 +196,6 @@ fn main() {
     image_buffer.save(&args.output).expect("Error saving file");
 
     println!("Output written to {}", &args.output);
+
+    Ok(())
 }

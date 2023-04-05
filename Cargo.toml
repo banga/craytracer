@@ -24,7 +24,7 @@ path = "src/bin/craytracer.rs"
 
 [[bin]]
 name = "sampling"
-src = "src/bin/sampling.rs"
+path = "src/bin/sampling.rs"
 
 [dev-dependencies]
 pretty_assertions = "1.3.0"

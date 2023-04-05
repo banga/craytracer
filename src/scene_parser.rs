@@ -1,8 +1,22 @@
+#[derive(Debug, PartialEq, Clone)]
+pub struct Location {
+    pub line: usize,
+    pub column: usize,
+}
+
+impl std::fmt::Display for Location {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}:{}", self.line, self.column)
+    }
+}
+
 pub mod tokenizer {
-    use std::{iter::Peekable, str::Chars};
+    use std::{fmt::Display, iter::Peekable, str::Chars};
+
+    use super::Location;
 
     #[derive(Debug, PartialEq, Clone)]
-    pub enum Token {
+    pub enum TokenValue {
         Identifier(String),
         Number(f64),
         String(String),
@@ -17,20 +31,108 @@ pub mod tokenizer {
         Eof,
     }
 
-    impl Token {
-        pub fn is_eq_variant(&self, other: &Token) -> bool {
+    impl TokenValue {
+        pub fn is_eq_variant(&self, other: &Self) -> bool {
             std::mem::discriminant(self) == std::mem::discriminant(other)
+        }
+    }
+
+    impl Display for TokenValue {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                TokenValue::Identifier(s) => write!(f, "'{}'", s),
+                TokenValue::Number(n) => write!(f, "'{}'", n),
+                TokenValue::String(s) => write!(f, "'{}'", s),
+                TokenValue::LeftBrace => write!(f, "'{{'"),
+                TokenValue::RightBrace => write!(f, "'}}'"),
+                TokenValue::LeftBracket => write!(f, "'['"),
+                TokenValue::RightBracket => write!(f, "']'"),
+                TokenValue::LeftParen => write!(f, "'('"),
+                TokenValue::RightParen => write!(f, "')'"),
+                TokenValue::Comma => write!(f, "','"),
+                TokenValue::Colon => write!(f, "':'"),
+                TokenValue::Eof => write!(f, "EOF"),
+            }
+        }
+    }
+
+    #[derive(Debug, PartialEq, Clone)]
+    pub struct Token {
+        pub value: TokenValue,
+        pub location: Location,
+    }
+
+    impl Token {
+        pub fn new(value: TokenValue, location: Location) -> Token {
+            Token { value, location }
         }
     }
 
     #[derive(Debug, PartialEq)]
     pub struct ParserError {
         pub message: String,
+        pub location: Option<Location>,
     }
 
-    fn tokenize_number(chars: &mut Peekable<Chars>) -> Result<Token, ParserError> {
+    impl ParserError {
+        pub fn new(message: &str, location: &Location) -> ParserError {
+            ParserError {
+                message: message.to_string(),
+                location: Some(location.clone()),
+            }
+        }
+        pub fn without_location(message: &str) -> ParserError {
+            ParserError {
+                message: message.to_string(),
+                location: None,
+            }
+        }
+    }
+
+    struct CharsWithLocation<'a> {
+        chars: Peekable<Chars<'a>>,
+        location: Location,
+    }
+
+    impl<'a> CharsWithLocation<'a> {
+        pub fn new(input: &str) -> CharsWithLocation {
+            CharsWithLocation {
+                chars: input.chars().peekable(),
+                location: Location { line: 1, column: 1 },
+            }
+        }
+
+        pub fn peek(&mut self) -> Option<&char> {
+            self.chars.peek()
+        }
+
+        pub fn next(&mut self) -> Option<char> {
+            match self.chars.next() {
+                Some(c) => {
+                    match c {
+                        '\n' => {
+                            self.location.line += 1;
+                            self.location.column = 1;
+                        }
+                        _ => {
+                            self.location.column += 1;
+                        }
+                    }
+                    Some(c)
+                }
+                None => None,
+            }
+        }
+
+        pub fn location(&self) -> Location {
+            self.location.clone()
+        }
+    }
+
+    fn tokenize_number(chars: &mut CharsWithLocation) -> Result<Token, ParserError> {
         let mut number = String::new();
         let mut has_dot = false;
+        let location = chars.location();
         if let Some(&c) = chars.peek() {
             if c == '+' || c == '-' {
                 number.push(chars.next().unwrap());
@@ -47,45 +149,45 @@ pub mod tokenizer {
             }
         }
         if let Ok(number) = number.parse() {
-            return Ok(Token::Number(number));
+            Ok(Token::new(TokenValue::Number(number), location))
         } else {
-            return Err(ParserError {
-                message: format!("Cannot parse '{}' as a number", number),
-            });
+            Err(ParserError::new(
+                &format!("Cannot parse '{}' as number", number),
+                &location,
+            ))
         }
     }
 
-    fn tokenize_string(chars: &mut Peekable<Chars>) -> Result<Token, ParserError> {
+    fn tokenize_string(chars: &mut CharsWithLocation) -> Result<Token, ParserError> {
+        let location = chars.location();
         let start_char = chars.next().unwrap();
         let mut string = String::new();
         while let Some(c) = chars.next() {
             if c == start_char {
-                return Ok(Token::String(string));
+                return Ok(Token::new(TokenValue::String(string), location));
             }
             string.push(c);
         }
-        return Err(ParserError {
-            message: "Unterminated string".to_string(),
-        });
+        return Err(ParserError::new("Unterminated string", &location));
     }
 
     pub fn tokenize(input: &str) -> Result<Vec<Token>, ParserError> {
         let mut tokens = Vec::new();
-        let mut chars = input.chars().peekable();
+        let mut chars = CharsWithLocation::new(input);
 
         while let Some(&c) = chars.peek() {
             match c {
                 ' ' | '\t' | '\n' | '\r' => {
                     // Skip whitespace
                 }
-                '{' => tokens.push(Token::LeftBrace),
-                '}' => tokens.push(Token::RightBrace),
-                '[' => tokens.push(Token::LeftBracket),
-                ']' => tokens.push(Token::RightBracket),
-                '(' => tokens.push(Token::LeftParen),
-                ')' => tokens.push(Token::RightParen),
-                ',' => tokens.push(Token::Comma),
-                ':' => tokens.push(Token::Colon),
+                '{' => tokens.push(Token::new(TokenValue::LeftBrace, chars.location())),
+                '}' => tokens.push(Token::new(TokenValue::RightBrace, chars.location())),
+                '[' => tokens.push(Token::new(TokenValue::LeftBracket, chars.location())),
+                ']' => tokens.push(Token::new(TokenValue::RightBracket, chars.location())),
+                '(' => tokens.push(Token::new(TokenValue::LeftParen, chars.location())),
+                ')' => tokens.push(Token::new(TokenValue::RightParen, chars.location())),
+                ',' => tokens.push(Token::new(TokenValue::Comma, chars.location())),
+                ':' => tokens.push(Token::new(TokenValue::Colon, chars.location())),
                 '"' | '\'' => match tokenize_string(&mut chars) {
                     Ok(token) => {
                         tokens.push(token);
@@ -101,6 +203,7 @@ pub mod tokenizer {
                     Err(e) => return Err(e),
                 },
                 'a'..='z' | 'A'..='Z' | '_' => {
+                    let location = chars.location();
                     let mut identifier = String::new();
                     identifier.push(chars.next().unwrap());
                     while let Some(&c) = chars.peek() {
@@ -110,26 +213,30 @@ pub mod tokenizer {
                             break;
                         }
                     }
-                    tokens.push(Token::Identifier(identifier));
+                    tokens.push(Token::new(TokenValue::Identifier(identifier), location));
                     continue;
                 }
                 _ => {
-                    return Err(ParserError {
-                        message: format!("Unexpected character: '{}'", c),
-                    })
+                    return Err(ParserError::new(
+                        &format!("Unexpected character: '{}'", c),
+                        &chars.location(),
+                    ))
                 }
             }
             chars.next();
         }
-        tokens.push(Token::Eof);
+        tokens.push(Token::new(TokenValue::Eof, chars.location()));
 
         Ok(tokens)
     }
 }
 
 pub mod parser {
-    use super::tokenizer::{ParserError, Token};
-    use crate::{color::Color, vector::Vector};
+    use super::{
+        tokenizer::{ParserError, Token},
+        Location,
+    };
+    use crate::{color::Color, scene_parser::tokenizer::TokenValue, vector::Vector};
     use std::{
         collections::HashMap,
         convert::{TryFrom, TryInto},
@@ -140,47 +247,53 @@ pub mod parser {
     /// DOES NOT COMPARE THE TOKEN VALUES
     fn expect_token_variant(
         tokens: &mut Peekable<std::slice::Iter<Token>>,
-        expected: &Token,
+        expected: &TokenValue,
     ) -> Result<Token, ParserError> {
-        assert_ne!(expected, &Token::Eof);
+        // We insert an EOF token at the end to guarantee that peek() and next()
+        // on tokens will always succeed, so we need to make sure EOF is never
+        // "expected".
+        assert_ne!(expected, &TokenValue::Eof);
 
+        // We can unwrap safely due to the EOF token
         let token = tokens.next().unwrap();
 
-        if token.is_eq_variant(expected) {
+        if token.value.is_eq_variant(expected) {
             Ok(token.clone())
         } else {
-            Err(ParserError {
-                message: format!("Expected {:?}, got {:?}", expected, token),
-            })
+            Err(ParserError::new(
+                &format!("Expected {}, got {}", expected, token.value),
+                &token.location,
+            ))
         }
     }
 
     fn expect_number(tokens: &mut Peekable<std::slice::Iter<Token>>) -> Result<f64, ParserError> {
-        match tokens.next() {
-            None => Err(ParserError {
-                message: "Unexpected end of input".to_string(),
-            }),
-            Some(Token::Number(n)) => Ok(*n),
-            Some(token) => Err(ParserError {
-                message: format!("Expected number, got {:?}", token),
-            }),
+        // We can unwrap safely due to the EOF token
+        let token = tokens.next().unwrap();
+        match &token.value {
+            TokenValue::Number(n) => Ok(*n),
+            value => Err(ParserError::new(
+                &format!("Expected number, got {}", value),
+                &token.location,
+            )),
         }
     }
 
     fn expect_identifier(
         tokens: &mut Peekable<std::slice::Iter<Token>>,
     ) -> Result<String, ParserError> {
-        match tokens.next() {
-            None => Err(ParserError {
-                message: "Unexpected end of input".to_string(),
-            }),
-            Some(Token::Identifier(name)) => Ok(name.clone()),
-            Some(token) => Err(ParserError {
-                message: format!("Expected identifier, got {:?}", token),
-            }),
+        // We can unwrap safely due to the EOF token
+        let token = tokens.next().unwrap();
+        match &token.value {
+            TokenValue::Identifier(name) => Ok(name.clone()),
+            value => Err(ParserError::new(
+                &format!("Expected identifier, got {}", value),
+                &token.location,
+            )),
         }
     }
 
+    // TODO: Add location to raw values
     #[derive(Debug, PartialEq)]
     pub enum RawValue {
         Number(f64),
@@ -192,58 +305,61 @@ pub mod parser {
         Array(RawValueArray),
     }
 
-    /// RawValue := Number | String | Vector | Color | Map | TypedMap | Array
-    pub fn parse_raw_value(
-        tokens: &mut Peekable<std::slice::Iter<Token>>,
-    ) -> Result<RawValue, ParserError> {
-        match tokens.peek() {
-            Some(Token::Number(n)) => {
-                tokens.next();
-                Ok(RawValue::Number(*n))
-            }
-            Some(Token::String(s)) => {
-                tokens.next();
-                Ok(RawValue::String(s.to_string()))
-            }
-            Some(Token::Identifier(name)) => match name.as_str() {
-                "Vector" => {
+    impl RawValue {
+        /// RawValue := Number | String | Vector | Color | Map | TypedMap | Array
+        pub fn from_tokens(
+            tokens: &mut Peekable<std::slice::Iter<Token>>,
+        ) -> Result<RawValue, ParserError> {
+            // We can unwrap safely due to the EOF token
+            let token = tokens.peek().unwrap();
+            match &token.value {
+                TokenValue::Number(n) => {
                     tokens.next();
-                    expect_token_variant(tokens, &Token::LeftParen)?;
-                    let x = expect_number(tokens)?;
-                    expect_token_variant(tokens, &Token::Comma)?;
-                    let y = expect_number(tokens)?;
-                    expect_token_variant(tokens, &Token::Comma)?;
-                    let z = expect_number(tokens)?;
-                    expect_token_variant(tokens, &Token::RightParen)?;
-                    Ok(RawValue::Vector(Vector(x, y, z)))
+                    Ok(RawValue::Number(*n))
                 }
-                "Color" => {
+                TokenValue::String(s) => {
                     tokens.next();
-                    expect_token_variant(tokens, &Token::LeftParen)?;
-                    let r = expect_number(tokens)?;
-                    expect_token_variant(tokens, &Token::Comma)?;
-                    let g = expect_number(tokens)?;
-                    expect_token_variant(tokens, &Token::Comma)?;
-                    let b = expect_number(tokens)?;
-                    expect_token_variant(tokens, &Token::RightParen)?;
-                    Ok(RawValue::Color(Color { r, g, b }))
+                    Ok(RawValue::String(s.to_string()))
                 }
-                _ => Ok(RawValue::TypedMap(TypedRawValueMap::from_tokens(tokens)?)),
-            },
-            Some(Token::LeftBrace) => Ok(RawValue::Map(RawValueMap::from_tokens(tokens)?)),
-            Some(Token::LeftBracket) => Ok(RawValue::Array(RawValueArray::from_tokens(tokens)?)),
-            Some(token) => Err(ParserError {
-                message: format!("Expected a raw value. Got {:?}", token),
-            }),
-            None => Err(ParserError {
-                message: "Unexpected end of input".to_string(),
-            }),
+                TokenValue::Identifier(name) => match name.as_str() {
+                    "Vector" => {
+                        tokens.next();
+                        expect_token_variant(tokens, &TokenValue::LeftParen)?;
+                        let x = expect_number(tokens)?;
+                        expect_token_variant(tokens, &TokenValue::Comma)?;
+                        let y = expect_number(tokens)?;
+                        expect_token_variant(tokens, &TokenValue::Comma)?;
+                        let z = expect_number(tokens)?;
+                        expect_token_variant(tokens, &TokenValue::RightParen)?;
+                        Ok(RawValue::Vector(Vector(x, y, z)))
+                    }
+                    "Color" => {
+                        tokens.next();
+                        expect_token_variant(tokens, &TokenValue::LeftParen)?;
+                        let r = expect_number(tokens)?;
+                        expect_token_variant(tokens, &TokenValue::Comma)?;
+                        let g = expect_number(tokens)?;
+                        expect_token_variant(tokens, &TokenValue::Comma)?;
+                        let b = expect_number(tokens)?;
+                        expect_token_variant(tokens, &TokenValue::RightParen)?;
+                        Ok(RawValue::Color(Color { r, g, b }))
+                    }
+                    _ => Ok(RawValue::TypedMap(TypedRawValueMap::from_tokens(tokens)?)),
+                },
+                TokenValue::LeftBrace => Ok(RawValue::Map(RawValueMap::from_tokens(tokens)?)),
+                TokenValue::LeftBracket => Ok(RawValue::Array(RawValueArray::from_tokens(tokens)?)),
+                value => Err(ParserError::new(
+                    &format!("Expected a raw value. Got {}", value),
+                    &token.location,
+                )),
+            }
         }
     }
 
     #[derive(Debug, PartialEq)]
     pub struct RawValueMap {
         pub map: HashMap<String, RawValue>,
+        pub location: Location,
     }
 
     impl RawValueMap {
@@ -257,53 +373,65 @@ pub mod parser {
         ) -> Result<Self, ParserError> {
             let mut map = HashMap::new();
 
-            expect_token_variant(tokens, &Token::LeftBrace)?;
+            let start_token = expect_token_variant(tokens, &TokenValue::LeftBrace)?;
+            let location = start_token.location;
             loop {
                 // Parse an entry
-                match tokens.peek() {
-                    Some(Token::RightParen) => break,
-                    Some(Token::Identifier(key)) => {
+                // We can unwrap safely due to the EOF token
+                let token = tokens.peek().unwrap();
+                match &token.value {
+                    TokenValue::RightParen => break,
+                    TokenValue::Identifier(key) => {
                         tokens.next();
 
-                        expect_token_variant(tokens, &Token::Colon)?;
+                        expect_token_variant(tokens, &TokenValue::Colon)?;
 
-                        let value = parse_raw_value(tokens)?;
+                        let value = RawValue::from_tokens(tokens)?;
                         if map.insert(key.to_string(), value).is_some() {
-                            return Err(ParserError {
-                                message: format!("Duplicate key {}", key),
-                            });
+                            return Err(ParserError::new(
+                                &format!("Duplicate key {}", key),
+                                &location,
+                            ));
                         }
                     }
                     _ => break,
                 }
 
                 // Parse a comma
-                match tokens.peek() {
-                    Some(Token::RightBrace) => break,
-                    Some(Token::Comma) => {
+                // We can unwrap safely due to the EOF token
+                let token = tokens.peek().unwrap();
+                match token.value {
+                    TokenValue::RightBrace => break,
+                    TokenValue::Comma => {
                         tokens.next();
                     }
                     _ => break,
                 }
             }
-            expect_token_variant(tokens, &Token::RightBrace)?;
+            expect_token_variant(tokens, &TokenValue::RightBrace)?;
 
-            Ok(RawValueMap { map })
+            Ok(RawValueMap { map, location })
         }
 
-        pub fn get<'a, T, E>(&'a self, key: &str) -> Result<T, ParserError>
+        pub fn get<'a, T>(&'a self, key: &str) -> Result<T, ParserError>
         where
-            T: TryFrom<&'a RawValue, Error = E>,
-            E: std::fmt::Debug,
+            T: TryFrom<&'a RawValue, Error = ParserError>,
         {
             self.map
                 .get(key)
-                .ok_or(ParserError {
-                    message: format!("{} not found in map", key),
-                })?
+                .ok_or(ParserError::new(
+                    &format!("{} not found in map", key),
+                    &self.location,
+                ))?
                 .try_into()
-                .map_err(|e| ParserError {
-                    message: format!("{} cannot be converted to expected type: {:?}", key, e),
+                .map_err(|e: ParserError| {
+                    ParserError::new(
+                        &format!(
+                            "Error converting map value for '{}' to expected type: {}",
+                            key, e.message
+                        ),
+                        &e.location.unwrap_or(self.location.clone()),
+                    )
                 })
         }
     }
@@ -338,27 +466,31 @@ pub mod parser {
         ) -> Result<Self, ParserError> {
             let mut array = Vec::new();
 
-            expect_token_variant(tokens, &Token::LeftBracket)?;
+            expect_token_variant(tokens, &TokenValue::LeftBracket)?;
             loop {
                 // Parse an item
-                match tokens.peek() {
-                    Some(Token::RightBracket) => break,
+                // We can unwrap safely due to the EOF token
+                let token = tokens.peek().unwrap();
+                match token.value {
+                    TokenValue::RightBracket => break,
                     _ => {
-                        let value = parse_raw_value(tokens)?;
+                        let value = RawValue::from_tokens(tokens)?;
                         array.push(value);
                     }
                 }
 
                 // Parse a comma
-                match tokens.peek() {
-                    Some(Token::RightBracket) => break,
-                    Some(Token::Comma) => {
+                // We can unwrap safely due to the EOF token
+                let token = tokens.peek().unwrap();
+                match token.value {
+                    TokenValue::RightBracket => break,
+                    TokenValue::Comma => {
                         tokens.next();
                     }
                     _ => break,
                 }
             }
-            expect_token_variant(tokens, &Token::RightBracket)?;
+            expect_token_variant(tokens, &TokenValue::RightBracket)?;
 
             Ok(RawValueArray { array })
         }
@@ -371,9 +503,10 @@ pub mod parser {
         fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
             match value {
                 RawValue::Number(value) => Ok(*value),
-                _ => Err(ParserError {
-                    message: format!("Cannot get Number, found {:?}", value),
-                }),
+                _ => Err(ParserError::without_location(&format!(
+                    "Cannot get Number, found {:?}",
+                    value
+                ))),
             }
         }
     }
@@ -383,9 +516,10 @@ pub mod parser {
         fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
             match value {
                 RawValue::Number(value) => Ok(*value as usize),
-                _ => Err(ParserError {
-                    message: format!("Cannot get Number, found {:?}", value),
-                }),
+                _ => Err(ParserError::without_location(&format!(
+                    "Cannot get Number, found {:?}",
+                    value
+                ))),
             }
         }
     }
@@ -395,9 +529,10 @@ pub mod parser {
         fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
             match value {
                 RawValue::String(value) => Ok(value.clone()),
-                _ => Err(ParserError {
-                    message: format!("Cannot get String, found {:?}", value),
-                }),
+                _ => Err(ParserError::without_location(&format!(
+                    "Cannot get String, found {:?}",
+                    value
+                ))),
             }
         }
     }
@@ -407,9 +542,10 @@ pub mod parser {
         fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
             match value {
                 RawValue::Vector(value) => Ok(*value),
-                _ => Err(ParserError {
-                    message: format!("Cannot get Vector, found {:?}", value),
-                }),
+                _ => Err(ParserError::without_location(&format!(
+                    "Cannot get Vector, found {:?}",
+                    value
+                ))),
             }
         }
     }
@@ -419,9 +555,10 @@ pub mod parser {
         fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
             match value {
                 RawValue::Color(value) => Ok(*value),
-                _ => Err(ParserError {
-                    message: format!("Cannot get Color, found {:?}", value),
-                }),
+                _ => Err(ParserError::without_location(&format!(
+                    "Cannot get Color, found {:?}",
+                    value
+                ))),
             }
         }
     }
@@ -431,9 +568,10 @@ pub mod parser {
         fn try_from(value: &'a RawValue) -> Result<Self, Self::Error> {
             match value {
                 RawValue::TypedMap(value) => Ok(value),
-                _ => Err(ParserError {
-                    message: format!("Cannot get TypedRawValueMap, found {:?}", value),
-                }),
+                _ => Err(ParserError::without_location(&format!(
+                    "Cannot get TypedRawValueMap, found {:?}",
+                    value
+                ))),
             }
         }
     }
@@ -450,9 +588,10 @@ pub mod parser {
         fn try_from(value: &'a RawValue) -> Result<Self, Self::Error> {
             let map = match value {
                 RawValue::Map(map) => Ok(map),
-                _ => Err(ParserError {
-                    message: format!("Cannot get Map, found {:?}", value),
-                }),
+                _ => Err(ParserError::without_location(&format!(
+                    "Cannot get Map, found {:?}",
+                    value
+                ))),
             }?;
             let mut result = HashMap::new();
             for (key, value) in map.map.iter() {
@@ -473,9 +612,10 @@ pub mod parser {
         fn try_from(value: &'a RawValue) -> Result<Self, Self::Error> {
             let array = match value {
                 RawValue::Array(array) => Ok(array),
-                _ => Err(ParserError {
-                    message: format!("Cannot get Array, found {:?}", value),
-                }),
+                _ => Err(ParserError::without_location(&format!(
+                    "Cannot get Array, found {:?}",
+                    value
+                ))),
             }?;
             let mut result = Vec::new();
             for value in array.array.iter() {
@@ -504,9 +644,10 @@ pub mod scene_parser {
         fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
             let typed_map = match value {
                 RawValue::TypedMap(typed_map) => Ok(typed_map),
-                _ => Err(ParserError {
-                    message: format!("Cannot get Camera, found {:?}", value),
-                }),
+                _ => Err(ParserError::without_location(&format!(
+                    "Cannot get Camera, found {:?}",
+                    value
+                ))),
             }?;
             let map = &typed_map.map;
             match typed_map.name.as_str() {
@@ -529,9 +670,10 @@ pub mod scene_parser {
                         film_height,
                     )))
                 }
-                _ => Err(ParserError {
-                    message: format!("Unexpected name for Projection camera: {}", typed_map.name),
-                }),
+                _ => Err(ParserError::without_location(&format!(
+                    "Unexpected name for Projection camera: {}",
+                    typed_map.name
+                ))),
             }
         }
     }
@@ -542,9 +684,10 @@ pub mod scene_parser {
         fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
             let typed_map = match value {
                 RawValue::TypedMap(typed_map) => Ok(typed_map),
-                _ => Err(ParserError {
-                    message: format!("Cannot get Material, found {:?}", value),
-                }),
+                _ => Err(ParserError::without_location(&format!(
+                    "Cannot get Material, found {:?}",
+                    value
+                ))),
             }?;
             let map = &typed_map.map;
             match typed_map.name.as_str() {
@@ -567,9 +710,10 @@ pub mod scene_parser {
                     map.get("eta")?,
                     map.get("k")?,
                 ))),
-                _ => Err(ParserError {
-                    message: format!("Unknown material type: {}", typed_map.name),
-                }),
+                _ => Err(ParserError::new(
+                    &format!("Unknown material type: {}", typed_map.name),
+                    &typed_map.map.location,
+                )),
             }
         }
     }
@@ -580,9 +724,10 @@ pub mod scene_parser {
         fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
             let typed_map = match value {
                 RawValue::TypedMap(typed_map) => Ok(typed_map),
-                _ => Err(ParserError {
-                    message: format!("Cannot get Shape, found {:?}", value),
-                }),
+                _ => Err(ParserError::without_location(&format!(
+                    "Cannot get Shape, found {:?}",
+                    value
+                ))),
             }?;
             let map = &typed_map.map;
             match typed_map.name.as_str() {
@@ -595,9 +740,10 @@ pub mod scene_parser {
                     map.get("v1")?,
                     map.get("v2")?,
                 ))),
-                _ => Err(ParserError {
-                    message: format!("Unknown shape type: {}", typed_map.name),
-                }),
+                _ => Err(ParserError::without_location(&format!(
+                    "Unknown shape type: {}",
+                    typed_map.name
+                ))),
             }
         }
     }
@@ -614,14 +760,16 @@ pub mod scene_parser {
         match primitive_def.name.as_str() {
             "Shape" => {
                 let shape_name: String = primitive_def.map.get("shape")?;
-                let shape = shapes.get(&shape_name).ok_or(ParserError {
-                    message: format!("Cannot find shape named '{}'", shape_name),
-                })?;
+                let shape = shapes.get(&shape_name).ok_or(ParserError::new(
+                    &format!("Cannot find shape named '{}'", shape_name),
+                    &primitive_def.map.location,
+                ))?;
 
                 let material_name: String = primitive_def.map.get("material")?;
-                let material = materials.get(&material_name).ok_or(ParserError {
-                    message: format!("Cannot find material named '{}'", material_name),
-                })?;
+                let material = materials.get(&material_name).ok_or(ParserError::new(
+                    &format!("Cannot find material named '{}'", material_name),
+                    &primitive_def.map.location,
+                ))?;
 
                 Ok(vec![Arc::new(Primitive::new_shape_primitive(
                     Arc::clone(shape),
@@ -632,17 +780,19 @@ pub mod scene_parser {
                 let file_name: String = primitive_def.map.get("file_name")?;
 
                 let material_name: String = primitive_def.map.get("fallback_material")?;
-                let fallback_material = materials.get(&material_name).ok_or(ParserError {
-                    message: format!("Cannot find material named '{}'", material_name),
-                })?;
+                let fallback_material = materials.get(&material_name).ok_or(ParserError::new(
+                    &format!("Cannot find material named '{}'", material_name),
+                    &primitive_def.map.location,
+                ))?;
 
                 let primitives = load_obj(&file_name, Arc::clone(fallback_material));
 
                 Ok(primitives)
             }
-            _ => Err(ParserError {
-                message: format!("Unknown primitive type: {}", primitive_def.name),
-            }),
+            _ => Err(ParserError::new(
+                &format!("Unknown primitive type: {}", primitive_def.name),
+                &primitive_def.map.location,
+            )),
         }
     }
 
