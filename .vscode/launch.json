@@ -15,7 +15,7 @@
           "kind": "bin"
         }
       },
-      "args": ["-s", "scenes/simple.cry"],
+      "args": ["-s", "scenes/scratch.cry"],
       "cwd": "${workspaceFolder}"
     },
     {

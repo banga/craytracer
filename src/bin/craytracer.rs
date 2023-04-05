@@ -123,8 +123,8 @@ fn render(scene: &Scene) -> Vec<f32> {
                             let film_x = (x as f64 + dx) / (width - 1) as f64;
                             let film_y = 1.0 - (y as f64 + dy) / (height - 1) as f64;
 
-                            let mut ray = scene.camera.sample(film_x, film_y);
-                            color += trace(&mut ray, &scene, 0);
+                            let ray = scene.camera.sample(film_x, film_y);
+                            color += trace(ray, &scene);
                         }
                         color /= scene.num_samples as f64;
 
