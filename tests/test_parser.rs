@@ -565,14 +565,14 @@ mod parser {
                 "
 {
     max_depth: 5,
+    num_samples: 1,
     camera: Projection {
         origin: Vector(0, 0, 0),
         target: Vector(0, 0, 1),
         up: Vector(0, 1, 0),
         focal_distance: 1,
         film_width: 400,
-        film_height: 300,
-        num_samples: 1
+        film_height: 300
     },
     materials: {
         ball: Matte {
@@ -596,6 +596,7 @@ mod parser {
             .unwrap(),
             Scene::new(
                 5,
+                1,
                 400,
                 300,
                 Box::new(Camera::new_projection_camera(
@@ -603,7 +604,6 @@ mod parser {
                     Vector::Z,
                     Vector::Y,
                     1.0,
-                    1,
                     400,
                     300
                 )),

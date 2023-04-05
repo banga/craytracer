@@ -1,13 +1,13 @@
 {
     max_depth: 5,
+    num_samples: 500,
     camera: Projection {
         origin: Vector(0, 8, -10),
-        target: Vector(2.5, 0.5, 12),
+        target: Vector(-2.5, 0.5, 12),
         up: Vector(0, 1, 0),
         focal_distance: 4.5,
         film_width: 1400,
         film_height: 800,
-        num_samples: 5000
     },
     materials: {
         sky: Emissive {
@@ -40,7 +40,7 @@
             radius: 1.5
         },
         light: Sphere {
-            origin: Vector(-4, 5, 16),
+            origin: Vector(4, 5, 16),
             radius: 1.0
         }
     },

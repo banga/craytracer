@@ -1,8 +1,10 @@
 use clap::Parser;
 use craytracer::{
     color::Color,
+    sampling::sample_2d,
     scene::Scene,
     scene_parser::{scene_parser::parse_scene, tokenizer::ParserError},
+    trace::trace,
 };
 use crossbeam::thread;
 use minifb::{Scale, ScaleMode, Window, WindowOptions};
@@ -111,10 +113,24 @@ fn render(scene: &Scene) -> Vec<f32> {
                 let (x1, y1, x2, y2) = tiles[tile_index];
                 for y in y1..y2 {
                     for x in x1..x2 {
-                        let offset = x + y * width;
-                        let color = scene.camera.sample(x, y, &scene);
+                        let mut color = Color::BLACK;
+                        for _ in 0..scene.num_samples {
+                            let (dx, dy) = sample_2d();
+                            // We assume that the screen goes from (0, 0) at the
+                            // top left to (width - 1, height - 1) at the bottom
+                            // right. This is converted to [0, 1] x [0, 1] film
+                            // co-ordinates, starting at bottom left.
+                            let film_x = (x as f64 + dx) / (width - 1) as f64;
+                            let film_y = 1.0 - (y as f64 + dy) / (height - 1) as f64;
+
+                            let mut ray = scene.camera.sample(film_x, film_y);
+                            color += trace(&mut ray, &scene, 0);
+                        }
+                        color /= scene.num_samples as f64;
+
                         let mut pixels = pixels.lock().unwrap();
                         let (r, g, b) = color.into();
+                        let offset = x + y * width;
                         pixels[3 * offset] = r;
                         pixels[3 * offset + 1] = g;
                         pixels[3 * offset + 2] = b;
@@ -129,6 +145,8 @@ fn render(scene: &Scene) -> Vec<f32> {
 
         let (mut buffer, mut window) =
             setup_preview_window(width, height, tile_width, tile_height, &tiles);
+        window.limit_update_rate(Some(std::time::Duration::from_micros(16600)));
+
         let mut tile_count = 0;
         while tile_count < tiles.len() {
             window.update_with_buffer(&buffer, width, height).unwrap();
@@ -150,7 +168,6 @@ fn render(scene: &Scene) -> Vec<f32> {
                     }
                 }
                 tile_count += 1;
-                window.update_with_buffer(&buffer, width, height).unwrap();
             }
             std::thread::sleep(Duration::from_millis(16));
         }

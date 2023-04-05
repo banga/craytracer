@@ -656,7 +656,6 @@ pub mod scene_parser {
                     let target: Vector = map.get("target")?;
                     let up: Vector = map.get("up")?;
                     let focal_distance: f64 = map.get("focal_distance")?;
-                    let num_samples: usize = map.get("num_samples")?;
                     let film_width: usize = map.get("film_width")?;
                     let film_height: usize = map.get("film_height")?;
 
@@ -665,7 +664,6 @@ pub mod scene_parser {
                         target,
                         up,
                         focal_distance,
-                        num_samples,
                         film_width,
                         film_height,
                     )))
@@ -803,6 +801,7 @@ pub mod scene_parser {
         let scene_map = RawValueMap::from_tokens(&mut tokens)?;
 
         let max_depth: usize = scene_map.get("max_depth")?;
+        let num_samples: usize = scene_map.get("num_samples")?;
         let camera: Box<Camera> = scene_map.get("camera")?;
         let materials: HashMap<String, Arc<Material>> = scene_map.get("materials")?;
         let shapes: HashMap<String, Arc<Shape>> = scene_map.get("shapes")?;
@@ -824,6 +823,7 @@ pub mod scene_parser {
 
         Ok(Scene::new(
             max_depth,
+            num_samples,
             film_width,
             film_height,
             camera,

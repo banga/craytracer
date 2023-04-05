@@ -1,6 +1,4 @@
-use crate::{
-    color::Color, ray::Ray, sampling::sample_2d, scene::Scene, trace::trace, vector::Vector,
-};
+use crate::{ray::Ray, vector::Vector};
 
 #[derive(Debug, PartialEq)]
 pub enum Camera {
@@ -10,10 +8,9 @@ pub enum Camera {
         y: Vector,
         z: Vector,
         focal_distance: f64,
-        // TODO: These things should probably live in the Scene
-        num_samples: usize,
         film_width: usize,
         film_height: usize,
+        aspect_ratio: f64,
     },
 }
 
@@ -23,13 +20,15 @@ impl Camera {
         target: Vector,
         up: Vector,
         focal_distance: f64,
-        num_samples: usize,
         film_width: usize,
         film_height: usize,
     ) -> Camera {
+        // We use a left handed co-ordinate system
         let z = (target - origin).normalized();
-        let x = up.normalized().cross(&z) * (film_width as f64 / film_height as f64);
+        let x = up.normalized().cross(&z).normalized();
         let y = z.cross(&x).normalized();
+
+        let aspect_ratio = film_width as f64 / film_height as f64;
 
         Camera::Projection {
             origin,
@@ -37,43 +36,30 @@ impl Camera {
             y,
             z,
             focal_distance,
-            num_samples,
             film_width,
             film_height,
+            aspect_ratio,
         }
     }
 
-    pub fn sample(&self, sx: usize, sy: usize, scene: &Scene) -> Color {
+    pub fn sample(&self, film_x: f64, film_y: f64) -> Ray {
         match self {
-            Camera::Projection {
+            &Camera::Projection {
                 origin,
                 x,
                 y,
                 z,
                 focal_distance,
-                num_samples,
-                film_width,
-                film_height,
+                aspect_ratio,
+                ..
             } => {
-                // Adjust sx and sy to center the screen space center to the center
-                // of the film
-                let sx = sx as f64 / *film_width as f64 - 0.5;
-                let sy = sy as f64 / *film_height as f64 - 0.5;
-                let ray_origin = *origin + (*z) * *focal_distance
-                    // Screen space x and y co-ordinates are flipped (and we use
-                    // right-handed co-ordinates)
-                    - *x * sx
-                    - *y * sy;
-
-                let mut color = Color::BLACK;
-                for _ in 0..*num_samples {
-                    let (dx, dy) = sample_2d();
-                    let ray_origin =
-                        ray_origin + *x * dx / *film_width as f64 + *y * dy / *film_height as f64;
-                    let mut ray = Ray::new(ray_origin, (ray_origin - *origin).normalized());
-                    color += trace(&mut ray, &scene, 0);
-                }
-                color / *num_samples as f64
+                let delta =
+                    // TODO: The translation by (0.5, 0.5) is a hack to center
+                    // the target in the film. We should fix this by introducing
+                    // proper transformations.
+                    x * (film_x - 0.5) * aspect_ratio + y * (film_y - 0.5) + z * focal_distance;
+                let ray_origin = origin + delta;
+                return Ray::new(ray_origin, delta.normalized());
             }
         }
     }

@@ -3,6 +3,8 @@ use std::sync::Arc;
 use crate::{color::Color, material::Material, primitive::Primitive, shape::Shape, vector::Vector};
 
 pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Primitive>> {
+    println!("Loading mesh from \"{}\"", file_name);
+
     let (models, input_materials) =
         tobj::load_obj(file_name, &tobj::GPU_LOAD_OPTIONS).expect("Error loading models");
     let input_materials = input_materials.expect("Error loading materials");
@@ -19,7 +21,7 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Pr
     }
 
     let mut materials: Vec<Arc<Material>> = vec![];
-    for m in input_materials {
+    for m in &input_materials {
         let diffuse = Color {
             r: m.diffuse[0] as f64,
             g: m.diffuse[1] as f64,
@@ -46,8 +48,8 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Pr
     }
 
     let mut primitives: Vec<Arc<Primitive>> = Vec::new();
-    for (i, m) in models.iter().enumerate() {
-        let mesh = &m.mesh;
+    for (i, model) in models.iter().enumerate() {
+        let mesh = &model.mesh;
 
         let material = if let Some(material_id) = mesh.material_id {
             &materials[material_id]
@@ -55,23 +57,32 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Pr
             &fallback_material
         };
 
-        println!("Loading model {}: '{}'", i, m.name);
         assert!(
             mesh.positions.len() % 3 == 0,
-            "all faces should be triangles"
+            "all faces should be triangles in model #{}: '{}'",
+            i,
+            model.name
         );
 
         let mut vertices = Vec::new();
         for chunk in mesh.positions.chunks(3) {
             if let [x, y, z] = chunk {
-                vertices.push(Vector(*x as f64, *y as f64, *z as f64));
+                vertices.push(Vector(
+                    *x as f64, *y as f64,
+                    // Convert from right-handed to left-handed coordinate system
+                    -*z as f64,
+                ));
             }
         }
 
         let mut normals = Vec::new();
         for chunk in mesh.normals.chunks(3) {
             if let [x, y, z] = chunk {
-                normals.push(Vector(*x as f64, *y as f64, *z as f64));
+                normals.push(Vector(
+                    *x as f64, *y as f64,
+                    // Convert from right-handed to left-handed coordinate system
+                    -*z as f64,
+                ));
             }
         }
 
@@ -99,6 +110,18 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Pr
                 )));
             }
         }
+
+        println!(
+            "Loaded mesh \"{}\" with {} material, {} triangles, {} vertices and {} normals",
+            model.name,
+            match mesh.material_id {
+                Some(id) => format!("\"{}\"", &input_materials[id].name),
+                None => "fallback".to_string(),
+            },
+            mesh.indices.len() / 3,
+            mesh.positions.len() / 3,
+            mesh.normals.len() / 3
+        );
     }
     primitives
 }

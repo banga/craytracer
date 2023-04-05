@@ -7,16 +7,16 @@ pub enum Shape {
     Sphere {
         origin: Vector,
         radius: f64,
-        _radius_squared: f64,
-        _inv_radius: f64,
+        radius_squared: f64,
+        inv_radius: f64,
     },
     Triangle {
         v0: Vector,
         e1: Vector,
         e2: Vector,
-        _n0: Vector,
-        _n01: Vector,
-        _n02: Vector,
+        n0: Vector,
+        n01: Vector,
+        n02: Vector,
     },
 }
 
@@ -25,23 +25,25 @@ impl Shape {
         Shape::Sphere {
             origin,
             radius,
-            _radius_squared: radius * radius,
-            _inv_radius: 1.0 / radius,
+            radius_squared: radius * radius,
+            inv_radius: 1.0 / radius,
         }
     }
     pub fn new_triangle(v0: Vector, v1: Vector, v2: Vector) -> Shape {
         let e1 = v1 - v0;
         let e2 = v2 - v0;
 
-        let n0 = e1.cross(&e2).normalized();
+        // Assuming that vertices are in clockwise order, calculate the normal
+        // in a left handed co-ordinate system:
+        let n0 = e2.cross(&e1).normalized();
 
         Shape::Triangle {
             v0,
             e1,
             e2,
-            _n0: n0,
-            _n01: Vector::O,
-            _n02: Vector::O,
+            n0,
+            n01: Vector::O,
+            n02: Vector::O,
         }
     }
     pub fn new_triangle_with_normals(
@@ -59,9 +61,9 @@ impl Shape {
             v0,
             e1,
             e2,
-            _n0: n0,
-            _n01: n1 - n0,
-            _n02: n2 - n0,
+            n0,
+            n01: n1 - n0,
+            n02: n2 - n0,
         }
     }
 
@@ -71,8 +73,8 @@ impl Shape {
         match self {
             Shape::Sphere {
                 origin,
-                _radius_squared: radius_squared,
-                _inv_radius: inv_radius,
+                radius_squared,
+                inv_radius,
                 ..
             } => {
                 let oc = ray.origin - *origin;
@@ -109,9 +111,9 @@ impl Shape {
                 v0,
                 e1,
                 e2,
-                _n0: n0,
-                _n01: n01,
-                _n02: n02,
+                n0,
+                n01,
+                n02,
             } => {
                 // Source: http://www.graphics.cornell.edu/pubs/1997/MT97.pdf
                 let P = ray.direction.cross(e2);

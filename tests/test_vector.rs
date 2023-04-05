@@ -22,7 +22,6 @@ fn dot() {
 
 #[test]
 fn cross() {
-    // Handedness
     assert_eq!(Vector::X.cross(&Vector::Y), Vector::Z);
     assert_eq!(Vector::Y.cross(&Vector::Z), Vector::X);
     assert_eq!(Vector::Z.cross(&Vector::X), Vector::Y);

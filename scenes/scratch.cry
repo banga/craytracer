@@ -1,0 +1,40 @@
+{
+    max_depth: 5,
+    num_samples: 50,
+    camera: Projection {
+        origin: Vector(6, 3, -6),
+        target: Vector(0, 2, -2),
+        up: Vector(0, 1, 0),
+        focal_distance: 1,
+        film_width: 600,
+        film_height: 400,
+    },
+    materials: {
+        sky: Emissive {
+            emittance: Color(1, 1, 1),
+        },
+        ground: Matte {
+            reflectance: Color(0.3, 0.28, 0.26),
+            sigma: 0,
+        },
+        obj: Metal {
+            eta: Color(0.7, 0.8, 1),
+            k: Color(3, 2.4, 3),
+        },
+    },
+    shapes: {
+        sky: Sphere {
+            origin: Vector(0, 0, 0),
+            radius: 1000
+        },
+        ground: Sphere {
+            origin: Vector(0, -10001, 0),
+            radius: 10000
+        }
+    },
+    primitives: [
+        Shape { shape: 'sky', material: 'sky' },
+        Shape { shape: 'ground', material: 'ground' },
+        Mesh { file_name: 'objs/local/Sheep.obj', fallback_material: 'obj' }
+    ]
+}
