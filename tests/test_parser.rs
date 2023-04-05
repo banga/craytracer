@@ -339,7 +339,7 @@ mod parser {
         primitive::Primitive,
         scene::Scene,
         scene_parser::scene_parser::parse_scene,
-        scene_parser::tokenizer::{tokenize, ParserError},
+        scene_parser::tokenizer::tokenize,
         scene_parser::{
             parser::{RawValue, RawValueArray, RawValueMap, TypedRawValueMap},
             Location,
@@ -377,7 +377,6 @@ mod parser {
 
     #[test]
     fn raw_value() {
-        // TODO: Fix trailing comma parsing. We currently allow skipping the comma in many cases
         expect_raw_value("1.23", RawValue::Number(1.23));
         expect_raw_value("'hello'", RawValue::String("hello".to_string()));
         expect_raw_value(
