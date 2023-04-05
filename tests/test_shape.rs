@@ -49,7 +49,7 @@ mod triangle {
                     let ray = &mut Ray::new(Vector(point.x(), point.y(), -2.0), Vector::Z);
                     let intersection = t.intersect(ray).unwrap();
                     assert_eq!(ray.max_distance, 2.0);
-                    assert_eq!(intersection.normal, Vector(0.0, 0.0, -1.0));
+                    assert_eq!(intersection.normal, Vector(0.0, 0.0, 1.0));
                 }
             }
             _ => unreachable!(),
@@ -63,7 +63,7 @@ mod triangle {
         let ray = &mut Ray::new(Vector(1.0, 0.0, 2.0), -Vector::Z);
         let intersection = t.intersect(ray).unwrap();
         assert_eq!(ray.max_distance, 2.0);
-        assert_eq!(intersection.normal, Vector(0.0, 0.0, -1.0));
+        assert_eq!(intersection.normal, Vector(0.0, 0.0, 1.0));
     }
 
     #[test]
@@ -98,7 +98,7 @@ mod triangle {
                         (target - origin).magnitude(),
                         epsilon = EPSILON
                     );
-                    assert_eq!(intersection.normal, Vector(0.0, 0.0, -1.0));
+                    assert_eq!(intersection.normal, Vector(0.0, 0.0, 1.0));
                 } else {
                     assert!(intersection.is_none());
                 }

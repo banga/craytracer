@@ -617,7 +617,8 @@ mod parser {
                         Arc::new(Shape::new_triangle(
                             Vector(1.0, 0.0, 0.0),
                             Vector(0.0, 1.0, 0.0),
-                            Vector(0.0, 0.0, 1.0),
+                            // Co-ordinate system correction
+                            Vector(0.0, 0.0, -1.0),
                         )),
                         Arc::new(Material::new_matte(Color::WHITE, 0.0))
                     ))
