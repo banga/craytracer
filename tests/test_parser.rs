@@ -21,10 +21,18 @@ mod tokenizer {
         assert_eq!(tokenize(input).unwrap(), expected);
     }
 
+    fn assert_tokenize_error(input: &str, message: &str, location: &Location) {
+        assert_eq!(
+            tokenize(input).expect_err("Expected ParserError"),
+            ParserError::new(message, location)
+        );
+    }
+
     #[test]
     fn simple() {
         assert_token_values("", &[TokenValue::Eof]);
         assert_token_values(" \r\t\n", &[TokenValue::Eof]);
+        assert_token_values("// foo", &[TokenValue::Eof]);
         assert_token_values(
             "{}",
             &[
@@ -53,6 +61,25 @@ mod tokenizer {
         assert_token_values(
             "'hello'",
             &[TokenValue::String("hello".to_string()), TokenValue::Eof],
+        );
+    }
+
+    #[test]
+    fn comments() {
+        assert_token_values("// foo = 'hello'", &[TokenValue::Eof]);
+        assert_token_values("//\n", &[TokenValue::Eof]);
+        assert_token_values("//\n1", &[TokenValue::Number(1.0), TokenValue::Eof]);
+        assert_token_values("1 // one", &[TokenValue::Number(1.0), TokenValue::Eof]);
+
+        assert_tokenize_error(
+            "/",
+            "Expected a second '/' to start a comment",
+            &Location { line: 1, column: 2 },
+        );
+        assert_tokenize_error(
+            "/ /",
+            "Expected a second '/' to start a comment",
+            &Location { line: 1, column: 2 },
         );
     }
 
@@ -87,12 +114,10 @@ mod tokenizer {
         );
 
         // malformed numbers
-        assert_eq!(
-            tokenize("9.8.7").expect_err("Expected ParserError"),
-            ParserError::new(
-                "Unexpected character: '.'",
-                &Location { line: 1, column: 4 }
-            )
+        assert_tokenize_error(
+            "9.8.7",
+            "Unexpected character: '.'",
+            &Location { line: 1, column: 4 },
         );
     }
 

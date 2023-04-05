@@ -123,5 +123,12 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Pr
             mesh.normals.len() / 3
         );
     }
+
+    println!(
+        "Loaded {} primitives from {} mesh",
+        primitives.len(),
+        file_name
+    );
+
     primitives
 }

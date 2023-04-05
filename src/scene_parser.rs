@@ -180,6 +180,27 @@ pub mod tokenizer {
                 ' ' | '\t' | '\n' | '\r' => {
                     // Skip whitespace
                 }
+                '/' => {
+                    chars.next();
+                    // Consume comments beginning with '//' to end of line
+                    match chars.peek() {
+                        Some('/') => {
+                            chars.next();
+                            while let Some(&c) = chars.peek() {
+                                if c == '\n' {
+                                    break;
+                                }
+                                chars.next();
+                            }
+                        }
+                        _ => {
+                            return Err(ParserError::new(
+                                &format!("Expected a second '/' to start a comment"),
+                                &chars.location(),
+                            ))
+                        }
+                    };
+                }
                 '{' => tokens.push(Token::new(TokenValue::LeftBrace, chars.location())),
                 '}' => tokens.push(Token::new(TokenValue::RightBrace, chars.location())),
                 '[' => tokens.push(Token::new(TokenValue::LeftBracket, chars.location())),
