@@ -21,4 +21,5 @@ Model: https://github.com/alecjacobson/common-3d-test-models/blob/master/data/xy
 ### Materials
 
 ![materials image](https://github.com/banga/craytracer/blob/master/images/materials.png)
+
 Source: [scenes/materials.cry](https://github.com/banga/craytracer/blob/master/scenes/materials.cry)
