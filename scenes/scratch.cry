@@ -6,13 +6,16 @@
         origin: Vector(4, 2, -2),
         target: Vector(0, 2, 0),
         up: Vector(0, 1, 0),
-        focal_distance: 0.4,
-        film_width: 1000,
-        film_height: 800,
+        focal_distance: 0.414,
+        film_width: 500,
+        film_height: 400,
     },
     materials: {
         sky: Emissive {
-            emittance: Color(0.8, 1.1, 1.2),
+            emittance: Color(0.1, 0.3, 0.33),
+        },
+        sun: Emissive {
+            emittance: Color(10, 9, 8),
         },
         ground: Matte {
             reflectance: Color(0.3, 0.4, 0.1),
@@ -28,13 +31,18 @@
             origin: Vector(0, 0, 0),
             radius: 1000
         },
+        sun: Sphere {
+            origin: Vector(0, 10, 5),
+            radius: 1
+        },
         ground: Sphere {
-            origin: Vector(0, -10001, 0),
-            radius: 10000
+            origin: Vector(0, -1000000, 0),
+            radius: 1000000
         }
     },
     primitives: [
         Shape { shape: 'sky', material: 'sky' },
+        Shape { shape: 'sun', material: 'sun' },
         Shape { shape: 'ground', material: 'ground' },
         Mesh { 
             file_name: 'objs/local/Sheep.obj',

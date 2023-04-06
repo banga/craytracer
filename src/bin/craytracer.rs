@@ -1,4 +1,5 @@
 use clap::Parser;
+use core::time;
 use craytracer::{
     color::Color,
     sampling::sample_2d,
@@ -7,13 +8,14 @@ use craytracer::{
     trace::trace,
 };
 use crossbeam::thread;
-use minifb::{Scale, ScaleMode, Window, WindowOptions};
+use minifb::{Key, Scale, ScaleMode, Window, WindowOptions};
 use std::{
     sync::{
         atomic::{AtomicUsize, Ordering},
-        mpsc, Arc, Mutex,
+        mpsc::{self, Receiver},
+        Arc, Mutex,
     },
-    time::{Duration, Instant},
+    time::Instant,
 };
 
 fn generate_tiles(
@@ -36,31 +38,8 @@ fn generate_tiles(
     tiles
 }
 
-fn setup_preview_window(
-    width: usize,
-    height: usize,
-    tile_width: usize,
-    tile_height: usize,
-    tiles: &Vec<(usize, usize, usize, usize)>,
-) -> (Vec<u32>, Window) {
-    // The window library expects a vec<u32> buffer
-    let mut buffer = vec![0u32; width * height];
-
-    // Initialize buffer to draw a checkerboard pattern
-    for (x1, y1, x2, y2) in tiles.iter() {
-        let tile_color = if ((x1 / tile_width) + (y1 / tile_height)) % 2 == 0 {
-            0x999999
-        } else {
-            0xaaaaaa
-        };
-        for y in *y1..*y2 {
-            for x in *x1..*x2 {
-                buffer[x + y * width] = tile_color;
-            }
-        }
-    }
-
-    let window = Window::new(
+fn create_preview_window(width: usize, height: usize) -> Window {
+    let mut window = Window::new(
         "craytracer",
         width,
         height,
@@ -71,16 +50,72 @@ fn setup_preview_window(
             resize: true,
             scale: Scale::X1,
             scale_mode: ScaleMode::AspectRatioStretch,
-            topmost: false,
+            topmost: true,
             none: false,
         },
     )
     .unwrap();
 
-    (buffer, window)
+    window.limit_update_rate(Some(time::Duration::from_millis(12)));
+
+    window
 }
 
-fn render(scene: &Scene) -> Vec<f32> {
+fn show_preview(
+    window: &mut Window,
+    width: usize,
+    height: usize,
+    tile_width: usize,
+    tile_height: usize,
+    tiles: &Vec<(usize, usize, usize, usize)>,
+    pixels: Arc<Mutex<Vec<f32>>>,
+    receiver: Receiver<usize>,
+) {
+    let mut preview_buffer = vec![0u32; width * height];
+
+    // Initialize buffer to draw a checkerboard pattern
+    for (x1, y1, x2, y2) in tiles.iter() {
+        let tile_color = if ((x1 / tile_width) + (y1 / tile_height)) % 2 == 0 {
+            0x999999
+        } else {
+            0xaaaaaa
+        };
+        for y in *y1..*y2 {
+            for x in *x1..*x2 {
+                preview_buffer[x + y * width] = tile_color;
+            }
+        }
+    }
+
+    let mut tile_count = 0;
+    while tile_count < tiles.len() {
+        window
+            .update_with_buffer(&preview_buffer, width, height)
+            .unwrap();
+
+        if let Ok(tile_index) = receiver.try_recv() {
+            let (x1, y1, x2, y2) = tiles[tile_index];
+            for x in x1..x2 {
+                for y in y1..y2 {
+                    let offset = x + y * width;
+                    let pixels = pixels.lock().unwrap();
+                    let (r, g, b) = Color {
+                        r: pixels[3 * offset] as f64,
+                        g: pixels[3 * offset + 1] as f64,
+                        b: pixels[3 * offset + 2] as f64,
+                    }
+                    // Gamma correction
+                    .powf(1.0 / 2.2)
+                    .to_rgb();
+                    preview_buffer[offset] = (r as u32) << 16 | (g as u32) << 8 | b as u32;
+                }
+            }
+            tile_count += 1;
+        }
+    }
+}
+
+fn render(scene: &Scene, preview_window: &mut Window) -> Vec<f32> {
     let num_threads = num_cpus::get();
 
     let width = scene.film_width;
@@ -143,34 +178,16 @@ fn render(scene: &Scene) -> Vec<f32> {
             });
         }
 
-        let (mut buffer, mut window) =
-            setup_preview_window(width, height, tile_width, tile_height, &tiles);
-        window.limit_update_rate(Some(std::time::Duration::from_micros(16600)));
-
-        let mut tile_count = 0;
-        while tile_count < tiles.len() {
-            window.update_with_buffer(&buffer, width, height).unwrap();
-            if let Ok(tile_index) = receiver.try_recv() {
-                let (x1, y1, x2, y2) = tiles[tile_index];
-                for x in x1..x2 {
-                    for y in y1..y2 {
-                        let offset = x + y * width;
-                        let pixels = pixels.lock().unwrap();
-                        let (r, g, b) = Color {
-                            r: pixels[3 * offset] as f64,
-                            g: pixels[3 * offset + 1] as f64,
-                            b: pixels[3 * offset + 2] as f64,
-                        }
-                        // Gamma correction
-                        .powf(1.0 / 2.2)
-                        .to_rgb();
-                        buffer[offset] = (r as u32) << 16 | (g as u32) << 8 | b as u32;
-                    }
-                }
-                tile_count += 1;
-            }
-            std::thread::sleep(Duration::from_millis(16));
-        }
+        show_preview(
+            preview_window,
+            width,
+            height,
+            tile_width,
+            tile_height,
+            &tiles,
+            Arc::clone(&pixels),
+            receiver,
+        );
     })
     .unwrap();
 
@@ -180,7 +197,7 @@ fn render(scene: &Scene) -> Vec<f32> {
 
 #[derive(Parser)]
 struct Cli {
-    #[clap(short, long, default_value_t = String::from("in.cry"))]
+    #[clap(short, long)]
     scene: String,
 
     #[clap(short, long, default_value_t = String::from("out.exr"))]
@@ -204,15 +221,23 @@ fn main() -> Result<(), ParserError> {
     };
     println!("Scene constructed in {:?}", start.elapsed());
 
-    let width = scene.film_width as u32;
-    let height = scene.film_height as u32;
-    let pixels = render(&scene);
+    let mut preview_window = create_preview_window(scene.film_width, scene.film_height);
+
+    // Render to a buffer
+    let pixels = render(&scene, &mut preview_window);
     println!("Rendering finished in {:?}", start.elapsed());
 
-    let image_buffer = image::Rgb32FImage::from_raw(width, height, pixels).unwrap();
+    // Save to file
+    let image_buffer =
+        image::Rgb32FImage::from_raw(scene.film_width as u32, scene.film_height as u32, pixels)
+            .unwrap();
     image_buffer.save(&args.output).expect("Error saving file");
-
     println!("Output written to {}", &args.output);
+
+    // Wait for user to close the preview window
+    while preview_window.is_open() && !preview_window.is_key_released(Key::Escape) {
+        preview_window.update();
+    }
 
     Ok(())
 }
