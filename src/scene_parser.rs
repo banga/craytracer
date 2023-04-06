@@ -654,8 +654,8 @@ pub mod scene_parser {
         tokenizer::{tokenize, ParserError},
     };
     use crate::{
-        camera::Camera, material::Material, obj::load_obj, primitive::Primitive, scene::Scene,
-        shape::Shape, vector::Vector,
+        camera::Camera, color::Color, light::Light, material::Material, obj::load_obj,
+        primitive::Primitive, scene::Scene, shape::Shape, vector::Vector,
     };
     use std::{collections::HashMap, convert::TryFrom, sync::Arc};
 
@@ -690,7 +690,43 @@ pub mod scene_parser {
                     )))
                 }
                 _ => Err(ParserError::without_location(&format!(
-                    "Unexpected name for Projection camera: {}",
+                    "Unknown camera type: {}",
+                    typed_map.name
+                ))),
+            }
+        }
+    }
+
+    /// RawValue -> Light
+    impl TryFrom<&RawValue> for Box<Light> {
+        type Error = ParserError;
+        fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
+            let typed_map = match value {
+                RawValue::TypedMap(typed_map) => Ok(typed_map),
+                _ => Err(ParserError::without_location(&format!(
+                    "Cannot get Light, found {:?}",
+                    value
+                ))),
+            }?;
+            let map = &typed_map.map;
+            match typed_map.name.as_str() {
+                "Point" => {
+                    let origin: Vector = map.get("origin")?;
+                    let intensity: Color = map.get("intensity")?;
+
+                    Ok(Box::new(Light::Point { origin, intensity }))
+                }
+                "Distant" => {
+                    let direction: Vector = map.get("direction")?;
+                    let intensity: Color = map.get("intensity")?;
+
+                    Ok(Box::new(Light::Distant {
+                        direction: direction.normalized(),
+                        intensity,
+                    }))
+                }
+                _ => Err(ParserError::without_location(&format!(
+                    "Unknown light type: {}",
                     typed_map.name
                 ))),
             }
@@ -824,6 +860,9 @@ pub mod scene_parser {
         let max_depth: usize = scene_map.get("max_depth")?;
         let num_samples: usize = scene_map.get("num_samples")?;
         let camera: Box<Camera> = scene_map.get("camera")?;
+
+        let lights: Vec<Box<Light>> = scene_map.get("lights")?;
+
         let materials: HashMap<String, Arc<Material>> = scene_map.get("materials")?;
         let shapes: HashMap<String, Arc<Shape>> = scene_map.get("shapes")?;
         let primitive_defs: Vec<&TypedRawValueMap> = scene_map.get("primitives")?;
@@ -848,6 +887,7 @@ pub mod scene_parser {
             film_width,
             film_height,
             camera,
+            lights,
             primitives,
         ))
     }

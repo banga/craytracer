@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use crate::{
-    bvh::BvhNode, camera::Camera, intersection::PrimitiveIntersection, primitive::Primitive,
-    ray::Ray,
+    bvh::BvhNode, camera::Camera, intersection::PrimitiveIntersection, light::Light,
+    primitive::Primitive, ray::Ray,
 };
 
 #[derive(Debug, PartialEq)]
@@ -12,6 +12,7 @@ pub struct Scene {
     pub film_width: usize,
     pub film_height: usize,
     pub camera: Box<Camera>,
+    pub lights: Vec<Box<Light>>,
     bvh: Box<BvhNode>,
 }
 
@@ -22,6 +23,7 @@ impl Scene {
         film_width: usize,
         film_height: usize,
         camera: Box<Camera>,
+        lights: Vec<Box<Light>>,
         primitives: Vec<Arc<Primitive>>,
     ) -> Self {
         Self {
@@ -30,6 +32,7 @@ impl Scene {
             film_width,
             film_height,
             camera,
+            lights,
             bvh: BvhNode::new(primitives),
         }
     }

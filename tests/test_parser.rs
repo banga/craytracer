@@ -360,6 +360,7 @@ mod parser {
     use craytracer::{
         camera::Camera,
         color::Color,
+        light::Light,
         material::Material,
         primitive::Primitive,
         scene::Scene,
@@ -599,6 +600,12 @@ mod parser {
         film_width: 400,
         film_height: 300
     },
+    lights: [
+        Point {
+            origin: Vector(0, 0, 0),
+            intensity: Color(1, 1, 1)
+        }
+    ],
     materials: {
         ball: Matte {
             reflectance: Color(1, 1, 1),
@@ -632,6 +639,10 @@ mod parser {
                     400,
                     300
                 )),
+                vec![Box::new(Light::Point {
+                    origin: Vector::O,
+                    intensity: Color::WHITE
+                }),],
                 vec![
                     Arc::new(Primitive::new_shape_primitive(
                         Arc::new(Shape::new_sphere(Vector(0.0, 0.0, 2.0), 1.0)),

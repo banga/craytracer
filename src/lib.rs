@@ -6,6 +6,7 @@ pub mod camera;
 pub mod color;
 pub mod constants;
 pub mod intersection;
+pub mod light;
 pub mod material;
 pub mod obj;
 pub mod pdf;
