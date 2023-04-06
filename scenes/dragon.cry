@@ -1,5 +1,5 @@
 {
-    max_depth: 5,
+    max_depth: 10,
     num_samples: 100,
     camera: Projection {
         origin: Vector(150, 20, 150),
