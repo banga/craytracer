@@ -50,7 +50,7 @@ fn create_preview_window(width: usize, height: usize) -> Window {
             resize: true,
             scale: Scale::X1,
             scale_mode: ScaleMode::AspectRatioStretch,
-            topmost: true,
+            topmost: false,
             none: false,
         },
     )
@@ -70,7 +70,7 @@ fn show_preview(
     tiles: &Vec<(usize, usize, usize, usize)>,
     pixels: Arc<Mutex<Vec<f32>>>,
     receiver: Receiver<usize>,
-) {
+) -> Vec<u32> {
     let mut preview_buffer = vec![0u32; width * height];
 
     // Initialize buffer to draw a checkerboard pattern
@@ -113,9 +113,11 @@ fn show_preview(
             tile_count += 1;
         }
     }
+
+    preview_buffer
 }
 
-fn render(scene: &Scene, preview_window: &mut Window) -> Vec<f32> {
+fn render(scene: &Scene, preview_window: &mut Window) -> (Vec<f32>, Vec<u32>) {
     let num_threads = num_cpus::get();
 
     let width = scene.film_width;
@@ -130,6 +132,8 @@ fn render(scene: &Scene, preview_window: &mut Window) -> Vec<f32> {
 
     let tile_index = Arc::new(AtomicUsize::new(0));
     let (sender, receiver) = mpsc::channel();
+
+    let mut preview_buffer: Vec<u32> = vec![];
 
     thread::scope(|scope| {
         for _ in 0..num_threads {
@@ -178,7 +182,7 @@ fn render(scene: &Scene, preview_window: &mut Window) -> Vec<f32> {
             });
         }
 
-        show_preview(
+        preview_buffer = show_preview(
             preview_window,
             width,
             height,
@@ -192,7 +196,7 @@ fn render(scene: &Scene, preview_window: &mut Window) -> Vec<f32> {
     .unwrap();
 
     let pixels = pixels.lock().unwrap().clone();
-    pixels
+    (pixels, preview_buffer)
 }
 
 #[derive(Parser)]
@@ -224,7 +228,7 @@ fn main() -> Result<(), ParserError> {
     let mut preview_window = create_preview_window(scene.film_width, scene.film_height);
 
     // Render to a buffer
-    let pixels = render(&scene, &mut preview_window);
+    let (pixels, preview_buffer) = render(&scene, &mut preview_window);
     println!("Rendering finished in {:?}", start.elapsed());
 
     // Save to file
@@ -236,7 +240,9 @@ fn main() -> Result<(), ParserError> {
 
     // Wait for user to close the preview window
     while preview_window.is_open() && !preview_window.is_key_released(Key::Escape) {
-        preview_window.update();
+        preview_window
+            .update_with_buffer(&preview_buffer, scene.film_width, scene.film_height)
+            .unwrap();
     }
 
     Ok(())
