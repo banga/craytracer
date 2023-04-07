@@ -7,7 +7,6 @@ use crate::{
 
 #[derive(Debug, PartialEq)]
 pub struct Scene {
-    pub max_depth: usize,
     pub num_samples: usize,
     pub film_width: usize,
     pub film_height: usize,
@@ -18,7 +17,6 @@ pub struct Scene {
 
 impl Scene {
     pub fn new(
-        max_depth: usize,
         num_samples: usize,
         film_width: usize,
         film_height: usize,
@@ -27,7 +25,6 @@ impl Scene {
         primitives: Vec<Arc<Primitive>>,
     ) -> Self {
         Self {
-            max_depth,
             num_samples,
             film_width,
             film_height,

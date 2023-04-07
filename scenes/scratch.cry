@@ -1,6 +1,5 @@
 // A playground for scenes
 {
-    max_depth: 3,
     num_samples: 50,
     camera: Projection {
         origin: Vector(4, 2, -2),
@@ -10,6 +9,7 @@
         film_width: 500,
         film_height: 400,
     },
+    lights: [],
     materials: {
         sky: Emissive {
             emittance: Color(0.1, 0.3, 0.33),

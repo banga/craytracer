@@ -236,7 +236,6 @@ mod tokenizer {
         assert_token_values(
             r#"
 {
-    max_depth: 8,
     camera: ProjectionCamera {
         origin: Vector(0, 8, -10),
         fov: 5,
@@ -262,10 +261,6 @@ mod tokenizer {
 "#,
             &[
                 TokenValue::LeftBrace,
-                TokenValue::Identifier("max_depth".to_string()),
-                TokenValue::Colon,
-                TokenValue::Number(8.0),
-                TokenValue::Comma,
                 TokenValue::Identifier("camera".to_string()),
                 TokenValue::Colon,
                 TokenValue::Identifier("ProjectionCamera".to_string()),
@@ -590,7 +585,6 @@ mod parser {
             parse_scene(
                 "
 {
-    max_depth: 5,
     num_samples: 1,
     camera: Projection {
         origin: Vector(0, 0, 0),
@@ -627,7 +621,6 @@ mod parser {
             )
             .unwrap(),
             Scene::new(
-                5,
                 1,
                 400,
                 300,

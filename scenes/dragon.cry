@@ -1,5 +1,4 @@
 {
-    max_depth: 10,
     num_samples: 100,
     camera: Projection {
         origin: Vector(150, 20, 150),
@@ -9,6 +8,7 @@
         film_width: 600,
         film_height: 400,
     },
+    lights: [],
     materials: {
         sky: Emissive {
             emittance: Color(0.8, 0.86, 0.92)

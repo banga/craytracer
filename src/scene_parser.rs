@@ -857,7 +857,6 @@ pub mod scene_parser {
         let mut tokens = tokens.iter().peekable();
         let scene_map = RawValueMap::from_tokens(&mut tokens)?;
 
-        let max_depth: usize = scene_map.get("max_depth")?;
         let num_samples: usize = scene_map.get("num_samples")?;
         let camera: Box<Camera> = scene_map.get("camera")?;
 
@@ -882,7 +881,6 @@ pub mod scene_parser {
         };
 
         Ok(Scene::new(
-            max_depth,
             num_samples,
             film_width,
             film_height,
