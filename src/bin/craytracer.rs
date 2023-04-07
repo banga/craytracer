@@ -5,7 +5,7 @@ use craytracer::{
     sampling::sample_2d,
     scene::Scene,
     scene_parser::{scene_parser::parse_scene, tokenizer::ParserError},
-    trace::trace,
+    trace::path_trace,
 };
 use crossbeam::thread;
 use minifb::{Key, Scale, ScaleMode, Window, WindowOptions};
@@ -163,7 +163,7 @@ fn render(scene: &Scene, preview_window: &mut Window) -> (Vec<f32>, Vec<u32>) {
                             let film_y = 1.0 - (y as f64 + dy) / (height - 1) as f64;
 
                             let ray = scene.camera.sample(film_x, film_y);
-                            color += trace(ray, &scene);
+                            color += path_trace(ray, &scene);
                         }
                         color /= scene.num_samples as f64;
 

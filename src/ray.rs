@@ -2,6 +2,7 @@ use approx::assert_abs_diff_eq;
 
 use crate::{constants::EPSILON, vector::Vector};
 
+#[derive(Debug)]
 pub struct Ray {
     pub origin: Vector,
     pub direction: Vector,

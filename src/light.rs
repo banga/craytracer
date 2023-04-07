@@ -11,6 +11,7 @@ pub enum Light {
         intensity: Color, /* Radiant flux per solid angle (W/sr) */
     },
     Distant {
+        // Direction the light is arriving from
         direction: Vector,
         intensity: Color, /* Radiant flux per solid angle (W/sr) */
     },
@@ -55,8 +56,8 @@ impl Light {
             } => {
                 assert_abs_diff_eq!(direction.magnitude(), 1.0, epsilon = EPSILON);
 
-                let mut shadow_ray = Ray::new(*point, direction);
-                shadow_ray.update_max_distance(WORLD_RADIUS * 2.0);
+                // Leave the max distance to infinity, since the light is at qz
+                let shadow_ray = Ray::new(*point, direction);
 
                 LightSample {
                     Li: intensity,

@@ -9,14 +9,21 @@
         film_width: 800,
         film_height: 800,
     },
-    lights: [],
+    lights: [
+        Point {
+            origin: Vector(0, 3200, -400),
+            intensity: Color(1000000, 1000000, 900000)
+        },
+        Distant {
+            direction: Vector(1, 1, -0.2),
+            intensity: Color(0.01, 0.03, 0.05)
+        },
+        Distant {
+            direction: Vector(-1, 1, -0.2),
+            intensity: Color(0.05, 0.03, 0.05)
+        }
+    ],
     materials: {
-        sky: Emissive {
-            emittance: Color(0.004, 0.004, 0.009)
-        },
-        light: Emissive {
-            emittance: Color(3, 3, 2.5),
-        },
         ground: Matte {
             reflectance: Color(0.5, 0.75, 1),
             sigma: 0
@@ -29,11 +36,7 @@
     shapes: {
         sky: Sphere {
             origin: Vector(0, 0, 0),
-            radius: 10000
-        },
-        light: Sphere {
-            origin: Vector(1, 3200, -400),
-            radius: 1000
+            radius: 100000
         },
         ground: Sphere {
             origin: Vector(0, -6800, 0),
@@ -41,9 +44,10 @@
         },
     },
     primitives: [
-        Shape { shape: 'sky', material: 'sky' },
-        Shape { shape: 'ground', material: 'ground' },
-        Shape { shape: 'light', material: 'light' },
+        Shape { 
+            shape: 'ground', 
+            material: 'ground' 
+        },
         Mesh { 
             file_name: 'objs/local/george_washington_greenough_statue_1840/george_washington_greenough_statue_1840.obj',
             fallback_material: 'statue' 

@@ -746,7 +746,6 @@ pub mod scene_parser {
             }?;
             let map = &typed_map.map;
             match typed_map.name.as_str() {
-                "Emissive" => Ok(Arc::new(Material::new_emissive(map.get("emittance")?))),
                 "Matte" => Ok(Arc::new(Material::new_matte(
                     map.get("reflectance")?,
                     map.get("sigma")?,

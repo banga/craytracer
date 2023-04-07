@@ -8,14 +8,17 @@
         film_width: 1280,
         film_height: 832,
     },
-    lights: [],
+    lights: [
+        Point {
+            origin: Vector(0, 10, 0),
+            intensity: Color(0.5, 0.5, 0.5)
+        },
+        Distant {
+            direction: Vector(-1, 1, -1),
+            intensity: Color(0.5, 0.5, 0.5)
+        }
+    ],
     materials: {
-        sky: Emissive {
-            emittance: Color(0.8, 0.86, 0.92)
-        },
-        light: Emissive {
-            emittance: Color(5, 5, 5),
-        },
         ground: Matte {
             reflectance: Color(1, 1, 1),
             sigma: 90
@@ -99,14 +102,6 @@
         },
     },
     shapes: {
-        sky: Sphere {
-            origin: Vector(0, 0, 0),
-            radius: 1000
-        },
-        light: Sphere {
-            origin: Vector(0, 100, -150),
-            radius: 50
-        },
         ground: Sphere {
             origin: Vector(0, -100000, 10),
             radius: 100000
@@ -181,9 +176,7 @@
         },
     },
     primitives: [
-        Shape { shape: 'sky', material: 'sky' },
         Shape { shape: 'ground', material: 'ground' },
-        Shape { shape: 'light', material: 'light' },
 
         Shape { shape: 'matte1', material: 'matte1' },
         Shape { shape: 'matte2', material: 'matte2' },

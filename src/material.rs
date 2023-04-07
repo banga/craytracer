@@ -4,22 +4,16 @@ use crate::{
     bsdf::BSDF,
     bxdf::{BxDF, Dielectric, Fresnel, SurfaceSample},
     color::Color,
-    pdf::Pdf,
     vector::Vector,
 };
 
 #[derive(Debug, PartialEq)]
 pub enum Material {
-    // TODO: implement lights and remove this
-    Emissive { emittance: Color },
     BxDF(BxDF),
     BSDF(BSDF),
 }
 
 impl Material {
-    pub fn new_emissive(emittance: Color) -> Material {
-        Material::Emissive { emittance }
-    }
     pub fn new_matte(reflectance: Color, sigma: f64) -> Material {
         if sigma == 0.0 {
             Material::BxDF(BxDF::LambertianBRDF { reflectance })
@@ -66,12 +60,6 @@ impl Material {
 
     pub fn sample(&self, w_o: &Vector, normal: &Vector) -> Option<SurfaceSample> {
         match self {
-            Material::Emissive { emittance } => Some(SurfaceSample {
-                w_i: *w_o,
-                f: Color::BLACK,
-                pdf: Pdf::Delta,
-                Le: *emittance,
-            }),
             Material::BxDF(bxdf) => bxdf.sample(w_o, normal),
             Material::BSDF(bsdf) => bsdf.sample(w_o, normal),
         }

@@ -49,7 +49,7 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Pr
         };
 
         if ambient.is_some() && !ambient.unwrap().is_black() {
-            materials.push(Arc::new(Material::new_emissive(ambient.unwrap())));
+            // TODO: add area lights
         } else {
             // TODO: read roughness
             materials.push(Arc::new(Material::new_matte(diffuse, 0.0)));
