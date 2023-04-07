@@ -23,3 +23,9 @@ Model: https://github.com/alecjacobson/common-3d-test-models/blob/master/data/xy
 ![materials image](https://github.com/banga/craytracer/blob/master/images/materials.png)
 
 Source: [scenes/materials.cry](https://github.com/banga/craytracer/blob/master/scenes/materials.cry)
+
+### George Washington
+
+![washington image](https://github.com/banga/craytracer/blob/master/images/washington.png)
+
+Model: https://sketchfab.com/3d-models/george-washington-greenough-statue-1840-6f90971e3eb24c0b8091086242f2c3b3

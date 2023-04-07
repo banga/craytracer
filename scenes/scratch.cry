@@ -1,54 +1,52 @@
 // A playground for scenes
 {
-    num_samples: 50,
+    num_samples: 100,
     camera: Projection {
-        origin: Vector(4, 2, -2),
-        target: Vector(0, 2, 0),
+        origin: Vector(4000, 2000, -4000.0),
+        target: Vector(250, 550, 0),
         up: Vector(0, 1, 0),
-        focal_distance: 0.414,
-        film_width: 500,
-        film_height: 400,
+        focal_distance: 2,
+        film_width: 800,
+        film_height: 800,
     },
     lights: [],
     materials: {
         sky: Emissive {
-            emittance: Color(0.1, 0.3, 0.33),
+            emittance: Color(0.004, 0.004, 0.009)
         },
-        sun: Emissive {
-            emittance: Color(10, 9, 8),
+        light: Emissive {
+            emittance: Color(3, 3, 2.5),
         },
         ground: Matte {
-            reflectance: Color(0.3, 0.4, 0.1),
-            sigma: 0,
+            reflectance: Color(0.5, 0.75, 1),
+            sigma: 0
         },
-        obj: Matte {
-            reflectance: Color(0.3, 0.28, 0.26),
-            sigma: 0,
-        },
+        statue: Matte {
+            reflectance: Color(1, 1, 1),
+            sigma: 90
+        }
     },
     shapes: {
         sky: Sphere {
             origin: Vector(0, 0, 0),
+            radius: 10000
+        },
+        light: Sphere {
+            origin: Vector(1, 3200, -400),
             radius: 1000
         },
-        sun: Sphere {
-            origin: Vector(0, 10, 5),
-            radius: 1
-        },
         ground: Sphere {
-            origin: Vector(0, -1000000, 0),
-            radius: 1000000
-        }
+            origin: Vector(0, -6800, 0),
+            radius: 5000
+        },
     },
     primitives: [
         Shape { shape: 'sky', material: 'sky' },
-        Shape { shape: 'sun', material: 'sun' },
         Shape { shape: 'ground', material: 'ground' },
+        Shape { shape: 'light', material: 'light' },
         Mesh { 
-            file_name: 'objs/local/Sheep.obj',
-            // file_name: 'objs/local/living_room/living_room.obj',
-            // file_name: 'objs/xyzrgb_dragon.obj',
-            fallback_material: 'obj' 
+            file_name: 'objs/local/george_washington_greenough_statue_1840/george_washington_greenough_statue_1840.obj',
+            fallback_material: 'statue' 
         }
     ]
 }

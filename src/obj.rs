@@ -7,7 +7,16 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Pr
 
     let (models, input_materials) =
         tobj::load_obj(file_name, &tobj::GPU_LOAD_OPTIONS).expect("Error loading models");
-    let input_materials = input_materials.expect("Error loading materials");
+    let input_materials = match input_materials {
+        Ok(m) => m,
+        Err(e) => {
+            eprintln!(
+                "Error loading materials in {:?}: {}, skipping",
+                file_name, e
+            );
+            vec![]
+        }
+    };
 
     fn parse_float(s: &str) -> f64 {
         if let Ok(f) = s.parse::<f64>() {
