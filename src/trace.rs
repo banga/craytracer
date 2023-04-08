@@ -10,7 +10,6 @@ use crate::{
 fn estimate_direct(intersection: &PrimitiveIntersection, scene: &Scene) -> Color {
     let mut rng = rand::thread_rng();
 
-    // We didn't hit any surface, so we can terminate the path at a light source
     if scene.lights.len() == 0 {
         return Color::BLACK;
     }
@@ -43,8 +42,13 @@ pub fn path_trace(mut ray: Ray, scene: &Scene) -> Color {
     let mut L = Color::BLACK;
     let mut beta = Color::WHITE;
     let mut rng = rand::thread_rng();
+    let mut bounces = 0;
 
     loop {
+        if bounces >= scene.max_depth {
+            break;
+        }
+
         if beta.is_black() {
             break;
         }
@@ -78,13 +82,15 @@ pub fn path_trace(mut ray: Ray, scene: &Scene) -> Color {
         L += beta * estimate_direct(&intersection, scene);
 
         // Very naive Russian Roulette
-        let q: f64 = 0.05;
-        if rng.gen_range(0.0..=1.0) < q {
+        let q: f64 = 0.05_f64.max(1.0 - (beta.r + beta.g + beta.b) * 0.3);
+        if bounces > 3 && rng.gen_range(0.0..1.0) < q {
             break;
         }
         beta = beta / (1.0 - q);
 
         ray = Ray::new(intersection.location, surface_sample.w_i);
+
+        bounces += 1;
     }
 
     L

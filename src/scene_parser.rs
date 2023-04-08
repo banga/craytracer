@@ -455,6 +455,24 @@ pub mod parser {
                     )
                 })
         }
+
+        pub fn get_or<'a, T>(&'a self, key: &str, default: T) -> Result<T, ParserError>
+        where
+            T: TryFrom<&'a RawValue, Error = ParserError>,
+        {
+            match self.map.get(key) {
+                Some(v) => v.try_into().map_err(|e: ParserError| {
+                    ParserError::new(
+                        &format!(
+                            "Error converting map value for '{}' to expected type: {}",
+                            key, e.message
+                        ),
+                        &e.location.unwrap_or(self.location.clone()),
+                    )
+                }),
+                None => Ok(default),
+            }
+        }
     }
 
     #[derive(Debug, PartialEq)]
@@ -659,6 +677,9 @@ pub mod scene_parser {
     };
     use std::{collections::HashMap, convert::TryFrom, sync::Arc};
 
+    const DEFAULT_MAX_DEPTH: usize = 8;
+    const DEFAULT_NUM_SAMPLES: usize = 4;
+
     /// RawValue -> Camera
     impl TryFrom<&RawValue> for Box<Camera> {
         type Error = ParserError;
@@ -856,7 +877,8 @@ pub mod scene_parser {
         let mut tokens = tokens.iter().peekable();
         let scene_map = RawValueMap::from_tokens(&mut tokens)?;
 
-        let num_samples: usize = scene_map.get("num_samples")?;
+        let max_depth: usize = scene_map.get_or("max_depth", DEFAULT_MAX_DEPTH)?;
+        let num_samples: usize = scene_map.get_or("num_samples", DEFAULT_NUM_SAMPLES)?;
         let camera: Box<Camera> = scene_map.get("camera")?;
 
         let lights: Vec<Box<Light>> = scene_map.get("lights")?;
@@ -880,6 +902,7 @@ pub mod scene_parser {
         };
 
         Ok(Scene::new(
+            max_depth,
             num_samples,
             film_width,
             film_height,

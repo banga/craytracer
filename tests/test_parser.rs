@@ -585,6 +585,7 @@ mod parser {
             parse_scene(
                 "
 {
+    max_depth: 3,
     num_samples: 1,
     camera: Projection {
         origin: Vector(0, 0, 0),
@@ -621,6 +622,7 @@ mod parser {
             )
             .unwrap(),
             Scene::new(
+                3,
                 1,
                 400,
                 300,
