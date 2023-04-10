@@ -2,6 +2,7 @@ use rand::Rng;
 
 use crate::{
     bxdf::{BxDF, SurfaceSample},
+    color::Color,
     pdf::Pdf,
     vector::Vector,
 };
@@ -12,10 +13,11 @@ pub struct BSDF {
 }
 
 impl BSDF {
-    pub fn sample(&self, w_o: &Vector, normal: &Vector) -> Option<SurfaceSample> {
+    // TODO: This isn't quite right. The caller should be able to specify which
+    // bxdf types to use.
+    fn get_relevant_bxdfs(&self, w_o: &Vector, normal: &Vector) -> Vec<&BxDF> {
         let is_reflecting = w_o.dot(&normal) < 0.0;
-        let relevant_bxdfs: Vec<&BxDF> = self
-            .bxdfs
+        self.bxdfs
             .iter()
             .filter(|b| {
                 if is_reflecting {
@@ -24,7 +26,11 @@ impl BSDF {
                     b.has_transmission()
                 }
             })
-            .collect();
+            .collect()
+    }
+
+    pub fn sample(&self, w_o: &Vector, normal: &Vector) -> Option<SurfaceSample> {
+        let relevant_bxdfs = self.get_relevant_bxdfs(w_o, normal);
         if relevant_bxdfs.len() == 0 {
             return None;
         }
@@ -57,6 +63,33 @@ impl BSDF {
             })
         } else {
             Some(sample)
+        }
+    }
+
+    pub fn f(&self, w_o: &Vector, w_i: &Vector, normal: &Vector) -> Color {
+        let mut f = Color::BLACK;
+        for bxdf in self.get_relevant_bxdfs(w_o, normal) {
+            f += bxdf.f(w_o, w_i, normal);
+        }
+        f
+    }
+
+    pub fn pdf(&self, w_o: &Vector, w_i: &Vector, normal: &Vector) -> Pdf {
+        let mut pdf = 0.0;
+        let mut num_matching_bxdfs = 0;
+        for bxdf in self.get_relevant_bxdfs(w_o, normal) {
+            match bxdf.pdf(w_o, w_i, normal) {
+                Pdf::NonDelta(p) => {
+                    pdf += p;
+                    num_matching_bxdfs += 1
+                }
+                Pdf::Delta => {}
+            }
+        }
+        if num_matching_bxdfs > 0 {
+            Pdf::NonDelta(pdf / num_matching_bxdfs as f64)
+        } else {
+            Pdf::Delta
         }
     }
 }

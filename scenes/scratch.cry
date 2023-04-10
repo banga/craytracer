@@ -1,6 +1,6 @@
 // A playground for scenes
 {
-    num_samples: 1000,
+    num_samples: 100,
     camera: Projection {
         origin: Vector(4000, 2000, -4000.0),
         target: Vector(250, 550, 0),

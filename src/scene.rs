@@ -26,7 +26,6 @@ impl Scene {
         lights: Vec<Box<Light>>,
         primitives: Vec<Arc<Primitive>>,
     ) -> Self {
-        println!("{}", max_depth);
         Self {
             max_depth,
             num_samples,

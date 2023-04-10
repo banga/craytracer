@@ -2,34 +2,58 @@ use approx::assert_abs_diff_eq;
 use rand::Rng;
 
 use crate::{
-    color::Color, constants::EPSILON, intersection::PrimitiveIntersection, pdf::Pdf, ray::Ray,
-    scene::Scene,
+    color::Color, constants::EPSILON, intersection::PrimitiveIntersection, light::Light, pdf::Pdf,
+    ray::Ray, scene::Scene, vector::Vector,
 };
 
+/// Estimate the radiance leaving the given point in the direction w_o from the
+/// given light source.
 #[allow(non_snake_case)]
-fn estimate_direct(intersection: &PrimitiveIntersection, scene: &Scene) -> Color {
-    let mut rng = rand::thread_rng();
+fn estimate_direct(
+    intersection: &PrimitiveIntersection,
+    w_o: &Vector,
+    light: &Box<Light>,
+    scene: &Scene,
+) -> Color {
+    let mut Ld = Color::BLACK;
 
-    if scene.lights.len() == 0 {
-        return Color::BLACK;
-    }
-
-    let light = &scene.lights[rng.gen_range(0..scene.lights.len())];
+    // Sample the light source
     let mut light_sample = light.sample(&intersection.location);
-
+    // TODO: Fix self-intersection issues
     let shadow_intersection = scene.intersect(&mut light_sample.shadow_ray);
-    if shadow_intersection.is_some() {
-        return Color::BLACK;
+    if shadow_intersection.is_none() {
+        let cos_theta_i = light_sample.w_i.dot(&intersection.normal).abs();
+        let mut Li = intersection
+            .material
+            .f(w_o, &light_sample.w_i, &intersection.normal)
+            * light_sample.Li
+            * cos_theta_i;
+        if !Li.is_black() {
+            let pdf_f = intersection
+                .material
+                .pdf(w_o, &light_sample.w_i, &intersection.normal);
+            let pdf_f = match pdf_f {
+                Pdf::Delta => 0.0,
+                Pdf::NonDelta(pdf_f) => pdf_f,
+            };
+            let mut weight = 1.0;
+            match light_sample.pdf {
+                Pdf::Delta => {
+                    Ld += Li;
+                }
+                Pdf::NonDelta(pdf_light) => {
+                    // TODO: MIS
+                    weight = pdf_light.powf(2.0) / (pdf_light.powf(2.0) + pdf_f.powf(2.0));
+                    Li = Li / pdf_light;
+                }
+            }
+            Ld += Li * weight;
+        }
     }
 
-    // TODO: multiple importance sampling
+    // TODO: Sample the BRDF
 
-    let cos_theta = light_sample.w_i.dot(&intersection.normal).abs();
-    let mut Li = light_sample.Li * cos_theta;
-    if let Pdf::NonDelta(pdf) = light_sample.pdf {
-        Li = Li / pdf;
-    }
-    Li
+    Ld
 }
 
 /// As described in
@@ -39,6 +63,8 @@ fn estimate_direct(intersection: &PrimitiveIntersection, scene: &Scene) -> Color
 /// summing the radiance along each path.
 #[allow(non_snake_case)]
 pub fn path_trace(mut ray: Ray, scene: &Scene) -> Color {
+    assert!(scene.lights.len() > 0, "No lights in the scene.");
+
     let mut L = Color::BLACK;
     let mut beta = Color::WHITE;
     let mut rng = rand::thread_rng();
@@ -71,15 +97,17 @@ pub fn path_trace(mut ray: Ray, scene: &Scene) -> Color {
             break;
         }
 
+        // Estimate the contribution from a path that ends here. We will reuse
+        // the path without the terminator in the loop.
+        let light_pdf = 1.0 / scene.lights.len() as f64;
+        let light = &scene.lights[rng.gen_range(0..scene.lights.len())];
+        L += beta * estimate_direct(&intersection, &ray.direction, &light, scene) / light_pdf;
+
         let cos_theta = surface_sample.w_i.dot(&intersection.normal).abs();
         beta = beta * surface_sample.f * cos_theta;
         if let Pdf::NonDelta(pdf) = surface_sample.pdf {
             beta = beta / pdf;
         }
-
-        // Estimate the contribution from a path that ends here. We will reuse
-        // the path without the terminator in the loop.
-        L += beta * estimate_direct(&intersection, scene);
 
         // Very naive Russian Roulette
         let q: f64 = 0.05_f64.max(1.0 - (beta.r + beta.g + beta.b) * 0.3);

@@ -4,6 +4,7 @@ use crate::{
     bsdf::BSDF,
     bxdf::{BxDF, Dielectric, Fresnel, SurfaceSample},
     color::Color,
+    pdf::Pdf,
     vector::Vector,
 };
 
@@ -62,6 +63,18 @@ impl Material {
         match self {
             Material::BxDF(bxdf) => bxdf.sample(w_o, normal),
             Material::BSDF(bsdf) => bsdf.sample(w_o, normal),
+        }
+    }
+    pub fn f(&self, w_o: &Vector, w_i: &Vector, normal: &Vector) -> Color {
+        match self {
+            Material::BxDF(bxdf) => bxdf.f(w_o, w_i, normal),
+            Material::BSDF(bsdf) => bsdf.f(w_o, w_i, normal),
+        }
+    }
+    pub fn pdf(&self, w_o: &Vector, w_i: &Vector, normal: &Vector) -> Pdf {
+        match self {
+            Material::BxDF(bxdf) => bxdf.pdf(w_o, w_i, normal),
+            Material::BSDF(bsdf) => bsdf.pdf(w_o, w_i, normal),
         }
     }
 }
