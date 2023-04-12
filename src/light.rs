@@ -6,7 +6,7 @@ use rand_distr::{Distribution, Uniform};
 use crate::{
     color::Color,
     constants::EPSILON,
-    geometry::{point::Point, vector::Vector},
+    geometry::{normal::Normal, point::Point, vector::Vector},
     pdf::Pdf,
     ray::Ray,
     sampling::sample_hemisphere,
@@ -83,7 +83,11 @@ impl Light {
                 let mut rng = rand::thread_rng();
                 let uniform = Uniform::new_inclusive(-1.0, 1.0);
                 let x = uniform.sample(&mut rng);
-                let normal = if x > 0.0 { Vector::X } else { -Vector::X };
+                let normal = if x > 0.0 {
+                    Normal(1.0, 0.0, 0.0)
+                } else {
+                    Normal(-1.0, 0.0, 0.0)
+                };
 
                 let w_i = sample_hemisphere(&normal);
                 let shadow_ray = Ray::new(*point, w_i);

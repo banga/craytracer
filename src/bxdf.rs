@@ -1,7 +1,10 @@
 use std::f64::consts::FRAC_1_PI;
 
 use crate::{
-    color::Color, constants::EPSILON, geometry::vector::Vector, pdf::Pdf,
+    color::Color,
+    constants::EPSILON,
+    geometry::{normal::Normal, traits::DotProduct, vector::Vector},
+    pdf::Pdf,
     sampling::cosine_sample_hemisphere,
 };
 use approx::assert_abs_diff_eq;
@@ -81,7 +84,7 @@ impl BxDF {
         }
     }
 
-    pub fn sample(&self, w_o: &Vector, normal: &Vector) -> Option<SurfaceSample> {
+    pub fn sample(&self, w_o: &Vector, normal: &Normal) -> Option<SurfaceSample> {
         match self {
             BxDF::LambertianBRDF { .. } => {
                 let w_i = cosine_sample_hemisphere(normal);
@@ -170,7 +173,7 @@ impl BxDF {
                 eta_i,
                 eta_t,
             } => {
-                let cos_theta_i = -w_o.dot(&normal);
+                let cos_theta_i = -w_o.dot(normal);
                 let fresnel_reflectance = fresnel_dielectric(*eta_i, *eta_t, cos_theta_i);
 
                 let mut rng = rand::thread_rng();
@@ -197,7 +200,7 @@ impl BxDF {
         }
     }
 
-    pub fn f(&self, w_o: &Vector, w_i: &Vector, normal: &Vector) -> Color {
+    pub fn f(&self, w_o: &Vector, w_i: &Vector, normal: &Normal) -> Color {
         match self {
             BxDF::LambertianBRDF { reflectance } => *reflectance * FRAC_1_PI,
             BxDF::OrenNayyarBRDF { reflectance, A, B } => {
@@ -224,7 +227,7 @@ impl BxDF {
         }
     }
 
-    pub fn pdf(&self, _w_o: &Vector, w_i: &Vector, normal: &Vector) -> Pdf {
+    pub fn pdf(&self, _w_o: &Vector, w_i: &Vector, normal: &Normal) -> Pdf {
         match self {
             BxDF::LambertianBRDF { .. } => {
                 let cos_theta = w_i.dot(normal).abs();
@@ -242,21 +245,23 @@ impl BxDF {
     }
 }
 
-pub fn reflect(direction: &Vector, normal: &Vector) -> Vector {
-    *direction - *normal * (normal.dot(direction) * 2.0)
+pub fn reflect(direction: &Vector, normal: &Normal) -> Vector {
+    let normal: Vector = normal.into();
+    *direction - normal * (normal.dot(direction) * 2.0)
 }
 
 pub fn refract(
     direction: &Vector,
-    normal: &Vector,
+    normal: &Normal,
     cos_theta_i: f64,
     eta_i: f64,
     eta_t: f64,
 ) -> Option<Vector> {
+    let normal: Vector = normal.into();
     let (normal, eta_relative, cos_theta) = if cos_theta_i.is_sign_negative() {
-        (-*normal, eta_i / eta_t, -cos_theta_i)
+        (-normal, eta_i / eta_t, -cos_theta_i)
     } else {
-        (*normal, eta_t / eta_i, cos_theta_i)
+        (normal, eta_t / eta_i, cos_theta_i)
     };
 
     let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();

@@ -2,7 +2,10 @@ use std::f64::consts::{FRAC_PI_2, FRAC_PI_4};
 
 use rand::{distributions::Uniform, prelude::Distribution};
 
-use crate::{constants::EPSILON, geometry::vector::Vector};
+use crate::{
+    constants::EPSILON,
+    geometry::{normal::Normal, traits::DotProduct, vector::Vector},
+};
 
 pub fn sample_2d() -> (f64, f64) {
     let mut rng = rand::thread_rng();
@@ -29,7 +32,7 @@ pub fn sample_disk() -> (f64, f64) {
     (r * theta.cos(), r * theta.sin())
 }
 
-pub fn sample_hemisphere(normal: &Vector) -> Vector {
+pub fn sample_hemisphere(normal: &Normal) -> Vector {
     let mut rng = rand::thread_rng();
     let uniform = Uniform::new_inclusive(-1.0, 1.0);
     loop {
@@ -38,7 +41,7 @@ pub fn sample_hemisphere(normal: &Vector) -> Vector {
             uniform.sample(&mut rng),
             uniform.sample(&mut rng),
         );
-        let magnitude_squared = v.dot(&v);
+        let magnitude_squared = v.magnitude_squared();
         if magnitude_squared <= 1.0 {
             if v.dot(normal) > 0.0 {
                 return v / magnitude_squared.sqrt();
@@ -49,25 +52,27 @@ pub fn sample_hemisphere(normal: &Vector) -> Vector {
     }
 }
 
-fn generate_normal_tangents(normal: &Vector) -> (Vector, Vector) {
-    let other = if normal.x().abs() < EPSILON {
+fn generate_tangents(vector: &Vector) -> (Vector, Vector) {
+    let other = if vector.x().abs() < EPSILON {
         Vector::X
-    } else if normal.y().abs() < EPSILON {
+    } else if vector.y().abs() < EPSILON {
         Vector::Y
     } else {
         Vector::Z
     };
-    let tangent = normal.cross(&other).normalized();
-    let bitangent = normal.cross(&tangent).normalized();
+    let tangent = vector.cross(&other).normalized();
+    let bitangent = vector.cross(&tangent).normalized();
     (tangent, bitangent)
 }
 
-pub fn cosine_sample_hemisphere(normal: &Vector) -> Vector {
-    let (tangent, bitangent) = generate_normal_tangents(normal);
+pub fn cosine_sample_hemisphere(normal: &Normal) -> Vector {
+    let normal: Vector = normal.into();
+
+    let (tangent, bitangent) = generate_tangents(&normal);
     let (x, y) = sample_disk();
     let z = (1.0 - x * x - y * y).max(0.0).sqrt();
-    let v = tangent * x + bitangent * y + *normal * z;
-    assert!(v.dot(normal) >= 0.0);
+    let v = tangent * x + bitangent * y + normal * z;
+    assert!(v.dot(&normal) >= 0.0);
     v
 }
 

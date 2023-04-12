@@ -1,6 +1,6 @@
 #[cfg(test)]
 pub mod vector {
-    use craytracer::geometry::vector::Vector;
+    use craytracer::geometry::{traits::DotProduct, vector::Vector};
     use pretty_assertions::assert_eq;
 
     #[test]

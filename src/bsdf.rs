@@ -3,7 +3,7 @@ use rand::Rng;
 use crate::{
     bxdf::{BxDF, SurfaceSample},
     color::Color,
-    geometry::vector::Vector,
+    geometry::{normal::Normal, traits::DotProduct, vector::Vector},
     pdf::Pdf,
 };
 
@@ -15,8 +15,8 @@ pub struct BSDF {
 impl BSDF {
     // TODO: This isn't quite right. The caller should be able to specify which
     // bxdf types to use.
-    fn get_relevant_bxdfs(&self, w_o: &Vector, normal: &Vector) -> Vec<&BxDF> {
-        let is_reflecting = w_o.dot(&normal) < 0.0;
+    fn get_relevant_bxdfs(&self, w_o: &Vector, normal: &Normal) -> Vec<&BxDF> {
+        let is_reflecting = w_o.dot(normal) < 0.0;
         self.bxdfs
             .iter()
             .filter(|b| {
@@ -29,7 +29,7 @@ impl BSDF {
             .collect()
     }
 
-    pub fn sample(&self, w_o: &Vector, normal: &Vector) -> Option<SurfaceSample> {
+    pub fn sample(&self, w_o: &Vector, normal: &Normal) -> Option<SurfaceSample> {
         let relevant_bxdfs = self.get_relevant_bxdfs(w_o, normal);
         if relevant_bxdfs.len() == 0 {
             return None;
@@ -66,7 +66,7 @@ impl BSDF {
         }
     }
 
-    pub fn f(&self, w_o: &Vector, w_i: &Vector, normal: &Vector) -> Color {
+    pub fn f(&self, w_o: &Vector, w_i: &Vector, normal: &Normal) -> Color {
         let mut f = Color::BLACK;
         for bxdf in self.get_relevant_bxdfs(w_o, normal) {
             f += bxdf.f(w_o, w_i, normal);
@@ -74,7 +74,7 @@ impl BSDF {
         f
     }
 
-    pub fn pdf(&self, w_o: &Vector, w_i: &Vector, normal: &Vector) -> Pdf {
+    pub fn pdf(&self, w_o: &Vector, w_i: &Vector, normal: &Normal) -> Pdf {
         let mut pdf = 0.0;
         let mut num_matching_bxdfs = 0;
         for bxdf in self.get_relevant_bxdfs(w_o, normal) {

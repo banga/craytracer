@@ -2,9 +2,15 @@ use approx::assert_abs_diff_eq;
 use rand::Rng;
 
 use crate::{
-    color::Color, constants::EPSILON, geometry::vector::Vector,
-    intersection::PrimitiveIntersection, light::Light, pdf::Pdf, ray::Ray,
-    sampling::power_heuristic, scene::Scene,
+    color::Color,
+    constants::EPSILON,
+    geometry::{traits::DotProduct, vector::Vector},
+    intersection::PrimitiveIntersection,
+    light::Light,
+    pdf::Pdf,
+    ray::Ray,
+    sampling::power_heuristic,
+    scene::Scene,
 };
 
 /// Estimate the radiance leaving the given point in the direction w_o from the

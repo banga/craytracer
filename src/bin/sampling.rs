@@ -1,4 +1,4 @@
-use craytracer::{geometry::vector::Vector, sampling::sample_hemisphere};
+use craytracer::{geometry::normal::Normal, sampling::sample_hemisphere};
 use minifb::{Key, Scale, ScaleMode, Window, WindowOptions};
 
 // For verifying sampling methods
@@ -23,7 +23,7 @@ fn draw_samples() {
     .unwrap();
 
     let mut buffer = vec![0u32; width * height];
-    let normal = Vector(0.0, 0.0, 1.0).normalized();
+    let normal = Normal(0.0, 0.0, 1.0).normalized();
 
     while !window.is_key_released(Key::Escape) {
         for _ in 0..10 {

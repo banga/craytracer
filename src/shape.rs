@@ -1,7 +1,7 @@
 use crate::{
     bounds::Bounds,
     constants::EPSILON,
-    geometry::{point::Point, vector::Vector},
+    geometry::{point::Point, traits::DotProduct, vector::Vector},
     intersection::ShapeIntersection,
     ray::Ray,
 };
@@ -97,7 +97,7 @@ impl Shape {
                 if let Some(location) = ray.update_max_distance(distance) {
                     return Some(ShapeIntersection {
                         location,
-                        normal: (location - *origin) * *inv_radius,
+                        normal: ((location - *origin) * *inv_radius).into(),
                     });
                 }
 
@@ -105,7 +105,7 @@ impl Shape {
                 if let Some(location) = ray.update_max_distance(distance) {
                     return Some(ShapeIntersection {
                         location,
-                        normal: (location - *origin) * *inv_radius,
+                        normal: ((location - *origin) * *inv_radius).into(),
                     });
                 }
 
@@ -144,7 +144,7 @@ impl Shape {
                 if let Some(location) = ray.update_max_distance(distance) {
                     Some(ShapeIntersection {
                         location,
-                        normal: (*n0 + *n01 * u + *n02 * v).normalized(),
+                        normal: (*n0 + *n01 * u + *n02 * v).normalized().into(),
                     })
                 } else {
                     None
