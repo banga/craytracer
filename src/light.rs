@@ -1,8 +1,12 @@
-use std::f64::consts::PI;
+use std::f64::consts::{FRAC_1_PI, PI};
 
 use approx::assert_abs_diff_eq;
+use rand_distr::{Distribution, Uniform};
 
-use crate::{color::Color, constants::EPSILON, pdf::Pdf, ray::Ray, vector::Vector};
+use crate::{
+    color::Color, constants::EPSILON, pdf::Pdf, ray::Ray, sampling::sample_hemisphere,
+    vector::Vector,
+};
 
 #[derive(Debug, PartialEq)]
 pub enum Light {
@@ -13,6 +17,10 @@ pub enum Light {
     Distant {
         // Direction the light is arriving from
         direction: Vector,
+        intensity: Color, /* Radiant flux per solid angle (W/sr) */
+    },
+    Infinite {
+        // TODO: add texture for the intensity
         intensity: Color, /* Radiant flux per solid angle (W/sr) */
     },
 }
@@ -46,7 +54,7 @@ impl Light {
                 LightSample {
                     Li: intensity / dist_squared,
                     w_i,
-                    pdf: Pdf::Delta,
+                    pdf: self.pdf(&w_i),
                     shadow_ray,
                 }
             }
@@ -58,14 +66,48 @@ impl Light {
 
                 // Leave the max distance to infinity, since the light is at qz
                 let shadow_ray = Ray::new(*point, direction);
+                let w_i = direction;
 
                 LightSample {
                     Li: intensity,
-                    w_i: direction,
-                    pdf: Pdf::Delta,
+                    w_i,
+                    pdf: self.pdf(&w_i),
                     shadow_ray,
                 }
             }
+            &Light::Infinite { intensity } => {
+                let mut rng = rand::thread_rng();
+                let uniform = Uniform::new_inclusive(-1.0, 1.0);
+                let x = uniform.sample(&mut rng);
+                let normal = if x > 0.0 { Vector::X } else { -Vector::X };
+
+                let w_i = sample_hemisphere(&normal);
+                let shadow_ray = Ray::new(*point, w_i);
+
+                LightSample {
+                    Li: intensity,
+                    w_i,
+                    pdf: self.pdf(&w_i),
+                    shadow_ray,
+                }
+            }
+        }
+    }
+
+    pub fn pdf(self: &Self, _w_i: &Vector) -> Pdf {
+        match self {
+            &Light::Point { .. } => Pdf::Delta,
+            &Light::Distant { .. } => Pdf::Delta,
+            &Light::Infinite { .. } => Pdf::NonDelta(FRAC_1_PI / 4.0),
+        }
+    }
+
+    #[allow(non_snake_case)]
+    pub fn Le(self: &Self, _w_i: &Vector) -> Color {
+        match self {
+            &Light::Point { .. } => Color::BLACK,
+            &Light::Distant { .. } => Color::BLACK,
+            &Light::Infinite { intensity } => intensity,
         }
     }
 
@@ -73,6 +115,7 @@ impl Light {
         match self {
             &Light::Point { intensity, .. } => intensity * 4.0 * PI,
             &Light::Distant { intensity, .. } => intensity * PI * WORLD_RADIUS * WORLD_RADIUS,
+            &Light::Infinite { intensity, .. } => intensity * PI * WORLD_RADIUS * WORLD_RADIUS,
         }
     }
 }

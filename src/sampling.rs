@@ -70,3 +70,10 @@ pub fn cosine_sample_hemisphere(normal: &Vector) -> Vector {
     assert!(v.dot(normal) >= 0.0);
     v
 }
+
+/// https://pbr-book.org/3ed-2018/Monte_Carlo_Integration/Importance_Sampling#PowerHeuristic
+pub fn power_heuristic(n_f: usize, pdf_f: f64, n_g: usize, pdf_g: f64) -> f64 {
+    let f = n_f as f64 * pdf_f;
+    let g = n_g as f64 * pdf_g;
+    (f * f) / (f * f + g * g)
+}

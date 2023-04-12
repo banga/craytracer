@@ -9,19 +9,14 @@
         film_height: 400,
     },
     lights: [
-        Point {
-            origin: Vector(0, 120, 60),
-            intensity: Color(10000, 10000, 10000)
-        },
-        Distant {
-            direction: Vector(-1, 1, 1),
-            intensity: Color(0.1, 0.1, 0.25)
+        Infinite {
+            intensity: Color(1, 1, 1)
         }
     ],
     materials: {
         ground: Matte {
-            reflectance: Color(0.05, 0.12, 0.05),
-            sigma: 90
+            reflectance: Color(1, 1, 1),
+            sigma: 0
         },
         dragon: Metal {
             eta: Color(0.18299, 0.42108, 1.37340),

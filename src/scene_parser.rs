@@ -746,6 +746,11 @@ pub mod scene_parser {
                         intensity,
                     }))
                 }
+                "Infinite" => {
+                    let intensity: Color = map.get("intensity")?;
+
+                    Ok(Box::new(Light::Infinite { intensity }))
+                }
                 _ => Err(ParserError::without_location(&format!(
                     "Unknown light type: {}",
                     typed_map.name

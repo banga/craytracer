@@ -9,13 +9,8 @@
         film_height: 832,
     },
     lights: [
-        Point {
-            origin: Vector(0, 10, 0),
-            intensity: Color(0.5, 0.5, 0.5)
-        },
-        Distant {
-            direction: Vector(-1, 1, -1),
-            intensity: Color(0.5, 0.5, 0.5)
+        Infinite {
+            intensity: Color(1, 1, 1)
         }
     ],
     materials: {

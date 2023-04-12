@@ -3,7 +3,7 @@ use rand::Rng;
 
 use crate::{
     color::Color, constants::EPSILON, intersection::PrimitiveIntersection, light::Light, pdf::Pdf,
-    ray::Ray, scene::Scene, vector::Vector,
+    ray::Ray, sampling::power_heuristic, scene::Scene, vector::Vector,
 };
 
 /// Estimate the radiance leaving the given point in the direction w_o from the
@@ -19,7 +19,6 @@ fn estimate_direct(
 
     // Sample the light source
     let mut light_sample = light.sample(&intersection.location);
-    // TODO: Fix self-intersection issues
     let shadow_intersection = scene.intersect(&mut light_sample.shadow_ray);
     if shadow_intersection.is_none() {
         let cos_theta_i = light_sample.w_i.dot(&intersection.normal).abs();
@@ -37,21 +36,38 @@ fn estimate_direct(
                 Pdf::NonDelta(pdf_f) => pdf_f,
             };
             let mut weight = 1.0;
-            match light_sample.pdf {
-                Pdf::Delta => {
-                    Ld += Li;
-                }
-                Pdf::NonDelta(pdf_light) => {
-                    // TODO: MIS
-                    weight = pdf_light.powf(2.0) / (pdf_light.powf(2.0) + pdf_f.powf(2.0));
-                    Li = Li / pdf_light;
-                }
+            if let Pdf::NonDelta(pdf_light) = light_sample.pdf {
+                weight = power_heuristic(1, pdf_light, 1, pdf_f);
+                Li = Li / pdf_light;
             }
             Ld += Li * weight;
         }
     }
 
-    // TODO: Sample the BRDF
+    // Sample the BRDF
+    {
+        if let Some(material_sample) = intersection.material.sample(w_o, &intersection.normal) {
+            let ray = &mut Ray::new(intersection.location, material_sample.w_i);
+            if scene.intersect(ray).is_some() {
+                // TODO: Implement area lights
+                return Ld;
+            }
+
+            // If the light's direction is delta distributed, there's no chance
+            // the BRDF would sample it, so we only add the contribution if it's
+            // a non-delta light
+            if let Pdf::NonDelta(pdf_light) = light.pdf(&material_sample.w_i) {
+                let cos_theta_i = material_sample.w_i.dot(&intersection.normal).abs();
+                let mut Li = light.Le(&material_sample.w_i) * material_sample.f * cos_theta_i;
+                let mut weight = 1.0;
+                if let Pdf::NonDelta(pdf_f) = material_sample.pdf {
+                    weight = power_heuristic(1, pdf_f, 1, pdf_light);
+                    Li = Li / pdf_f;
+                }
+                Ld += Li * weight;
+            }
+        }
+    }
 
     Ld
 }
@@ -81,7 +97,15 @@ pub fn path_trace(mut ray: Ray, scene: &Scene) -> Color {
 
         let intersection = match scene.intersect(&mut ray) {
             Some(intersection) => intersection,
-            None => break,
+            None => {
+                // TODO: Also do this for specular bounces
+                if bounces == 0 {
+                    for light in &scene.lights {
+                        L += beta * light.Le(&ray.direction);
+                    }
+                }
+                break;
+            }
         };
 
         assert_abs_diff_eq!(intersection.normal.magnitude(), 1.0, epsilon = EPSILON);
@@ -110,11 +134,13 @@ pub fn path_trace(mut ray: Ray, scene: &Scene) -> Color {
         }
 
         // Very naive Russian Roulette
-        let q: f64 = 0.05_f64.max(1.0 - (beta.r + beta.g + beta.b) * 0.3);
-        if bounces > 3 && rng.gen_range(0.0..1.0) < q {
-            break;
+        if bounces > 3 {
+            let q: f64 = 0.05_f64.max(1.0 - (beta.r + beta.g + beta.b) * 0.3);
+            if rng.gen_range(0.0..1.0) < q {
+                break;
+            }
+            beta = beta / (1.0 - q);
         }
-        beta = beta / (1.0 - q);
 
         ray = Ray::new(intersection.location, surface_sample.w_i);
 

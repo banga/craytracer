@@ -200,8 +200,7 @@ impl BxDF {
         match self {
             BxDF::LambertianBRDF { reflectance } => *reflectance * FRAC_1_PI,
             BxDF::OrenNayyarBRDF { reflectance, A, B } => {
-                let cos_theta_i = w_i.dot(normal);
-                assert!(cos_theta_i >= 0.0);
+                let cos_theta_i = w_i.dot(normal).abs();
                 let cos_theta_o = w_o.dot(normal).abs();
 
                 let sin_theta_i = (1.0 - cos_theta_i).sqrt();

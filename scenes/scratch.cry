@@ -18,9 +18,8 @@
             direction: Vector(1, 1, -0.2),
             intensity: Color(0.01, 0.03, 0.05)
         },
-        Distant {
-            direction: Vector(-1, 1, -0.2),
-            intensity: Color(0.05, 0.03, 0.05)
+        Infinite {
+            intensity: Color(0.0, 0.01, 0.04)
         }
     ],
     materials: {
