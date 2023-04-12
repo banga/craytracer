@@ -1,17 +1,21 @@
 use crate::{
-    bounds::Bounds, constants::EPSILON, intersection::ShapeIntersection, ray::Ray, vector::Vector,
+    bounds::Bounds,
+    constants::EPSILON,
+    geometry::{point::Point, vector::Vector},
+    intersection::ShapeIntersection,
+    ray::Ray,
 };
 
 #[derive(Debug, PartialEq)]
 pub enum Shape {
     Sphere {
-        origin: Vector,
+        origin: Point,
         radius: f64,
         radius_squared: f64,
         inv_radius: f64,
     },
     Triangle {
-        v0: Vector,
+        v0: Point,
         e1: Vector,
         e2: Vector,
         n0: Vector,
@@ -21,7 +25,7 @@ pub enum Shape {
 }
 
 impl Shape {
-    pub fn new_sphere(origin: Vector, radius: f64) -> Shape {
+    pub fn new_sphere(origin: Point, radius: f64) -> Shape {
         Shape::Sphere {
             origin,
             radius,
@@ -29,7 +33,7 @@ impl Shape {
             inv_radius: 1.0 / radius,
         }
     }
-    pub fn new_triangle(v0: Vector, v1: Vector, v2: Vector) -> Shape {
+    pub fn new_triangle(v0: Point, v1: Point, v2: Point) -> Shape {
         let e1 = v1 - v0;
         let e2 = v2 - v0;
 
@@ -42,14 +46,14 @@ impl Shape {
             e1,
             e2,
             n0,
-            n01: Vector::O,
-            n02: Vector::O,
+            n01: Vector::NULL,
+            n02: Vector::NULL,
         }
     }
     pub fn new_triangle_with_normals(
-        v0: Vector,
-        v1: Vector,
-        v2: Vector,
+        v0: Point,
+        v1: Point,
+        v2: Point,
         n0: Vector,
         n1: Vector,
         n2: Vector,
@@ -151,12 +155,12 @@ impl Shape {
     pub fn bounds(&self) -> Bounds {
         match self {
             Shape::Sphere { origin, radius, .. } => Bounds::new(
-                Vector(
+                Point(
                     origin.x() - radius,
                     origin.y() - radius,
                     origin.z() - radius,
                 ),
-                Vector(
+                Point(
                     origin.x() + radius,
                     origin.y() + radius,
                     origin.z() + radius,
@@ -167,12 +171,12 @@ impl Shape {
                 let v2 = *v0 + *e2;
 
                 Bounds::new(
-                    Vector(
+                    Point(
                         v1.x().min(v2.x().min(v0.x())),
                         v1.y().min(v2.y().min(v0.y())),
                         v1.z().min(v2.z().min(v0.z())),
                     ),
-                    Vector(
+                    Point(
                         v1.x().max(v2.x().max(v0.x())),
                         v1.y().max(v2.y().max(v0.y())),
                         v1.z().max(v2.z().max(v0.z())),

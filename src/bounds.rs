@@ -2,24 +2,24 @@ use std::{iter::Sum, mem::swap, ops::Add};
 
 use crate::{
     constants::EPSILON,
+    geometry::{point::Point, vector::Vector, AXES},
     ray::Ray,
-    vector::{Vector, AXES},
 };
 
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub struct Bounds {
-    pub min: Vector,
-    pub max: Vector,
+    pub min: Point,
+    pub max: Point,
 }
 
 impl Bounds {
-    pub fn new(min: Vector, max: Vector) -> Bounds {
+    pub fn new(min: Point, max: Point) -> Bounds {
         assert!(min.x() <= max.x());
         assert!(min.y() <= max.y());
         assert!(min.z() <= max.z());
         Bounds { min, max }
     }
-    pub fn contains(&self, point: &Vector) -> bool {
+    pub fn contains(&self, point: &Point) -> bool {
         self.min.x() <= point.x()
             && self.min.y() <= point.y()
             && self.min.z() <= point.z()
@@ -73,12 +73,12 @@ impl Add for Bounds {
 
     fn add(self, rhs: Self) -> Self::Output {
         Bounds {
-            min: Vector(
+            min: Point(
                 self.min.x().min(rhs.min.x()),
                 self.min.y().min(rhs.min.y()),
                 self.min.z().min(rhs.min.z()),
             ),
-            max: Vector(
+            max: Point(
                 self.max.x().max(rhs.max.x()),
                 self.max.y().max(rhs.max.y()),
                 self.max.z().max(rhs.max.z()),

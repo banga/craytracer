@@ -4,8 +4,8 @@ use crate::{
     bsdf::BSDF,
     bxdf::{BxDF, Dielectric, Fresnel, SurfaceSample},
     color::Color,
+    geometry::vector::Vector,
     pdf::Pdf,
-    vector::Vector,
 };
 
 #[derive(Debug, PartialEq)]

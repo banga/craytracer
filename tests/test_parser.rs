@@ -237,7 +237,8 @@ mod tokenizer {
             r#"
 {
     camera: ProjectionCamera {
-        origin: Vector(0, 8, -10),
+        origin: Point(0, 8, -10),
+        up: Vector(0, 1, 0),
         fov: 5,
     },
     materials: {
@@ -247,7 +248,7 @@ mod tokenizer {
     },
     shapes: {
         sky: Sphere {
-            center: Vector(0, 0, 0),
+            center: Point(0, 0, 0),
             radius: 1000
         }
     },
@@ -267,13 +268,24 @@ mod tokenizer {
                 TokenValue::LeftBrace,
                 TokenValue::Identifier("origin".to_string()),
                 TokenValue::Colon,
-                TokenValue::Identifier("Vector".to_string()),
+                TokenValue::Identifier("Point".to_string()),
                 TokenValue::LeftParen,
                 TokenValue::Number(0.0),
                 TokenValue::Comma,
                 TokenValue::Number(8.0),
                 TokenValue::Comma,
                 TokenValue::Number(-10.0),
+                TokenValue::RightParen,
+                TokenValue::Comma,
+                TokenValue::Identifier("up".to_string()),
+                TokenValue::Colon,
+                TokenValue::Identifier("Vector".to_string()),
+                TokenValue::LeftParen,
+                TokenValue::Number(0.0),
+                TokenValue::Comma,
+                TokenValue::Number(1.0),
+                TokenValue::Comma,
+                TokenValue::Number(0.0),
                 TokenValue::RightParen,
                 TokenValue::Comma,
                 TokenValue::Identifier("fov".to_string()),
@@ -311,7 +323,7 @@ mod tokenizer {
                 TokenValue::LeftBrace,
                 TokenValue::Identifier("center".to_string()),
                 TokenValue::Colon,
-                TokenValue::Identifier("Vector".to_string()),
+                TokenValue::Identifier("Point".to_string()),
                 TokenValue::LeftParen,
                 TokenValue::Number(0.0),
                 TokenValue::Comma,
@@ -355,6 +367,7 @@ mod parser {
     use craytracer::{
         camera::Camera,
         color::Color,
+        geometry::{point::Point, vector::Vector},
         light::Light,
         material::Material,
         primitive::Primitive,
@@ -366,7 +379,6 @@ mod parser {
             Location,
         },
         shape::Shape,
-        vector::Vector,
     };
 
     fn expect_raw_value(s: &str, expected: RawValue) {
@@ -430,12 +442,12 @@ mod parser {
             }),
         );
         expect_raw_value(
-            "Sphere { center: Vector(0, 0, 0), radius: 1000 }",
+            "Sphere { center: Point(0, 0, 0), radius: 1000 }",
             RawValue::TypedMap(TypedRawValueMap {
                 name: "Sphere".to_string(),
                 map: RawValueMap {
                     map: HashMap::from([
-                        ("center".to_string(), RawValue::Vector(Vector::O)),
+                        ("center".to_string(), RawValue::Point(Point::O)),
                         ("radius".to_string(), RawValue::Number(1000.0)),
                     ]),
                     location: Location { line: 1, column: 8 },
@@ -462,7 +474,7 @@ mod parser {
 
         expect_parse_error(
             "x",
-            "Expected '{', got EOF",
+            "Expected '(' or '{', got EOF",
             Some(Location { line: 1, column: 2 }),
         );
         expect_parse_error(
@@ -588,8 +600,8 @@ mod parser {
     max_depth: 3,
     num_samples: 1,
     camera: Projection {
-        origin: Vector(0, 0, 0),
-        target: Vector(0, 0, 1),
+        origin: Point(0, 0, 0),
+        target: Point(0, 0, 1),
         up: Vector(0, 1, 0),
         focal_distance: 1,
         film_width: 400,
@@ -597,7 +609,7 @@ mod parser {
     },
     lights: [
         Point {
-            origin: Vector(0, 0, 0),
+            origin: Point(0, 0, 0),
             intensity: Color(1, 1, 1)
         }
     ],
@@ -609,7 +621,7 @@ mod parser {
     },
     shapes: {
         ball: Sphere {
-            origin: Vector(0, 0, 2),
+            origin: Point(0, 0, 2),
             radius: 1
         },
     },
@@ -627,29 +639,29 @@ mod parser {
                 400,
                 300,
                 Box::new(Camera::new_projection_camera(
-                    Vector::O,
-                    Vector::Z,
+                    Point::O,
+                    Point::new(0, 0, 1),
                     Vector::Y,
                     1.0,
                     400,
                     300
                 )),
                 vec![Box::new(Light::Point {
-                    origin: Vector::O,
+                    origin: Point::O,
                     intensity: Color::WHITE
                 }),],
                 vec![
                     Arc::new(Primitive::new_shape_primitive(
-                        Arc::new(Shape::new_sphere(Vector(0.0, 0.0, 2.0), 1.0)),
+                        Arc::new(Shape::new_sphere(Point(0.0, 0.0, 2.0), 1.0)),
                         Arc::new(Material::new_matte(Color::WHITE, 0.0))
                     )),
                     Arc::new(Primitive::new_shape_primitive(
                         // source: objs/triangle.obj
                         Arc::new(Shape::new_triangle(
-                            Vector(1.0, 0.0, 0.0),
-                            Vector(0.0, 1.0, 0.0),
+                            Point(1.0, 0.0, 0.0),
+                            Point(0.0, 1.0, 0.0),
                             // Co-ordinate system correction
-                            Vector(0.0, 0.0, -1.0),
+                            Point(0.0, 0.0, -1.0),
                         )),
                         Arc::new(Material::new_matte(Color::WHITE, 0.0))
                     ))

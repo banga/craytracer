@@ -257,7 +257,11 @@ pub mod parser {
         tokenizer::{ParserError, Token},
         Location,
     };
-    use crate::{color::Color, scene_parser::tokenizer::TokenValue, vector::Vector};
+    use crate::{
+        color::Color,
+        geometry::{point::Point, vector::Vector},
+        scene_parser::tokenizer::TokenValue,
+    };
     use std::{
         collections::HashMap,
         convert::{TryFrom, TryInto},
@@ -320,6 +324,7 @@ pub mod parser {
         Number(f64),
         String(String),
         Vector(Vector),
+        Point(Point),
         Color(Color),
         Map(RawValueMap),
         TypedMap(TypedRawValueMap),
@@ -332,7 +337,7 @@ pub mod parser {
             tokens: &mut Peekable<std::slice::Iter<Token>>,
         ) -> Result<RawValue, ParserError> {
             // We can unwrap safely due to the EOF token
-            let token = tokens.peek().unwrap();
+            let token = *tokens.peek().unwrap();
             match &token.value {
                 TokenValue::Number(n) => {
                     tokens.next();
@@ -342,31 +347,54 @@ pub mod parser {
                     tokens.next();
                     Ok(RawValue::String(s.to_string()))
                 }
-                TokenValue::Identifier(name) => match name.as_str() {
-                    "Vector" => {
-                        tokens.next();
-                        expect_token_variant(tokens, &TokenValue::LeftParen)?;
-                        let x = expect_number(tokens)?;
-                        expect_token_variant(tokens, &TokenValue::Comma)?;
-                        let y = expect_number(tokens)?;
-                        expect_token_variant(tokens, &TokenValue::Comma)?;
-                        let z = expect_number(tokens)?;
-                        expect_token_variant(tokens, &TokenValue::RightParen)?;
-                        Ok(RawValue::Vector(Vector(x, y, z)))
+                TokenValue::Identifier(name) => {
+                    tokens.next();
+
+                    let opener_token = *tokens.peek().unwrap();
+                    match &opener_token.value {
+                        &TokenValue::LeftParen => match name.as_str() {
+                            "Vector" => {
+                                expect_token_variant(tokens, &TokenValue::LeftParen)?;
+                                let x = expect_number(tokens)?;
+                                expect_token_variant(tokens, &TokenValue::Comma)?;
+                                let y = expect_number(tokens)?;
+                                expect_token_variant(tokens, &TokenValue::Comma)?;
+                                let z = expect_number(tokens)?;
+                                expect_token_variant(tokens, &TokenValue::RightParen)?;
+                                Ok(RawValue::Vector(Vector(x, y, z)))
+                            }
+                            "Point" => {
+                                expect_token_variant(tokens, &TokenValue::LeftParen)?;
+                                let x = expect_number(tokens)?;
+                                expect_token_variant(tokens, &TokenValue::Comma)?;
+                                let y = expect_number(tokens)?;
+                                expect_token_variant(tokens, &TokenValue::Comma)?;
+                                let z = expect_number(tokens)?;
+                                expect_token_variant(tokens, &TokenValue::RightParen)?;
+                                Ok(RawValue::Point(Point(x, y, z)))
+                            }
+                            "Color" => {
+                                expect_token_variant(tokens, &TokenValue::LeftParen)?;
+                                let r = expect_number(tokens)?;
+                                expect_token_variant(tokens, &TokenValue::Comma)?;
+                                let g = expect_number(tokens)?;
+                                expect_token_variant(tokens, &TokenValue::Comma)?;
+                                let b = expect_number(tokens)?;
+                                expect_token_variant(tokens, &TokenValue::RightParen)?;
+                                Ok(RawValue::Color(Color { r, g, b }))
+                            }
+                            _ => Ok(RawValue::TypedMap(TypedRawValueMap::from_tokens(tokens)?)),
+                        },
+                        &TokenValue::LeftBrace => Ok(RawValue::TypedMap(TypedRawValueMap {
+                            name: name.to_string(),
+                            map: RawValueMap::from_tokens(tokens)?,
+                        })),
+                        value => Err(ParserError::new(
+                            &format!("Expected '(' or '{{', got {}", value),
+                            &opener_token.location,
+                        )),
                     }
-                    "Color" => {
-                        tokens.next();
-                        expect_token_variant(tokens, &TokenValue::LeftParen)?;
-                        let r = expect_number(tokens)?;
-                        expect_token_variant(tokens, &TokenValue::Comma)?;
-                        let g = expect_number(tokens)?;
-                        expect_token_variant(tokens, &TokenValue::Comma)?;
-                        let b = expect_number(tokens)?;
-                        expect_token_variant(tokens, &TokenValue::RightParen)?;
-                        Ok(RawValue::Color(Color { r, g, b }))
-                    }
-                    _ => Ok(RawValue::TypedMap(TypedRawValueMap::from_tokens(tokens)?)),
-                },
+                }
                 TokenValue::LeftBrace => Ok(RawValue::Map(RawValueMap::from_tokens(tokens)?)),
                 TokenValue::LeftBracket => Ok(RawValue::Array(RawValueArray::from_tokens(tokens)?)),
                 value => Err(ParserError::new(
@@ -589,6 +617,19 @@ pub mod parser {
         }
     }
 
+    impl TryFrom<&RawValue> for Point {
+        type Error = ParserError;
+        fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
+            match value {
+                RawValue::Point(value) => Ok(*value),
+                _ => Err(ParserError::without_location(&format!(
+                    "Cannot get Point, found {:?}",
+                    value
+                ))),
+            }
+        }
+    }
+
     impl TryFrom<&RawValue> for Color {
         type Error = ParserError;
         fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
@@ -672,8 +713,15 @@ pub mod scene_parser {
         tokenizer::{tokenize, ParserError},
     };
     use crate::{
-        camera::Camera, color::Color, light::Light, material::Material, obj::load_obj,
-        primitive::Primitive, scene::Scene, shape::Shape, vector::Vector,
+        camera::Camera,
+        color::Color,
+        geometry::{point::Point, vector::Vector},
+        light::Light,
+        material::Material,
+        obj::load_obj,
+        primitive::Primitive,
+        scene::Scene,
+        shape::Shape,
     };
     use std::{collections::HashMap, convert::TryFrom, sync::Arc};
 
@@ -694,8 +742,8 @@ pub mod scene_parser {
             let map = &typed_map.map;
             match typed_map.name.as_str() {
                 "Projection" => {
-                    let origin: Vector = map.get("origin")?;
-                    let target: Vector = map.get("target")?;
+                    let origin: Point = map.get("origin")?;
+                    let target: Point = map.get("target")?;
                     let up: Vector = map.get("up")?;
                     let focal_distance: f64 = map.get("focal_distance")?;
                     let film_width: usize = map.get("film_width")?;
@@ -732,7 +780,7 @@ pub mod scene_parser {
             let map = &typed_map.map;
             match typed_map.name.as_str() {
                 "Point" => {
-                    let origin: Vector = map.get("origin")?;
+                    let origin: Point = map.get("origin")?;
                     let intensity: Color = map.get("intensity")?;
 
                     Ok(Box::new(Light::Point { origin, intensity }))

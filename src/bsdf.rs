@@ -3,8 +3,8 @@ use rand::Rng;
 use crate::{
     bxdf::{BxDF, SurfaceSample},
     color::Color,
+    geometry::vector::Vector,
     pdf::Pdf,
-    vector::Vector,
 };
 
 #[derive(Debug, PartialEq)]

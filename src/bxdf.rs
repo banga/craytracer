@@ -1,7 +1,8 @@
 use std::f64::consts::FRAC_1_PI;
 
 use crate::{
-    color::Color, constants::EPSILON, pdf::Pdf, sampling::cosine_sample_hemisphere, vector::Vector,
+    color::Color, constants::EPSILON, geometry::vector::Vector, pdf::Pdf,
+    sampling::cosine_sample_hemisphere,
 };
 use approx::assert_abs_diff_eq;
 use rand::Rng;

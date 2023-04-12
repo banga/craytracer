@@ -2,10 +2,10 @@ use std::{fmt::Display, sync::Arc};
 
 use crate::{
     bounds::Bounds,
+    geometry::{Axis, AXES},
     intersection::PrimitiveIntersection,
     primitive::Primitive,
     ray::Ray,
-    vector::{Axis, AXES},
 };
 
 #[derive(Debug, PartialEq)]

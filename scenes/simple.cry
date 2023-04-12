@@ -1,8 +1,8 @@
 {
     num_samples: 100,
     camera: Projection {
-        origin: Vector(0, 8, -10),
-        target: Vector(-2.5, 0.5, 12),
+        origin: Point(0, 8, -10),
+        target: Point(-2.5, 0.5, 12),
         up: Vector(0, 1, 0),
         focal_distance: 4.5,
         film_width: 1400,
@@ -14,7 +14,7 @@
             intensity: Color(0.01, 0.04, 0.3),
         },
         Point {
-            origin: Vector(4, 5, 16),
+            origin: Point(4, 5, 16),
             intensity: Color(10, 10, 10),
         }
     ],
@@ -31,11 +31,11 @@
     },
     shapes: {
         ground: Sphere {
-            origin: Vector(0, -10000, 10),
+            origin: Point(0, -10000, 10),
             radius: 10000
         },
         glass: Sphere {
-            origin: Vector(0, 1.5, 12.5),
+            origin: Point(0, 1.5, 12.5),
             radius: 1.5
         }
     },

@@ -1,9 +1,12 @@
-use crate::{ray::Ray, vector::Vector};
+use crate::{
+    geometry::{point::Point, vector::Vector},
+    ray::Ray,
+};
 
 #[derive(Debug, PartialEq)]
 pub enum Camera {
     Projection {
-        origin: Vector,
+        origin: Point,
         x: Vector,
         y: Vector,
         z: Vector,
@@ -16,8 +19,8 @@ pub enum Camera {
 
 impl Camera {
     pub fn new_projection_camera(
-        origin: Vector,
-        target: Vector,
+        origin: Point,
+        target: Point,
         up: Vector,
         focal_distance: f64,
         film_width: usize,

@@ -2,7 +2,7 @@ use std::f64::consts::{FRAC_PI_2, FRAC_PI_4};
 
 use rand::{distributions::Uniform, prelude::Distribution};
 
-use crate::{constants::EPSILON, vector::Vector};
+use crate::{constants::EPSILON, geometry::vector::Vector};
 
 pub fn sample_2d() -> (f64, f64) {
     let mut rng = rand::thread_rng();

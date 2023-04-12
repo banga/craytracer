@@ -1,8 +1,8 @@
 {
     num_samples: 500,
     camera: Projection {
-        origin: Vector(-10, 10, -30),
-        target: Vector(0, 0, 1),
+        origin: Point(-10, 10, -30),
+        target: Point(0, 0, 1),
         up: Vector(0, 1, 0.2),
         focal_distance: 4,
         film_width: 1280,
@@ -98,75 +98,75 @@
     },
     shapes: {
         ground: Sphere {
-            origin: Vector(0, -100000, 10),
+            origin: Point(0, -100000, 10),
             radius: 100000
         },
 
         matte1: Sphere {
-            origin: Vector(-3, 0.5, -2),
+            origin: Point(-3, 0.5, -2),
             radius: 0.5
         },
         matte2: Sphere {
-            origin: Vector(-1, 0.5, -2),
+            origin: Point(-1, 0.5, -2),
             radius: 0.5
         },
         matte3: Sphere {
-            origin: Vector(1, 0.5, -2),
+            origin: Point(1, 0.5, -2),
             radius: 0.5
         },
         matte4: Sphere {
-            origin: Vector(3, 0.5, -2),
+            origin: Point(3, 0.5, -2),
             radius: 0.5
         },
 
         brass: Sphere {
-            origin: Vector(-3, 0.5, 0),
+            origin: Point(-3, 0.5, 0),
             radius: 0.5
         },
         chrome: Sphere {
-            origin: Vector(-1, 0.5, 0),
+            origin: Point(-1, 0.5, 0),
             radius: 0.5
         },
         copper: Sphere {
-            origin: Vector(1, 0.5, 0),
+            origin: Point(1, 0.5, 0),
             radius: 0.5
         },
         gold: Sphere {
-            origin: Vector(3, 0.5, 0),
+            origin: Point(3, 0.5, 0),
             radius: 0.5
         },
 
         glass: Sphere {
-            origin: Vector(-3, 0.5, 2),
+            origin: Point(-3, 0.5, 2),
             radius: 0.5
         },
         water: Sphere {
-            origin: Vector(-1, 0.5, 2),
+            origin: Point(-1, 0.5, 2),
             radius: 0.5
         },
         diamond: Sphere {
-            origin: Vector(1, 0.5, 2),
+            origin: Point(1, 0.5, 2),
             radius: 0.5
         },
         emerald: Sphere {
-            origin: Vector(3, 0.5, 2),
+            origin: Point(3, 0.5, 2),
             radius: 0.5
         },
 
         plastic1: Sphere {
-            origin: Vector(-3, 0.5, 4),
+            origin: Point(-3, 0.5, 4),
             radius: 0.5
         },
         plastic2: Sphere {
-            origin: Vector(-1, 0.5, 4),
+            origin: Point(-1, 0.5, 4),
             radius: 0.5
         },
         plastic3: Sphere {
-            origin: Vector(1, 0.5, 4),
+            origin: Point(1, 0.5, 4),
             radius: 0.5
         },
         plastic4: Sphere {
-            origin: Vector(3, 0.5, 4),
+            origin: Point(3, 0.5, 4),
             radius: 0.5
         },
     },

@@ -2,8 +2,8 @@
 {
     num_samples: 100,
     camera: Projection {
-        origin: Vector(4000, 2000, -4000.0),
-        target: Vector(250, 550, 0),
+        origin: Point(4000, 2000, -4000.0),
+        target: Point(250, 550, 0),
         up: Vector(0, 1, 0),
         focal_distance: 2,
         film_width: 800,
@@ -11,7 +11,7 @@
     },
     lights: [
         Point {
-            origin: Vector(0, 3200, -400),
+            origin: Point(0, 3200, -400),
             intensity: Color(5000000, 5000000, 4000000)
         },
         Distant {
@@ -34,11 +34,11 @@
     },
     shapes: {
         sky: Sphere {
-            origin: Vector(0, 0, 0),
+            origin: Point(0, 0, 0),
             radius: 100000
         },
         ground: Sphere {
-            origin: Vector(0, -6800, 0),
+            origin: Point(0, -6800, 0),
             radius: 5000
         },
     },

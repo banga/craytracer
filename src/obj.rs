@@ -1,6 +1,12 @@
 use std::sync::Arc;
 
-use crate::{color::Color, material::Material, primitive::Primitive, shape::Shape, vector::Vector};
+use crate::{
+    color::Color,
+    geometry::{point::Point, vector::Vector},
+    material::Material,
+    primitive::Primitive,
+    shape::Shape,
+};
 
 pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Primitive>> {
     println!("Loading mesh from \"{}\"", file_name);
@@ -76,7 +82,7 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Pr
         let mut vertices = Vec::new();
         for chunk in mesh.positions.chunks(3) {
             if let [x, y, z] = chunk {
-                vertices.push(Vector(
+                vertices.push(Point(
                     *x as f64, *y as f64,
                     // Convert from right-handed to left-handed coordinate system
                     -*z as f64,

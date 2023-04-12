@@ -4,14 +4,18 @@ use approx::assert_abs_diff_eq;
 use rand_distr::{Distribution, Uniform};
 
 use crate::{
-    color::Color, constants::EPSILON, pdf::Pdf, ray::Ray, sampling::sample_hemisphere,
-    vector::Vector,
+    color::Color,
+    constants::EPSILON,
+    geometry::{point::Point, vector::Vector},
+    pdf::Pdf,
+    ray::Ray,
+    sampling::sample_hemisphere,
 };
 
 #[derive(Debug, PartialEq)]
 pub enum Light {
     Point {
-        origin: Vector,
+        origin: Point,
         intensity: Color, /* Radiant flux per solid angle (W/sr) */
     },
     Distant {
@@ -41,7 +45,7 @@ impl Light {
     ///
     /// Returns the radiance, the direction from which it is arriving (pointing
     /// to the light source) and the pdf value of sampling that direction.
-    pub fn sample(self: &Self, point: &Vector) -> LightSample {
+    pub fn sample(self: &Self, point: &Point) -> LightSample {
         match self {
             &Light::Point { origin, intensity } => {
                 let op = origin - *point;

@@ -1,4 +1,4 @@
-use craytracer::{sampling::sample_hemisphere, vector::Vector};
+use craytracer::{geometry::vector::Vector, sampling::sample_hemisphere};
 use minifb::{Key, Scale, ScaleMode, Window, WindowOptions};
 
 // For verifying sampling methods
