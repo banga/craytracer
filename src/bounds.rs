@@ -13,11 +13,11 @@ pub struct Bounds {
 }
 
 impl Bounds {
-    pub fn new(min: Point, max: Point) -> Bounds {
-        assert!(min.x() <= max.x());
-        assert!(min.y() <= max.y());
-        assert!(min.z() <= max.z());
-        Bounds { min, max }
+    pub fn new(a: Point, b: Point) -> Bounds {
+        Bounds {
+            min: a.min(b),
+            max: a.max(b),
+        }
     }
     pub fn contains(&self, point: &Point) -> bool {
         self.min.x() <= point.x()

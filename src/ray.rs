@@ -1,11 +1,9 @@
-use approx::assert_abs_diff_eq;
-
 use crate::{
     constants::EPSILON,
     geometry::{point::Point, vector::Vector},
 };
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Ray {
     pub origin: Point,
     pub direction: Vector,
@@ -14,7 +12,6 @@ pub struct Ray {
 
 impl Ray {
     pub fn new(origin: Point, direction: Vector) -> Ray {
-        assert_abs_diff_eq!(direction.magnitude(), 1.0, epsilon = EPSILON);
         Ray {
             origin,
             direction,

@@ -188,7 +188,7 @@ pub mod point {
     use approx::AbsDiffEq;
     use std::{
         fmt::Display,
-        ops::{Add, AddAssign, Index, Sub, SubAssign},
+        ops::{Add, AddAssign, Div, DivAssign, Index, Sub, SubAssign},
     };
 
     #[derive(Clone, Copy, Debug)]
@@ -207,6 +207,20 @@ pub mod point {
         }
         pub fn z(&self) -> f64 {
             self.2
+        }
+        pub fn min(&self, other: Point) -> Point {
+            Point(
+                self.0.min(other.0),
+                self.1.min(other.1),
+                self.2.min(other.2),
+            )
+        }
+        pub fn max(&self, other: Point) -> Point {
+            Point(
+                self.0.max(other.0),
+                self.1.max(other.1),
+                self.2.max(other.2),
+            )
         }
     }
 
@@ -253,6 +267,21 @@ pub mod point {
             self.0 -= rhs.0;
             self.1 -= rhs.1;
             self.2 -= rhs.2;
+        }
+    }
+
+    impl Div<f64> for Point {
+        type Output = Point;
+        fn div(self, rhs: f64) -> Self::Output {
+            Point(self.0 / rhs, self.1 / rhs, self.2 / rhs)
+        }
+    }
+
+    impl DivAssign<f64> for Point {
+        fn div_assign(&mut self, rhs: f64) {
+            self.0 /= rhs;
+            self.1 /= rhs;
+            self.2 /= rhs;
         }
     }
 
