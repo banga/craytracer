@@ -3,6 +3,7 @@ use crate::{
     material::Material,
 };
 
+#[derive(Debug, PartialEq)]
 pub struct ShapeIntersection {
     pub location: Point,
     // TODO: Get the normal lazily when needed

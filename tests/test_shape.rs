@@ -1,6 +1,47 @@
 mod sphere {
-    use craytracer::{bounds::Bounds, geometry::point::Point, shape::Shape};
+    use craytracer::{
+        bounds::Bounds,
+        geometry::{normal::Normal, point::Point, vector::Vector},
+        intersection::ShapeIntersection,
+        ray::Ray,
+        shape::Shape,
+    };
     use pretty_assertions::assert_eq;
+
+    #[test]
+    fn intersect() {
+        let s = Shape::new_sphere(Point(1.0, 2.0, 3.0), 2.0);
+
+        let ray = &mut Ray::new(Point(1.0, 2.0, 0.0), Vector::Z);
+        let intersection = s.intersect(ray);
+        assert_eq!(
+            intersection,
+            Some(ShapeIntersection {
+                location: Point(1.0, 2.0, 1.0),
+                normal: Normal(0.0, 0.0, -1.0),
+            })
+        );
+
+        let ray = &mut Ray::new(Point(-3.0, 2.0, 3.0), Vector::X);
+        let intersection = s.intersect(ray);
+        assert_eq!(
+            intersection,
+            Some(ShapeIntersection {
+                location: Point(-1.0, 2.0, 3.0),
+                normal: Normal(-1.0, 0.0, 0.0),
+            })
+        );
+
+        let ray = &mut Ray::new(Point(1.0, -2.0, 3.0), Vector::Y);
+        let intersection = s.intersect(ray);
+        assert_eq!(
+            intersection,
+            Some(ShapeIntersection {
+                location: Point(1.0, 0.0, 3.0),
+                normal: Normal(0.0, -1.0, 0.0),
+            })
+        );
+    }
 
     #[test]
     fn bounds() {

@@ -18,12 +18,17 @@ impl Ray {
             max_distance: f64::INFINITY,
         }
     }
-    pub fn update_max_distance(&mut self, distance: f64) -> Option<Point> {
+
+    pub fn at(&self, distance: f64) -> Point {
+        self.origin + self.direction * distance
+    }
+
+    pub fn update_max_distance(&mut self, distance: f64) -> bool {
         if distance > EPSILON && distance < self.max_distance {
             self.max_distance = distance;
-            Some(self.origin + self.direction * distance)
+            true
         } else {
-            None
+            false
         }
     }
 }

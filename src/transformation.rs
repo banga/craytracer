@@ -5,10 +5,11 @@ use crate::{
     bounds::Bounds,
     constants::EPSILON,
     geometry::{normal::Normal, point::Point, vector::Vector},
+    intersection::ShapeIntersection,
     ray::Ray,
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Matrix {
     pub m: [[f64; 4]; 4],
 }
@@ -243,27 +244,35 @@ impl Display for Matrix {
     }
 }
 
+#[derive(Debug, PartialEq, Clone)]
 pub struct Transformation {
     pub matrix: Matrix,
     pub inverse: Matrix,
 }
 
 impl Transformation {
-    pub fn translate(delta: &Vector) -> Self {
+    pub fn inverse(&self) -> Self {
+        Transformation {
+            matrix: self.inverse.clone(),
+            inverse: self.matrix.clone(),
+        }
+    }
+
+    pub fn translate(dx: f64, dy: f64, dz: f64) -> Self {
         Transformation {
             matrix: Matrix {
                 m: [
-                    [1.0, 0.0, 0.0, delta.x()],
-                    [0.0, 1.0, 0.0, delta.y()],
-                    [0.0, 0.0, 1.0, delta.z()],
+                    [1.0, 0.0, 0.0, dx],
+                    [0.0, 1.0, 0.0, dy],
+                    [0.0, 0.0, 1.0, dz],
                     [0.0, 0.0, 0.0, 1.0],
                 ],
             },
             inverse: Matrix {
                 m: [
-                    [1.0, 0.0, 0.0, -delta.x()],
-                    [0.0, 1.0, 0.0, -delta.y()],
-                    [0.0, 0.0, 1.0, -delta.z()],
+                    [1.0, 0.0, 0.0, -dx],
+                    [0.0, 1.0, 0.0, -dy],
+                    [0.0, 0.0, 1.0, -dz],
                     [0.0, 0.0, 0.0, 1.0],
                 ],
             },
@@ -340,6 +349,17 @@ impl Transformation {
     }
 }
 
+impl Mul for &Transformation {
+    type Output = Transformation;
+
+    fn mul(self, rhs: Self) -> Transformation {
+        Transformation {
+            matrix: &self.matrix * &rhs.matrix,
+            inverse: &rhs.inverse * &self.inverse,
+        }
+    }
+}
+
 pub trait Transformable<T> {
     fn transform(&self, t: &T) -> T;
 }
@@ -404,5 +424,14 @@ impl Transformable<Bounds> for Transformation {
         .map(|point| self.transform(point))
         .map(|point| Bounds::new(point, point))
         .sum()
+    }
+}
+
+impl Transformable<ShapeIntersection> for Transformation {
+    fn transform(&self, intersection: &ShapeIntersection) -> ShapeIntersection {
+        ShapeIntersection {
+            location: self.transform(&intersection.location),
+            normal: self.transform(&intersection.normal),
+        }
     }
 }

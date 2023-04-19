@@ -1,15 +1,17 @@
 use crate::{
     bounds::Bounds,
     constants::EPSILON,
-    geometry::{point::Point, traits::DotProduct, vector::Vector},
+    geometry::{normal::Normal, point::Point, traits::DotProduct, vector::Vector},
     intersection::ShapeIntersection,
     ray::Ray,
+    transformation::{Transformable, Transformation},
 };
 
 #[derive(Debug, PartialEq)]
 pub enum Shape {
     Sphere {
-        origin: Point,
+        object_to_world: Transformation,
+        world_to_object: Transformation,
         radius: f64,
         radius_squared: f64,
         inv_radius: f64,
@@ -27,10 +29,11 @@ pub enum Shape {
 impl Shape {
     pub fn new_sphere(origin: Point, radius: f64) -> Shape {
         Shape::Sphere {
-            origin,
             radius,
             radius_squared: radius * radius,
             inv_radius: 1.0 / radius,
+            object_to_world: Transformation::translate(origin.x(), origin.y(), origin.z()),
+            world_to_object: Transformation::translate(-origin.x(), -origin.y(), -origin.z()),
         }
     }
     pub fn new_triangle(v0: Point, v1: Point, v2: Point) -> Shape {
@@ -76,15 +79,18 @@ impl Shape {
     pub fn intersect(&self, ray: &mut Ray) -> Option<ShapeIntersection> {
         match self {
             Shape::Sphere {
-                origin,
+                object_to_world,
+                world_to_object,
                 radius_squared,
                 inv_radius,
                 ..
             } => {
-                let oc = ray.origin - *origin;
-                let a = ray.direction.magnitude_squared();
-                let b = 2.0 * oc.dot(&ray.direction);
-                let c = oc.magnitude_squared() - radius_squared;
+                let mut obj_ray = world_to_object.transform(ray);
+
+                let oc = Vector(obj_ray.origin.x(), obj_ray.origin.y(), obj_ray.origin.z());
+                let a = obj_ray.direction.magnitude_squared();
+                let b = 2.0 * oc.dot(&obj_ray.direction);
+                let c = oc.magnitude_squared() - *radius_squared;
                 let discriminant = b * b - 4.0 * a * c;
 
                 if discriminant < 0.0 {
@@ -94,19 +100,23 @@ impl Shape {
                 let discriminant_sqrt = discriminant.sqrt();
                 let inv_2_a = 1.0 / (2.0 * a);
                 let mut distance = (-b - discriminant_sqrt) * inv_2_a;
-                if let Some(location) = ray.update_max_distance(distance) {
-                    return Some(ShapeIntersection {
+                if obj_ray.update_max_distance(distance) {
+                    let location = obj_ray.at(distance);
+                    ray.update_max_distance(distance);
+                    return Some(object_to_world.transform(&ShapeIntersection {
                         location,
-                        normal: ((location - *origin) * *inv_radius).into(),
-                    });
+                        normal: Normal(location.x(), location.y(), location.z()) * *inv_radius,
+                    }));
                 }
 
                 distance = (-b + discriminant_sqrt) * inv_2_a;
-                if let Some(location) = ray.update_max_distance(distance) {
-                    return Some(ShapeIntersection {
+                if obj_ray.update_max_distance(distance) {
+                    let location = obj_ray.at(distance);
+                    ray.update_max_distance(distance);
+                    return Some(object_to_world.transform(&ShapeIntersection {
                         location,
-                        normal: ((location - *origin) * *inv_radius).into(),
-                    });
+                        normal: Normal(location.x(), location.y(), location.z()) * *inv_radius,
+                    }));
                 }
 
                 None
@@ -141,7 +151,8 @@ impl Shape {
                 }
 
                 let distance = T.cross(e1).dot(e2) * inv_denominator;
-                if let Some(location) = ray.update_max_distance(distance) {
+                if ray.update_max_distance(distance) {
+                    let location = ray.at(distance);
                     Some(ShapeIntersection {
                         location,
                         normal: (*n0 + *n01 * u + *n02 * v).normalized().into(),
@@ -154,18 +165,14 @@ impl Shape {
     }
     pub fn bounds(&self) -> Bounds {
         match self {
-            Shape::Sphere { origin, radius, .. } => Bounds::new(
-                Point(
-                    origin.x() - radius,
-                    origin.y() - radius,
-                    origin.z() - radius,
-                ),
-                Point(
-                    origin.x() + radius,
-                    origin.y() + radius,
-                    origin.z() + radius,
-                ),
-            ),
+            Shape::Sphere {
+                object_to_world,
+                radius,
+                ..
+            } => object_to_world.transform(&Bounds::new(
+                Point(-radius, -radius, -radius),
+                Point(*radius, *radius, *radius),
+            )),
             Shape::Triangle { v0, e1, e2, .. } => {
                 let v1 = *v0 + *e1;
                 let v2 = *v0 + *e2;

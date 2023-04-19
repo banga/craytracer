@@ -5,7 +5,7 @@ pub mod matrix {
     use pretty_assertions::assert_eq;
 
     #[test]
-    pub fn test_mul() {
+    pub fn mul() {
         let m1 = Matrix::new([
             // Dürer's magic square
             [16, 3, 2, 13],
@@ -35,7 +35,7 @@ pub mod matrix {
     }
 
     #[test]
-    pub fn test_inverse() {
+    pub fn inverse() {
         let m = Matrix::new([
             //
             [1, 3, 5, 4],
@@ -79,8 +79,8 @@ pub mod transformation {
     use pretty_assertions::assert_eq;
 
     #[test]
-    pub fn test_translation() {
-        let t = Transformation::translate(&Vector(5.0, -3.0, 2.0));
+    pub fn translation() {
+        let t = Transformation::translate(5.0, -3.0, 2.0);
 
         assert_eq!(t.transform(&Point(-3.0, 4.0, 5.0)), Point(2.0, 1.0, 7.0));
         assert_eq!(t.transform(&Vector(-3.0, 4.0, 5.0)), Vector(-3.0, 4.0, 5.0));
@@ -96,7 +96,7 @@ pub mod transformation {
     }
 
     #[test]
-    pub fn test_scale() {
+    pub fn scale() {
         let t = Transformation::scale(2.0, -3.0, 0.5);
 
         assert_eq!(t.transform(&Point(-3.0, 4.0, 5.0)), Point(-6.0, -12.0, 2.5));
@@ -119,7 +119,7 @@ pub mod transformation {
     }
 
     #[test]
-    pub fn test_rotate_x() {
+    pub fn rotate_x() {
         let t = Transformation::rotate_x(90.0);
 
         assert_abs_diff_eq!(t.transform(&Point(2.0, 1.0, 3.0)), Point(2.0, -3.0, 1.0),);
@@ -132,7 +132,7 @@ pub mod transformation {
     }
 
     #[test]
-    pub fn test_rotate_y() {
+    pub fn rotate_y() {
         let t = Transformation::rotate_y(90.0);
 
         assert_abs_diff_eq!(t.transform(&Point(2.0, 1.0, 3.0)), Point(3.0, 1.0, -2.0),);
@@ -145,7 +145,7 @@ pub mod transformation {
     }
 
     #[test]
-    pub fn test_rotate_z() {
+    pub fn rotate_z() {
         let t = Transformation::rotate_z(90.0);
 
         assert_abs_diff_eq!(t.transform(&Point(2.0, 1.0, 3.0)), Point(-1.0, 2.0, 3.0),);
