@@ -1,6 +1,3 @@
-use approx::assert_abs_diff_eq;
-use rand::Rng;
-
 use crate::{
     color::Color,
     constants::EPSILON,
@@ -12,20 +9,26 @@ use crate::{
     sampling::power_heuristic,
     scene::Scene,
 };
+use approx::assert_abs_diff_eq;
+use rand::Rng;
 
 /// Estimate the radiance leaving the given point in the direction w_o from the
 /// given light source.
 #[allow(non_snake_case)]
-fn estimate_direct(
+fn estimate_direct<R>(
+    rng: &mut R,
     intersection: &PrimitiveIntersection,
     w_o: &Vector,
     light: &Light,
     scene: &Scene,
-) -> Color {
+) -> Color
+where
+    R: Rng,
+{
     let mut Ld = Color::BLACK;
 
     // Sample the light source
-    let mut light_sample = light.sample(&intersection.location);
+    let mut light_sample = light.sample(rng, &intersection.location);
     let shadow_intersection = scene.intersect(&mut light_sample.shadow_ray);
     if shadow_intersection.is_none() {
         let cos_theta_i = light_sample.w_i.dot(&intersection.normal).abs();
@@ -53,7 +56,8 @@ fn estimate_direct(
 
     // Sample the BRDF
     {
-        if let Some(material_sample) = intersection.material.sample(w_o, &intersection.normal) {
+        if let Some(material_sample) = intersection.material.sample(rng, w_o, &intersection.normal)
+        {
             let ray = &mut Ray::new(intersection.location, material_sample.w_i);
             if scene.intersect(ray).is_some() {
                 // TODO: Implement area lights
@@ -85,12 +89,14 @@ fn estimate_direct(
 /// constructing paths starting from the camera and ending at a light source and
 /// summing the radiance along each path.
 #[allow(non_snake_case)]
-pub fn path_trace(mut ray: Ray, scene: &Scene) -> Color {
+pub fn path_trace<R>(rng: &mut R, mut ray: Ray, scene: &Scene) -> Color
+where
+    R: Rng,
+{
     assert!(scene.lights.len() > 0, "No lights in the scene.");
 
     let mut L = Color::BLACK;
     let mut beta = Color::WHITE;
-    let mut rng = rand::thread_rng();
     let mut bounces = 0;
 
     loop {
@@ -119,7 +125,10 @@ pub fn path_trace(mut ray: Ray, scene: &Scene) -> Color {
         assert!(intersection.distance >= 0.0);
 
         let w_o = ray.direction;
-        let surface_sample = match intersection.material.sample(&w_o, &intersection.normal) {
+        let surface_sample = match intersection
+            .material
+            .sample(rng, &w_o, &intersection.normal)
+        {
             Some(surface_sample) => surface_sample,
             None => break,
         };
@@ -132,7 +141,7 @@ pub fn path_trace(mut ray: Ray, scene: &Scene) -> Color {
         // the path without the terminator in the loop.
         let light_pdf = 1.0 / scene.lights.len() as f64;
         let light = &scene.lights[rng.gen_range(0..scene.lights.len())];
-        L += beta * estimate_direct(&intersection, &ray.direction, &light, scene) / light_pdf;
+        L += beta * estimate_direct(rng, &intersection, &ray.direction, &light, scene) / light_pdf;
 
         let cos_theta = surface_sample.w_i.dot(&intersection.normal).abs();
         beta = beta * surface_sample.f * cos_theta;

@@ -29,17 +29,19 @@ impl BSDF {
             .collect()
     }
 
-    pub fn sample(&self, w_o: &Vector, normal: &Normal) -> Option<SurfaceSample> {
+    pub fn sample<R>(&self, rng: &mut R, w_o: &Vector, normal: &Normal) -> Option<SurfaceSample>
+    where
+        R: Rng,
+    {
         let relevant_bxdfs = self.get_relevant_bxdfs(w_o, normal);
         if relevant_bxdfs.len() == 0 {
             return None;
         }
 
-        let mut rng = rand::thread_rng();
         let sample_index = rng.gen_range(0..relevant_bxdfs.len());
         let bxdf = &relevant_bxdfs[sample_index];
 
-        let sample = bxdf.sample(w_o, normal);
+        let sample = bxdf.sample(rng, w_o, normal);
         if sample.is_none() {
             return None;
         }

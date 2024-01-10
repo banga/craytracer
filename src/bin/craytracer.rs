@@ -9,6 +9,7 @@ use craytracer::{
 };
 use crossbeam::thread;
 use minifb::{Key, Scale, ScaleMode, Window, WindowOptions};
+use rand::{rngs::SmallRng, Rng, SeedableRng};
 use std::{
     sync::{
         atomic::{AtomicUsize, Ordering},
@@ -117,7 +118,10 @@ fn show_preview(
     preview_buffer
 }
 
-fn render(scene: &Scene, preview_window: &mut Window) -> (Vec<f32>, Vec<u32>) {
+fn render<R>(scene: &Scene, preview_window: &mut Window) -> (Vec<f32>, Vec<u32>)
+where
+    R: SeedableRng + Rng + ?Sized,
+{
     let num_threads = num_cpus::get();
 
     let width = scene.film_width;
@@ -145,12 +149,14 @@ fn render(scene: &Scene, preview_window: &mut Window) -> (Vec<f32>, Vec<u32>) {
                     break;
                 }
 
+                let mut rng = R::from_entropy();
+
                 let (x1, y1, x2, y2) = tiles[tile_index];
                 for y in y1..y2 {
                     for x in x1..x2 {
                         let mut color = Color::BLACK;
                         for _ in 0..scene.num_samples {
-                            let (dx, dy) = sample_2d();
+                            let (dx, dy) = sample_2d(&mut rng);
                             // We assume that the screen goes from (0, 0) at the
                             // top left to (width - 1, height - 1) at the bottom
                             // right. This is converted to [0, 1] x [0, 1] film
@@ -159,7 +165,7 @@ fn render(scene: &Scene, preview_window: &mut Window) -> (Vec<f32>, Vec<u32>) {
                             let film_y = 1.0 - (y as f64 + dy) / (height - 1) as f64;
 
                             let ray = scene.camera.sample(film_x, film_y);
-                            color += path_trace(ray, &scene);
+                            color += path_trace(&mut rng, ray, &scene);
                         }
                         color /= scene.num_samples as f64;
 
@@ -224,7 +230,7 @@ fn main() -> Result<(), ParserError> {
     let mut preview_window = create_preview_window(scene.film_width, scene.film_height);
 
     // Render to a buffer
-    let (pixels, preview_buffer) = render(&scene, &mut preview_window);
+    let (pixels, preview_buffer) = render::<SmallRng>(&scene, &mut preview_window);
     println!("Rendering finished in {:?}", start.elapsed());
 
     // Save to file

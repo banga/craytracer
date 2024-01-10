@@ -1,5 +1,3 @@
-use std::f64::consts::FRAC_1_PI;
-
 use crate::{
     color::Color,
     constants::EPSILON,
@@ -9,6 +7,7 @@ use crate::{
 };
 use approx::assert_abs_diff_eq;
 use rand::Rng;
+use std::f64::consts::FRAC_1_PI;
 
 #[allow(non_snake_case)]
 pub struct SurfaceSample {
@@ -84,10 +83,13 @@ impl BxDF {
         }
     }
 
-    pub fn sample(&self, w_o: &Vector, normal: &Normal) -> Option<SurfaceSample> {
+    pub fn sample<R>(&self, rng: &mut R, w_o: &Vector, normal: &Normal) -> Option<SurfaceSample>
+    where
+        R: Rng,
+    {
         match self {
             BxDF::LambertianBRDF { .. } => {
-                let w_i = cosine_sample_hemisphere(normal);
+                let w_i = cosine_sample_hemisphere(rng, normal);
                 Some(SurfaceSample {
                     w_i,
                     f: self.f(w_o, &w_i, normal),
@@ -96,7 +98,7 @@ impl BxDF {
                 })
             }
             BxDF::OrenNayyarBRDF { .. } => {
-                let w_i = cosine_sample_hemisphere(normal);
+                let w_i = cosine_sample_hemisphere(rng, normal);
                 Some(SurfaceSample {
                     w_i,
                     f: self.f(w_o, &w_i, normal),
@@ -176,7 +178,6 @@ impl BxDF {
                 let cos_theta_i = -w_o.dot(normal);
                 let fresnel_reflectance = fresnel_dielectric(*eta_i, *eta_t, cos_theta_i);
 
-                let mut rng = rand::thread_rng();
                 if rng.gen_range(0.0..1.0) < fresnel_reflectance {
                     Some(SurfaceSample {
                         w_i: reflect(w_o, normal),

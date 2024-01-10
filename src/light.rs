@@ -1,7 +1,6 @@
-use std::f64::consts::{FRAC_1_PI, PI};
-
 use approx::assert_abs_diff_eq;
-use rand_distr::{Distribution, Uniform};
+use rand::Rng;
+use std::f64::consts::{FRAC_1_PI, PI};
 
 use crate::{
     color::Color,
@@ -45,7 +44,10 @@ impl Light {
     ///
     /// Returns the radiance, the direction from which it is arriving (pointing
     /// to the light source) and the pdf value of sampling that direction.
-    pub fn sample(self: &Self, point: &Point) -> LightSample {
+    pub fn sample<R>(self: &Self, rng: &mut R, point: &Point) -> LightSample
+    where
+        R: Rng,
+    {
         match self {
             &Light::Point { origin, intensity } => {
                 let op = origin - *point;
@@ -80,16 +82,13 @@ impl Light {
                 }
             }
             &Light::Infinite { intensity } => {
-                let mut rng = rand::thread_rng();
-                let uniform = Uniform::new_inclusive(-1.0, 1.0);
-                let x = uniform.sample(&mut rng);
-                let normal = if x > 0.0 {
+                let normal = if rng.gen_bool(0.5) {
                     Normal(1.0, 0.0, 0.0)
                 } else {
                     Normal(-1.0, 0.0, 0.0)
                 };
 
-                let w_i = sample_hemisphere(&normal);
+                let w_i = sample_hemisphere(rng, &normal);
                 let shadow_ray = Ray::new(*point, w_i);
 
                 LightSample {

@@ -1,5 +1,7 @@
 use std::vec;
 
+use rand::Rng;
+
 use crate::{
     bsdf::BSDF,
     bxdf::{BxDF, Dielectric, Fresnel, SurfaceSample},
@@ -59,10 +61,13 @@ impl Material {
         })
     }
 
-    pub fn sample(&self, w_o: &Vector, normal: &Normal) -> Option<SurfaceSample> {
+    pub fn sample<R>(&self, rng: &mut R, w_o: &Vector, normal: &Normal) -> Option<SurfaceSample>
+    where
+        R: Rng,
+    {
         match self {
-            Material::BxDF(bxdf) => bxdf.sample(w_o, normal),
-            Material::BSDF(bsdf) => bsdf.sample(w_o, normal),
+            Material::BxDF(bxdf) => bxdf.sample(rng, w_o, normal),
+            Material::BSDF(bsdf) => bsdf.sample(rng, w_o, normal),
         }
     }
     pub fn f(&self, w_o: &Vector, w_i: &Vector, normal: &Normal) -> Color {
