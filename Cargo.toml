@@ -9,14 +9,14 @@ default-run = "craytracer"
 
 [dependencies]
 approx = "0.5.1"
-clap = { version = "3.2.17", features = ["derive"] }
+clap = { version = "4.4.14", features = ["derive"] }
 crossbeam = "0.8.2"
 image = "0.24.3"
-minifb = "0.23.0"
+minifb = "0.25.0"
 num_cpus = "1.13.1"
 rand = { version = "0.8.5", features = ["small_rng"] }
 rand_distr = "0.4.3"
-tobj = "3.2.5"
+tobj = "4.0.0"
 
 [[bin]]
 name = "craytracer"

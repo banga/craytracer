@@ -37,10 +37,14 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Pr
 
     let mut materials: Vec<Arc<Material>> = vec![];
     for m in &input_materials {
-        let diffuse = Color {
-            r: m.diffuse[0] as f64,
-            g: m.diffuse[1] as f64,
-            b: m.diffuse[2] as f64,
+        let diffuse = if let Some([r, g, b]) = m.diffuse {
+            Color {
+                r: r as f64,
+                g: g as f64,
+                b: b as f64,
+            }
+        } else {
+            Color::WHITE
         };
         let ambient = if let Some(emission) = m.unknown_param.get("Ke") {
             let parts: Vec<&str> = emission.split_whitespace().collect();
