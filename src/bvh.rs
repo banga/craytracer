@@ -117,16 +117,8 @@ impl BvhNode {
 
     pub fn intersect(&self, ray: &mut Ray) -> Option<PrimitiveIntersection> {
         let bounds = match self {
-            Self::LeafNode {
-                bounds,
-                primitive_infos: _,
-            } => bounds,
-            Self::InteriorNode {
-                bounds,
-                left: _,
-                right: _,
-                split: _,
-            } => bounds,
+            Self::LeafNode { bounds, .. } => bounds,
+            Self::InteriorNode { bounds, .. } => bounds,
         };
 
         // If the ray doesn't intersect the bounds, it could still be contained
@@ -137,8 +129,7 @@ impl BvhNode {
 
         match self {
             Self::LeafNode {
-                bounds: _,
-                primitive_infos,
+                primitive_infos, ..
             } => {
                 let mut best_intersection: Option<PrimitiveIntersection> = None;
                 for primitive_info in primitive_infos {
@@ -153,10 +144,7 @@ impl BvhNode {
                 best_intersection
             }
             Self::InteriorNode {
-                bounds: _,
-                left,
-                right,
-                split,
+                left, right, split, ..
             } => {
                 let (x, y) = if ray.direction[split.axis] < 0.0 {
                     (right.intersect(ray), left.intersect(ray))
