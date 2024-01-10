@@ -124,11 +124,9 @@ fn render(scene: &Scene, preview_window: &mut Window) -> (Vec<f32>, Vec<u32>) {
     let height = scene.film_height;
     let tile_width = 64;
     let tile_height = 64;
-    let tiles = generate_tiles(height, width, tile_width, tile_height);
+    let tiles = &generate_tiles(height, width, tile_width, tile_height);
 
-    let tiles = Arc::new(tiles);
     let pixels = Arc::new(Mutex::new(vec![0f32; width * height * 3]));
-    let scene = Arc::new(scene);
 
     let tile_index = Arc::new(AtomicUsize::new(0));
     let (sender, receiver) = mpsc::channel();
@@ -138,9 +136,7 @@ fn render(scene: &Scene, preview_window: &mut Window) -> (Vec<f32>, Vec<u32>) {
     thread::scope(|scope| {
         for _ in 0..num_threads {
             let tile_index = Arc::clone(&tile_index);
-            let tiles = Arc::clone(&tiles);
             let pixels = Arc::clone(&pixels);
-            let scene = Arc::clone(&scene);
             let sender = sender.clone();
 
             scope.spawn(move |_| loop {
@@ -188,7 +184,7 @@ fn render(scene: &Scene, preview_window: &mut Window) -> (Vec<f32>, Vec<u32>) {
             height,
             tile_width,
             tile_height,
-            &tiles,
+            tiles,
             Arc::clone(&pixels),
             receiver,
         );

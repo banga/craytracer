@@ -638,18 +638,18 @@ mod parser {
                 1,
                 400,
                 300,
-                Box::new(Camera::new_projection_camera(
+                Camera::new_projection_camera(
                     Point::O,
                     Point::new(0, 0, 1),
                     Vector::Y,
                     1.0,
                     400,
                     300
-                )),
-                vec![Box::new(Light::Point {
+                ),
+                vec![Light::Point {
                     origin: Point::O,
                     intensity: Color::WHITE
-                }),],
+                },],
                 vec![
                     Arc::new(Primitive::new_shape_primitive(
                         Arc::new(Shape::new_sphere(Point(0.0, 0.0, 2.0), 1.0)),

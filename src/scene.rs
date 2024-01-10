@@ -11,9 +11,9 @@ pub struct Scene {
     pub num_samples: usize,
     pub film_width: usize,
     pub film_height: usize,
-    pub camera: Box<Camera>,
-    pub lights: Vec<Box<Light>>,
-    bvh: Box<BvhNode>,
+    pub camera: Camera,
+    pub lights: Vec<Light>,
+    bvh: BvhNode,
 }
 
 impl Scene {
@@ -22,8 +22,8 @@ impl Scene {
         num_samples: usize,
         film_width: usize,
         film_height: usize,
-        camera: Box<Camera>,
-        lights: Vec<Box<Light>>,
+        camera: Camera,
+        lights: Vec<Light>,
         primitives: Vec<Arc<Primitive>>,
     ) -> Self {
         Self {

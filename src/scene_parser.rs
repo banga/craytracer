@@ -729,7 +729,7 @@ pub mod scene_parser {
     const DEFAULT_NUM_SAMPLES: usize = 4;
 
     /// RawValue -> Camera
-    impl TryFrom<&RawValue> for Box<Camera> {
+    impl TryFrom<&RawValue> for Camera {
         type Error = ParserError;
         fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
             let typed_map = match value {
@@ -749,14 +749,14 @@ pub mod scene_parser {
                     let film_width: usize = map.get("film_width")?;
                     let film_height: usize = map.get("film_height")?;
 
-                    Ok(Box::new(Camera::new_projection_camera(
+                    Ok(Camera::new_projection_camera(
                         origin,
                         target,
                         up,
                         focal_distance,
                         film_width,
                         film_height,
-                    )))
+                    ))
                 }
                 _ => Err(ParserError::without_location(&format!(
                     "Unknown camera type: {}",
@@ -767,7 +767,7 @@ pub mod scene_parser {
     }
 
     /// RawValue -> Light
-    impl TryFrom<&RawValue> for Box<Light> {
+    impl TryFrom<&RawValue> for Light {
         type Error = ParserError;
         fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
             let typed_map = match value {
@@ -783,21 +783,21 @@ pub mod scene_parser {
                     let origin: Point = map.get("origin")?;
                     let intensity: Color = map.get("intensity")?;
 
-                    Ok(Box::new(Light::Point { origin, intensity }))
+                    Ok(Light::Point { origin, intensity })
                 }
                 "Distant" => {
                     let direction: Vector = map.get("direction")?;
                     let intensity: Color = map.get("intensity")?;
 
-                    Ok(Box::new(Light::Distant {
+                    Ok(Light::Distant {
                         direction: direction.normalized(),
                         intensity,
-                    }))
+                    })
                 }
                 "Infinite" => {
                     let intensity: Color = map.get("intensity")?;
 
-                    Ok(Box::new(Light::Infinite { intensity }))
+                    Ok(Light::Infinite { intensity })
                 }
                 _ => Err(ParserError::without_location(&format!(
                     "Unknown light type: {}",
@@ -932,9 +932,9 @@ pub mod scene_parser {
 
         let max_depth: usize = scene_map.get_or("max_depth", DEFAULT_MAX_DEPTH)?;
         let num_samples: usize = scene_map.get_or("num_samples", DEFAULT_NUM_SAMPLES)?;
-        let camera: Box<Camera> = scene_map.get("camera")?;
+        let camera: Camera = scene_map.get("camera")?;
 
-        let lights: Vec<Box<Light>> = scene_map.get("lights")?;
+        let lights: Vec<Light> = scene_map.get("lights")?;
 
         let materials: HashMap<String, Arc<Material>> = scene_map.get("materials")?;
         let shapes: HashMap<String, Arc<Shape>> = scene_map.get("shapes")?;
@@ -946,7 +946,7 @@ pub mod scene_parser {
         }
 
         // TODO: move film dimensions to Scene
-        let (film_width, film_height) = match *camera {
+        let (film_width, film_height) = match camera {
             Camera::Projection {
                 film_width,
                 film_height,

@@ -41,7 +41,7 @@ impl Display for PrimitiveInfo {
 }
 
 impl BvhNode {
-    pub fn new(primitives: Vec<Arc<Primitive>>) -> Box<BvhNode> {
+    pub fn new(primitives: Vec<Arc<Primitive>>) -> BvhNode {
         let primitive_infos = primitives
             .iter()
             .map(|p| PrimitiveInfo {
@@ -53,15 +53,15 @@ impl BvhNode {
         BvhNode::from_primitive_infos(primitive_infos)
     }
 
-    fn from_primitive_infos(primitive_infos: Vec<PrimitiveInfo>) -> Box<BvhNode> {
+    fn from_primitive_infos(primitive_infos: Vec<PrimitiveInfo>) -> BvhNode {
         assert!(primitive_infos.len() > 0);
         let bounds: Bounds = primitive_infos.iter().map(|p| p.bounds).sum();
 
         if primitive_infos.len() <= 4 {
-            return Box::new(BvhNode::LeafNode {
+            return BvhNode::LeafNode {
                 bounds,
                 primitive_infos,
-            });
+            };
         }
 
         let split = BvhNode::find_split(&primitive_infos);
@@ -70,22 +70,22 @@ impl BvhNode {
             .partition(|primitive| primitive.bounds.max[split.axis] <= split.location);
 
         if left.len() == 0 {
-            Box::new(BvhNode::LeafNode {
+            BvhNode::LeafNode {
                 bounds,
                 primitive_infos: right,
-            })
+            }
         } else if right.len() == 0 {
-            Box::new(BvhNode::LeafNode {
+            BvhNode::LeafNode {
                 bounds,
                 primitive_infos: left,
-            })
+            }
         } else {
-            Box::new(BvhNode::InteriorNode {
+            BvhNode::InteriorNode {
                 bounds,
-                left: BvhNode::from_primitive_infos(left),
-                right: BvhNode::from_primitive_infos(right),
+                left: Box::new(BvhNode::from_primitive_infos(left)),
+                right: Box::new(BvhNode::from_primitive_infos(right)),
                 split,
-            })
+            }
         }
     }
 

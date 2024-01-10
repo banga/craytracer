@@ -19,7 +19,7 @@ use crate::{
 fn estimate_direct(
     intersection: &PrimitiveIntersection,
     w_o: &Vector,
-    light: &Box<Light>,
+    light: &Light,
     scene: &Scene,
 ) -> Color {
     let mut Ld = Color::BLACK;
