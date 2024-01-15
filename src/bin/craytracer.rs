@@ -7,7 +7,6 @@ use craytracer::{
     scene_parser::{scene_parser::parse_scene, tokenizer::ParserError},
     trace::path_trace,
 };
-use crossbeam::thread;
 use minifb::{Key, Scale, ScaleMode, Window, WindowOptions};
 use rand::{rngs::SmallRng, Rng, SeedableRng};
 use std::{
@@ -16,6 +15,7 @@ use std::{
         mpsc::{self, Receiver},
         Arc, Mutex,
     },
+    thread,
     time::Instant,
 };
 
@@ -94,6 +94,11 @@ fn show_preview(
             .update_with_buffer(&preview_buffer, width, height)
             .unwrap();
 
+        if window.is_key_released(Key::Escape) {
+            // Exit early if escape is pressed
+            break;
+        }
+
         if let Ok(tile_index) = receiver.try_recv() {
             let (x1, y1, x2, y2) = tiles[tile_index];
             for x in x1..x2 {
@@ -118,7 +123,50 @@ fn show_preview(
     preview_buffer
 }
 
-fn render<R>(scene: &Scene, preview_window: &mut Window) -> (Vec<f32>, Vec<u32>)
+fn render_tile<R>(
+    tile: (usize, usize, usize, usize),
+    scene: &Scene,
+    width: usize,
+    height: usize,
+    pixels: &Arc<Mutex<Vec<f32>>>,
+) where
+    R: SeedableRng + Rng + ?Sized,
+{
+    let mut rng = R::from_entropy();
+
+    let (x1, y1, x2, y2) = tile;
+    for y in y1..y2 {
+        for x in x1..x2 {
+            let mut color = Color::BLACK;
+            for _ in 0..scene.num_samples {
+                let (dx, dy) = sample_2d(&mut rng);
+                // We assume that the screen goes from (0, 0) at the
+                // top left to (width - 1, height - 1) at the bottom
+                // right. This is converted to [0, 1] x [0, 1] film
+                // co-ordinates, starting at bottom left.
+                let film_x = (x as f64 + dx) / (width - 1) as f64;
+                let film_y = 1.0 - (y as f64 + dy) / (height - 1) as f64;
+
+                let ray = scene.camera.sample(film_x, film_y);
+                color += path_trace(&mut rng, ray, &scene);
+            }
+            color /= scene.num_samples as f64;
+
+            let mut pixels = pixels.lock().unwrap();
+            let (r, g, b) = color.into();
+            let offset = x + y * width;
+            pixels[3 * offset] = r;
+            pixels[3 * offset + 1] = g;
+            pixels[3 * offset + 2] = b;
+        }
+    }
+}
+
+fn render<R>(
+    scene: &Scene,
+    preview: bool,
+    start: Instant,
+) -> (Vec<f32>, Option<Window>, Option<Vec<u32>>)
 where
     R: SeedableRng + Rng + ?Sized,
 {
@@ -135,70 +183,64 @@ where
     let tile_index = Arc::new(AtomicUsize::new(0));
     let (sender, receiver) = mpsc::channel();
 
-    let mut preview_buffer: Vec<u32> = vec![];
+    let mut preview_window: Option<Window> = None;
+    let mut preview_buffer: Option<Vec<u32>> = None;
 
     thread::scope(|scope| {
+        let mut handles = vec![];
         for _ in 0..num_threads {
             let tile_index = Arc::clone(&tile_index);
             let pixels = Arc::clone(&pixels);
             let sender = sender.clone();
 
-            scope.spawn(move |_| loop {
+            handles.push(scope.spawn(move || loop {
                 let tile_index = tile_index.fetch_add(1, Ordering::SeqCst);
                 if tile_index >= tiles.len() {
                     break;
                 }
 
-                let mut rng = R::from_entropy();
+                render_tile::<R>(tiles[tile_index], scene, width, height, &pixels);
 
-                let (x1, y1, x2, y2) = tiles[tile_index];
-                for y in y1..y2 {
-                    for x in x1..x2 {
-                        let mut color = Color::BLACK;
-                        for _ in 0..scene.num_samples {
-                            let (dx, dy) = sample_2d(&mut rng);
-                            // We assume that the screen goes from (0, 0) at the
-                            // top left to (width - 1, height - 1) at the bottom
-                            // right. This is converted to [0, 1] x [0, 1] film
-                            // co-ordinates, starting at bottom left.
-                            let film_x = (x as f64 + dx) / (width - 1) as f64;
-                            let film_y = 1.0 - (y as f64 + dy) / (height - 1) as f64;
-
-                            let ray = scene.camera.sample(film_x, film_y);
-                            color += path_trace(&mut rng, ray, &scene);
-                        }
-                        color /= scene.num_samples as f64;
-
-                        let mut pixels = pixels.lock().unwrap();
-                        let (r, g, b) = color.into();
-                        let offset = x + y * width;
-                        pixels[3 * offset] = r;
-                        pixels[3 * offset + 1] = g;
-                        pixels[3 * offset + 2] = b;
-                    }
+                if sender.send(tile_index).is_err() {
+                    // The receiver has early exited
+                    break;
                 }
 
-                sender
-                    .send(tile_index)
-                    .expect("Error sending to main thread");
-            });
+                let elapsed = start.elapsed().as_secs_f32();
+                let estimate = elapsed * tiles.len() as f32 / (tile_index + 1) as f32;
+                eprint!(
+                    "\r{:3} / {:3} tiles {:5.1}s / {:5.1}s",
+                    tile_index + 1,
+                    tiles.len(),
+                    elapsed,
+                    estimate
+                );
+            }));
         }
 
-        preview_buffer = show_preview(
-            preview_window,
-            width,
-            height,
-            tile_width,
-            tile_height,
-            tiles,
-            Arc::clone(&pixels),
-            receiver,
-        );
-    })
-    .unwrap();
+        if preview {
+            let mut window = create_preview_window(scene.film_width, scene.film_height);
+            preview_buffer = Some(show_preview(
+                &mut window,
+                width,
+                height,
+                tile_width,
+                tile_height,
+                tiles,
+                Arc::clone(&pixels),
+                receiver,
+            ));
+            preview_window = Some(window);
+        } else {
+            for handle in handles {
+                handle.join().unwrap();
+            }
+            println!();
+        }
+    });
 
     let pixels = pixels.lock().unwrap().clone();
-    (pixels, preview_buffer)
+    (pixels, preview_window, preview_buffer)
 }
 
 #[derive(Parser)]
@@ -208,6 +250,9 @@ struct Cli {
 
     #[clap(short, long, default_value_t = String::from("out.exr"))]
     output: String,
+
+    #[clap(short, long)]
+    preview: bool,
 }
 
 fn main() -> Result<(), ParserError> {
@@ -227,10 +272,8 @@ fn main() -> Result<(), ParserError> {
     };
     println!("Scene constructed in {:?}", start.elapsed());
 
-    let mut preview_window = create_preview_window(scene.film_width, scene.film_height);
-
     // Render to a buffer
-    let (pixels, preview_buffer) = render::<SmallRng>(&scene, &mut preview_window);
+    let (pixels, preview_window, preview_buffer) = render::<SmallRng>(&scene, args.preview, start);
     println!("Rendering finished in {:?}", start.elapsed());
 
     // Save to file
@@ -241,10 +284,13 @@ fn main() -> Result<(), ParserError> {
     println!("Output written to {}", &args.output);
 
     // Wait for user to close the preview window
-    while preview_window.is_open() && !preview_window.is_key_released(Key::Escape) {
-        preview_window
-            .update_with_buffer(&preview_buffer, scene.film_width, scene.film_height)
-            .unwrap();
+    if let Some(mut preview_window) = preview_window {
+        let mut preview_buffer = preview_buffer.unwrap();
+        while preview_window.is_open() && !preview_window.is_key_released(Key::Escape) {
+            preview_window
+                .update_with_buffer(&mut preview_buffer, scene.film_width, scene.film_height)
+                .unwrap();
+        }
     }
 
     Ok(())
