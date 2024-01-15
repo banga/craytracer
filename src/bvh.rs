@@ -130,19 +130,10 @@ impl BvhNode {
         match self {
             Self::LeafNode {
                 primitive_infos, ..
-            } => {
-                let mut best_intersection: Option<PrimitiveIntersection> = None;
-                for primitive_info in primitive_infos {
-                    if let Some(intersection) = primitive_info.primitive.intersect(ray) {
-                        if best_intersection.is_none()
-                            || intersection.distance < best_intersection.as_ref().unwrap().distance
-                        {
-                            best_intersection = Some(intersection);
-                        }
-                    }
-                }
-                best_intersection
-            }
+            } => primitive_infos
+                .iter()
+                .filter_map(|primitive_info| primitive_info.primitive.intersect(ray))
+                .min_by(|a, b| a.distance.total_cmp(&b.distance)),
             Self::InteriorNode {
                 left, right, split, ..
             } => {
