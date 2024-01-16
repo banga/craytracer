@@ -9,17 +9,25 @@ use crate::{
 };
 
 #[derive(Debug, PartialEq)]
+pub enum CameraType {
+    Perspective,
+    Orthographic,
+}
+
+#[derive(Debug, PartialEq)]
 pub struct Camera {
     pub film: Film,
     camera_from_raster: Transformation,
     world_from_camera: Transformation,
+    camera_type: CameraType,
 }
 
 impl Camera {
-    fn new_projective_camera(
+    fn projective(
         screen_from_camera: Transformation,
         world_from_camera: Transformation,
         film: Film,
+        camera_type: CameraType,
     ) -> Camera {
         // Screen goes from [-0.5, 0.5] in the narrow dimension and [-a/2, a/2]
         // in the wider dimension, where a is the aspect ratio
@@ -51,16 +59,11 @@ impl Camera {
             film,
             camera_from_raster,
             world_from_camera,
+            camera_type,
         }
     }
 
-    pub fn new_projection_camera(
-        film: Film,
-        origin: Point,
-        target: Point,
-        up: Vector,
-        fov: f64,
-    ) -> Camera {
+    pub fn perspective(film: Film, origin: Point, target: Point, up: Vector, fov: f64) -> Camera {
         let screen_from_camera = Transformation::perspective(
             fov,
             // Using the same values as pbrt-v3 here. Not sure why these were
@@ -69,7 +72,27 @@ impl Camera {
         );
         let world_from_camera = Transformation::look_at(origin, target, up);
 
-        Self::new_projective_camera(screen_from_camera, world_from_camera, film)
+        Self::projective(
+            screen_from_camera,
+            world_from_camera,
+            film,
+            CameraType::Perspective,
+        )
+    }
+
+    pub fn orthographic(film: Film, origin: Point, target: Point, up: Vector) -> Camera {
+        let screen_from_camera = Transformation::orthographic(
+            // Also using the same values as pbrt-v3 here
+            0.0, 1.0,
+        );
+        let world_from_camera = Transformation::look_at(origin, target, up);
+
+        Self::projective(
+            screen_from_camera,
+            world_from_camera,
+            film,
+            CameraType::Orthographic,
+        )
     }
 
     pub fn sample<R>(&self, rng: &mut R, raster_x: usize, raster_y: usize) -> Ray
@@ -81,11 +104,13 @@ impl Camera {
         let p_camera = self.camera_from_raster.transform(&p_raster);
 
         let ray = self.generate_ray(p_camera);
-        let ray = self.world_from_camera.transform(&ray);
-        ray
+        self.world_from_camera.transform(&ray)
     }
 
     fn generate_ray(&self, p_camera: Point) -> Ray {
-        Ray::new(p_camera, (p_camera - Point::O).normalized())
+        match self.camera_type {
+            CameraType::Perspective => Ray::new(p_camera, (p_camera - Point::O).normalized()),
+            CameraType::Orthographic => Ray::new(p_camera, Vector::Z),
+        }
     }
 }

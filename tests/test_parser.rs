@@ -600,7 +600,7 @@ mod parser {
 {
     max_depth: 3,
     num_samples: 1,
-    camera: Projection {
+    camera: Perspective {
         origin: Point(0, 0, 0),
         target: Point(0, 0, 1),
         up: Vector(0, 1, 0),
@@ -639,7 +639,7 @@ mod parser {
             Scene::new(
                 3,
                 1,
-                Camera::new_projection_camera(
+                Camera::perspective(
                     Film {
                         width: 400,
                         height: 300

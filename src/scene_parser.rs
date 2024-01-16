@@ -741,16 +741,17 @@ pub mod scene_parser {
                 ))),
             }?;
             let map = &typed_map.map;
+            let film: Film = map.get("film")?;
+            let origin: Point = map.get("origin")?;
+            let target: Point = map.get("target")?;
+            let up: Vector = map.get("up")?;
             match typed_map.name.as_str() {
-                "Projection" => {
-                    let film: Film = map.get("film")?;
-                    let origin: Point = map.get("origin")?;
-                    let target: Point = map.get("target")?;
-                    let up: Vector = map.get("up")?;
+                "Perspective" => {
                     let fov: f64 = map.get("fov")?;
 
-                    Ok(Camera::new_projection_camera(film, origin, target, up, fov))
+                    Ok(Camera::perspective(film, origin, target, up, fov))
                 }
+                "Orthographic" => Ok(Camera::orthographic(film, origin, target, up)),
                 _ => Err(ParserError::without_location(&format!(
                     "Unknown camera type: {}",
                     typed_map.name

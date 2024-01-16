@@ -1,6 +1,6 @@
 {
     num_samples: 500,
-    camera: Projection {
+    camera: Perspective {
         origin: Point(-10, 10, -30),
         target: Point(0, 0, 1),
         up: Vector(0, 1, 0.2),

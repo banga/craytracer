@@ -386,6 +386,10 @@ impl Transformation {
         let inv_tan_ang = 1.0 / (fov.to_radians() * 0.5).tan();
         persp.mul(&Transformation::scale(inv_tan_ang, inv_tan_ang, 1.0))
     }
+
+    pub fn orthographic(near: f64, far: f64) -> Self {
+        &Self::scale(1.0, 1.0, 1.0 / (far - near)) * &Self::translate(0.0, 0.0, -near)
+    }
 }
 
 impl Mul for &Transformation {
