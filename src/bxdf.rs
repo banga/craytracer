@@ -14,8 +14,6 @@ pub struct SurfaceSample {
     pub w_i: Vector,
     pub f: Color,
     pub pdf: Pdf,
-    // TODO: Handle lighting separately
-    pub Le: Color,
 }
 
 #[allow(non_snake_case)]
@@ -94,7 +92,6 @@ impl BxDF {
                     w_i,
                     f: self.f(w_o, &w_i, normal),
                     pdf: self.pdf(w_o, &w_i, normal),
-                    Le: Color::BLACK,
                 })
             }
             BxDF::OrenNayyarBRDF { .. } => {
@@ -103,7 +100,6 @@ impl BxDF {
                     w_i,
                     f: self.f(w_o, &w_i, normal),
                     pdf: self.pdf(w_o, &w_i, normal),
-                    Le: Color::BLACK,
                 })
             }
             BxDF::FresnelConductorBRDF { eta, k } => {
@@ -116,7 +112,6 @@ impl BxDF {
                     w_i,
                     f: fresnel / cos_theta_i.abs(),
                     pdf: self.pdf(w_o, &w_i, normal),
-                    Le: Color::BLACK,
                 })
             }
             BxDF::SpecularBRDF {
@@ -146,7 +141,6 @@ impl BxDF {
                     w_i,
                     f: *reflectance * fresnel / cos_theta_i.abs(),
                     pdf: self.pdf(w_o, &w_i, normal),
-                    Le: Color::BLACK,
                 })
             }
             BxDF::SpecularBTDF {
@@ -163,7 +157,6 @@ impl BxDF {
                         w_i,
                         f: *transmittance * (1.0 - fresnel) / cos_theta_i.abs(),
                         pdf: self.pdf(w_o, &w_i, normal),
-                        Le: Color::BLACK,
                     })
                 } else {
                     None
@@ -183,7 +176,6 @@ impl BxDF {
                         w_i: reflect(w_o, normal),
                         f: *reflectance * fresnel_reflectance / cos_theta_i.abs(),
                         pdf: Pdf::NonDelta(fresnel_reflectance),
-                        Le: Color::BLACK,
                     })
                 } else {
                     if let Some(w_i) = refract(w_o, normal, cos_theta_i, *eta_i, *eta_t) {
@@ -191,7 +183,6 @@ impl BxDF {
                             w_i,
                             f: *transmittance * (1.0 - fresnel_reflectance) / cos_theta_i.abs(),
                             pdf: Pdf::NonDelta(1.0 - fresnel_reflectance),
-                            Le: Color::BLACK,
                         })
                     } else {
                         None

@@ -61,7 +61,6 @@ impl BSDF {
                 w_i: sample.w_i,
                 pdf: Pdf::NonDelta(pdf / relevant_bxdfs.len() as f64),
                 f,
-                Le: sample.Le,
             })
         } else {
             Some(sample)
