@@ -5,6 +5,8 @@
         target: Point(0, 0, 1),
         up: Vector(0, 1, 0.2),
         fov: 30,
+        lens_radius: 0.5,
+        focal_distance: 34.5,
         film: {
             width: 1280,
             height: 832,

@@ -728,6 +728,7 @@ pub mod scene_parser {
 
     const DEFAULT_MAX_DEPTH: usize = 8;
     const DEFAULT_NUM_SAMPLES: usize = 4;
+    const DEFAULT_FOCAL_DISTANCE: f64 = 1e6;
 
     /// RawValue -> Camera
     impl TryFrom<&RawValue> for Camera {
@@ -745,13 +746,30 @@ pub mod scene_parser {
             let origin: Point = map.get("origin")?;
             let target: Point = map.get("target")?;
             let up: Vector = map.get("up")?;
+            let lens_radius: f64 = map.get_or("lens_radius", 0.0)?;
+            let focal_distance: f64 = map.get_or("focal_distance", DEFAULT_FOCAL_DISTANCE)?;
             match typed_map.name.as_str() {
                 "Perspective" => {
                     let fov: f64 = map.get("fov")?;
 
-                    Ok(Camera::perspective(film, origin, target, up, fov))
+                    Ok(Camera::perspective(
+                        film,
+                        origin,
+                        target,
+                        up,
+                        fov,
+                        lens_radius,
+                        focal_distance,
+                    ))
                 }
-                "Orthographic" => Ok(Camera::orthographic(film, origin, target, up)),
+                "Orthographic" => Ok(Camera::orthographic(
+                    film,
+                    origin,
+                    target,
+                    up,
+                    lens_radius,
+                    focal_distance,
+                )),
                 _ => Err(ParserError::without_location(&format!(
                     "Unknown camera type: {}",
                     typed_map.name
