@@ -1,46 +1,94 @@
 mod sphere {
     use craytracer::{
         bounds::Bounds,
-        geometry::{normal::Normal, point::Point, vector::Vector},
+        geometry::{normal::Normal, point::Point, vector::Vector, AXES},
         intersection::ShapeIntersection,
         ray::Ray,
         shape::Shape,
     };
     use pretty_assertions::assert_eq;
 
+    fn check_intersection(
+        (origin, radius): (Point, f64),
+        (ray_origin, ray_direction): (Point, Vector),
+        (location, normal): (Point, Normal),
+    ) {
+        let s = Shape::new_sphere(origin, radius);
+
+        let ray = &mut Ray::new(ray_origin, ray_direction);
+        let intersection = s.intersect(ray);
+        eprintln!("sphere: {origin}, {radius} ray: {ray_origin}, {ray_direction} intersection: {location}, {normal}");
+        assert_eq!(intersection, Some(ShapeIntersection { location, normal }));
+    }
+
     #[test]
-    fn intersect() {
-        let s = Shape::new_sphere(Point(1.0, 2.0, 3.0), 2.0);
+    fn intersect_along_axes() {
+        let radius = 2.0;
+        let origin = Point(0.0, 0.0, 0.0);
+        let offsets = [0.0, -1.0, 1.0, 0.001, -0.001, -1e9, 1e9];
 
-        let ray = &mut Ray::new(Point(1.0, 2.0, 0.0), Vector::Z);
-        let intersection = s.intersect(ray);
-        assert_eq!(
-            intersection,
-            Some(ShapeIntersection {
-                location: Point(1.0, 2.0, 1.0),
-                normal: Normal(0.0, 0.0, -1.0),
-            })
-        );
+        for ox in offsets {
+            for oy in offsets {
+                for oz in offsets {
+                    let offset = Vector(ox, oy, oz);
+                    for sign in [1.0, -1.0] {
+                        for axis in AXES {
+                            let mut ray_origin = Point(0.0, 0.0, 0.0);
+                            ray_origin[axis] = (radius + 1.0) * sign;
 
-        let ray = &mut Ray::new(Point(-3.0, 2.0, 3.0), Vector::X);
-        let intersection = s.intersect(ray);
-        assert_eq!(
-            intersection,
-            Some(ShapeIntersection {
-                location: Point(-1.0, 2.0, 3.0),
-                normal: Normal(-1.0, 0.0, 0.0),
-            })
-        );
+                            let ray_direction = origin - ray_origin;
 
-        let ray = &mut Ray::new(Point(1.0, -2.0, 3.0), Vector::Y);
-        let intersection = s.intersect(ray);
-        assert_eq!(
-            intersection,
-            Some(ShapeIntersection {
-                location: Point(1.0, 0.0, 3.0),
-                normal: Normal(0.0, -1.0, 0.0),
-            })
-        );
+                            let mut intersection_location = Point(0.0, 0.0, 0.0);
+                            intersection_location[axis] = radius * sign;
+
+                            let mut normal = Normal(0.0, 0.0, 0.0);
+                            normal[axis] = sign;
+
+                            check_intersection(
+                                (origin + offset, radius),
+                                (ray_origin + offset, ray_direction),
+                                (intersection_location + offset, normal),
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn intersect_internal() {
+        let origin = Point(0.0, 0.0, 0.0);
+        let radius = 2.0;
+        let offsets = [0.0, -1.0, 1.0, 0.001, -0.001, -1e9, 1e9];
+
+        for ox in offsets {
+            for oy in offsets {
+                for oz in offsets {
+                    let offset = Vector(ox, oy, oz);
+                    for sign in [1.0, -1.0] {
+                        for axis in AXES {
+                            let ray_origin = origin;
+
+                            let mut ray_direction = Vector(0.0, 0.0, 0.0);
+                            ray_direction[axis] = sign;
+
+                            let mut intersection_location = Point(0.0, 0.0, 0.0);
+                            intersection_location[axis] = radius * sign;
+
+                            let mut normal = Normal(0.0, 0.0, 0.0);
+                            normal[axis] = sign;
+
+                            check_intersection(
+                                (origin + offset, radius),
+                                (ray_origin + offset, ray_direction),
+                                (intersection_location + offset, normal),
+                            );
+                        }
+                    }
+                }
+            }
+        }
     }
 
     #[test]

@@ -15,7 +15,9 @@ pub mod vector {
     use approx::AbsDiffEq;
     use std::{
         fmt::Display,
-        ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Neg, Sub, SubAssign},
+        ops::{
+            Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub, SubAssign,
+        },
     };
 
     #[derive(Clone, Copy, Debug)]
@@ -160,6 +162,16 @@ pub mod vector {
         }
     }
 
+    impl IndexMut<Axis> for Vector {
+        fn index_mut(&mut self, index: Axis) -> &mut Self::Output {
+            match index {
+                Axis::X => &mut self.0,
+                Axis::Y => &mut self.1,
+                Axis::Z => &mut self.2,
+            }
+        }
+    }
+
     impl AbsDiffEq for Vector {
         type Epsilon = f64;
 
@@ -188,7 +200,7 @@ pub mod point {
     use approx::AbsDiffEq;
     use std::{
         fmt::Display,
-        ops::{Add, AddAssign, Div, DivAssign, Index, Sub, SubAssign},
+        ops::{Add, AddAssign, Div, DivAssign, Index, IndexMut, Sub, SubAssign},
     };
 
     #[derive(Clone, Copy, Debug)]
@@ -297,6 +309,16 @@ pub mod point {
         }
     }
 
+    impl IndexMut<Axis> for Point {
+        fn index_mut(&mut self, index: Axis) -> &mut Self::Output {
+            match index {
+                Axis::X => &mut self.0,
+                Axis::Y => &mut self.1,
+                Axis::Z => &mut self.2,
+            }
+        }
+    }
+
     impl AbsDiffEq for Point {
         type Epsilon = f64;
 
@@ -326,13 +348,19 @@ pub mod normal {
     use approx::AbsDiffEq;
     use std::{
         fmt::Display,
-        ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Neg, Sub, SubAssign},
+        ops::{
+            Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub, SubAssign,
+        },
     };
 
     #[derive(Clone, Copy, Debug)]
     pub struct Normal(pub f64, pub f64, pub f64);
 
     impl Normal {
+        pub const X: Normal = Normal(1.0, 0.0, 0.0);
+        pub const Y: Normal = Normal(0.0, 1.0, 0.0);
+        pub const Z: Normal = Normal(0.0, 0.0, 1.0);
+
         pub fn new(x: i32, y: i32, z: i32) -> Normal {
             Normal(x as f64, y as f64, z as f64)
         }
@@ -450,6 +478,16 @@ pub mod normal {
                 Axis::X => &self.0,
                 Axis::Y => &self.1,
                 Axis::Z => &self.2,
+            }
+        }
+    }
+
+    impl IndexMut<Axis> for Normal {
+        fn index_mut(&mut self, index: Axis) -> &mut Self::Output {
+            match index {
+                Axis::X => &mut self.0,
+                Axis::Y => &mut self.1,
+                Axis::Z => &mut self.2,
             }
         }
     }

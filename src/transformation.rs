@@ -404,7 +404,10 @@ impl Transformable<Normal> for Transformation {
 
 impl Transformable<Ray> for Transformation {
     fn transform(&self, ray: &Ray) -> Ray {
-        Ray::new(self.transform(&ray.origin), self.transform(&ray.direction))
+        let mut transformed_ray =
+            Ray::new(self.transform(&ray.origin), self.transform(&ray.direction));
+        transformed_ray.update_max_distance(ray.max_distance);
+        transformed_ray
     }
 }
 
