@@ -605,6 +605,8 @@ mod parser {
         target: Point(0, 0, 1),
         up: Vector(0, 1, 0),
         fov: 60,
+        lens_radius: 1,
+        focal_distance: 100,
         film: {
             width: 400,
             height: 300
@@ -648,6 +650,8 @@ mod parser {
                     Point::new(0, 0, 1),
                     Vector::Y,
                     60.0,
+                    1.0,
+                    100.0
                 ),
                 vec![Light::Point {
                     origin: Point::O,
