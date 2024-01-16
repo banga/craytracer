@@ -5,9 +5,11 @@
         origin: Point(4000, 2000, -4000.0),
         target: Point(250, 550, 0),
         up: Vector(0, 1, 0),
-        focal_distance: 2,
-        film_width: 800,
-        film_height: 800,
+        fov: 60,
+        film: {
+            width: 800,
+            height: 800,
+        }
     },
     lights: [
         Point {

@@ -193,6 +193,10 @@ impl Matrix {
             None
         }
     }
+
+    pub fn is_valid(&self) -> bool {
+        self.m.iter().flatten().all(|f| f.is_finite())
+    }
 }
 
 impl Mul<&Matrix> for &Matrix {
@@ -251,6 +255,10 @@ pub struct Transformation {
 }
 
 impl Transformation {
+    pub fn is_valid(&self) -> bool {
+        self.matrix.is_valid() && self.inverse.is_valid()
+    }
+
     pub fn inverse(&self) -> Self {
         Transformation {
             matrix: self.inverse.clone(),
@@ -346,6 +354,37 @@ impl Transformation {
         };
         let inverse = matrix.transpose();
         Transformation { matrix, inverse }
+    }
+
+    pub fn look_at(origin: Point, target: Point, up: Vector) -> Self {
+        let z = (target - origin).normalized();
+        let x = up.normalized().cross(&z).normalized();
+        let y = z.cross(&x).normalized();
+        let matrix = Matrix {
+            m: [
+                [x.x(), y.x(), z.x(), origin.x()],
+                [x.y(), y.y(), z.y(), origin.y()],
+                [x.z(), y.z(), z.z(), origin.z()],
+                [0.0, 0.0, 0.0, 1.0],
+            ],
+        };
+        let inverse = matrix.inverse().unwrap();
+        Transformation { matrix, inverse }
+    }
+
+    pub fn perspective(fov: f64, near: f64, far: f64) -> Self {
+        let matrix = Matrix {
+            m: [
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, far / (far - near), -far * near / (far - near)],
+                [0.0, 0.0, 1.0, 0.0],
+            ],
+        };
+        let inverse = matrix.inverse().unwrap();
+        let persp = Transformation { matrix, inverse };
+        let inv_tan_ang = 1.0 / (fov.to_radians() * 0.5).tan();
+        persp.mul(&Transformation::scale(inv_tan_ang, inv_tan_ang, 1.0))
     }
 }
 

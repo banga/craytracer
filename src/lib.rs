@@ -5,6 +5,7 @@ pub mod bxdf;
 pub mod camera;
 pub mod color;
 pub mod constants;
+pub mod film;
 pub mod geometry;
 pub mod intersection;
 pub mod light;

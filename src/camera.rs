@@ -1,69 +1,91 @@
+use rand::Rng;
+
 use crate::{
+    film::Film,
     geometry::{point::Point, vector::Vector},
     ray::Ray,
+    sampling::sample_2d,
+    transformation::{Transformable, Transformation},
 };
 
 #[derive(Debug, PartialEq)]
-pub enum Camera {
-    Projection {
-        origin: Point,
-        x: Vector,
-        y: Vector,
-        z: Vector,
-        focal_distance: f64,
-        film_width: usize,
-        film_height: usize,
-        aspect_ratio: f64,
-    },
+pub struct Camera {
+    pub film: Film,
+    camera_from_raster: Transformation,
+    world_from_camera: Transformation,
 }
 
 impl Camera {
-    pub fn new_projection_camera(
-        origin: Point,
-        target: Point,
-        up: Vector,
-        focal_distance: f64,
-        film_width: usize,
-        film_height: usize,
+    fn new_projective_camera(
+        screen_from_camera: Transformation,
+        world_from_camera: Transformation,
+        film: Film,
     ) -> Camera {
-        // We use a left handed co-ordinate system
-        let z = (target - origin).normalized();
-        let x = up.normalized().cross(&z).normalized();
-        let y = z.cross(&x).normalized();
+        // Screen goes from [-0.5, 0.5] in the narrow dimension and [-a/2, a/2]
+        // in the wider dimension, where a is the aspect ratio
+        let (screen_width, screen_height) = if film.width > film.height {
+            (film.width as f64 / film.height as f64, 1.0)
+        } else {
+            (1.0, film.height as f64 / film.width as f64)
+        };
 
-        let aspect_ratio = film_width as f64 / film_height as f64;
+        // Raster co-ordinates will be from [0, 0] to [film.width, film.height],
+        // where the y axis points downwards. This transform converts them to
+        // screen co-ordinates s.t. y points upwards and (0, 0) on screen goes
+        // through the center of the film.
+        let screen_from_raster = &Transformation::scale(
+            screen_width / (film.width as f64),
+            -screen_height / (film.height as f64),
+            1.0,
+        ) * &Transformation::translate(
+            -(film.width as f64) * 0.5,
+            -(film.height as f64) * 0.5,
+            0.0,
+        );
+        let camera_from_raster = &screen_from_camera.inverse() * &screen_from_raster;
 
-        Camera::Projection {
-            origin,
-            x,
-            y,
-            z,
-            focal_distance,
-            film_width,
-            film_height,
-            aspect_ratio,
+        debug_assert!(camera_from_raster.is_valid());
+        debug_assert!(world_from_camera.is_valid());
+
+        Camera {
+            film,
+            camera_from_raster,
+            world_from_camera,
         }
     }
 
-    pub fn sample(&self, film_x: f64, film_y: f64) -> Ray {
-        match self {
-            &Camera::Projection {
-                origin,
-                x,
-                y,
-                z,
-                focal_distance,
-                aspect_ratio,
-                ..
-            } => {
-                let delta =
-                    // TODO: The translation by (0.5, 0.5) is a hack to center
-                    // the target in the film. We should fix this by introducing
-                    // proper transformations.
-                    x * (film_x - 0.5) * aspect_ratio + y * (film_y - 0.5) + z * focal_distance;
-                let ray_origin = origin + delta;
-                return Ray::new(ray_origin, delta.normalized());
-            }
-        }
+    pub fn new_projection_camera(
+        film: Film,
+        origin: Point,
+        target: Point,
+        up: Vector,
+        fov: f64,
+    ) -> Camera {
+        let screen_from_camera = Transformation::perspective(
+            fov,
+            // Using the same values as pbrt-v3 here. Not sure why these were
+            // picked, but they don't make much of a difference.
+            1e-2, 1000.0,
+        );
+        let world_from_camera = Transformation::look_at(origin, target, up);
+
+        Self::new_projective_camera(screen_from_camera, world_from_camera, film)
+    }
+
+    pub fn sample<R>(&self, rng: &mut R, raster_x: usize, raster_y: usize) -> Ray
+    where
+        R: Rng,
+    {
+        let (dx, dy) = sample_2d(rng);
+        let p_raster = Point(raster_x as f64 + dx, raster_y as f64 + dy, 0.0);
+        let p_camera = self.camera_from_raster.transform(&p_raster);
+
+        let ray = self.generate_ray(p_camera);
+        let ray = self.world_from_camera.transform(&ray);
+        ray
+    }
+
+    fn generate_ray(&self, p_camera: Point) -> Ray {
+        Ray::new(p_camera, (p_camera - Point::O).normalized())
     }
 }

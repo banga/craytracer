@@ -2,7 +2,6 @@ use clap::Parser;
 use core::time;
 use craytracer::{
     color::Color,
-    sampling::sample_2d,
     scene::Scene,
     scene_parser::{scene_parser::parse_scene, tokenizer::ParserError},
     trace::path_trace,
@@ -127,7 +126,6 @@ fn render_tile<R>(
     tile: (usize, usize, usize, usize),
     scene: &Scene,
     width: usize,
-    height: usize,
     pixels: &Arc<Mutex<Vec<f32>>>,
 ) where
     R: SeedableRng + Rng + ?Sized,
@@ -139,15 +137,7 @@ fn render_tile<R>(
         for x in x1..x2 {
             let mut color = Color::BLACK;
             for _ in 0..scene.num_samples {
-                let (dx, dy) = sample_2d(&mut rng);
-                // We assume that the screen goes from (0, 0) at the
-                // top left to (width - 1, height - 1) at the bottom
-                // right. This is converted to [0, 1] x [0, 1] film
-                // co-ordinates, starting at bottom left.
-                let film_x = (x as f64 + dx) / (width - 1) as f64;
-                let film_y = 1.0 - (y as f64 + dy) / (height - 1) as f64;
-
-                let ray = scene.camera.sample(film_x, film_y);
+                let ray = scene.camera.sample(&mut rng, x, y);
                 color += path_trace(&mut rng, ray, &scene);
             }
             color /= scene.num_samples as f64;
@@ -172,8 +162,7 @@ where
 {
     let num_threads = num_cpus::get();
 
-    let width = scene.film_width;
-    let height = scene.film_height;
+    let (width, height) = scene.film_bounds();
     let tile_width = 64;
     let tile_height = 64;
     let tiles = &generate_tiles(height, width, tile_width, tile_height);
@@ -199,7 +188,7 @@ where
                     break;
                 }
 
-                render_tile::<R>(tiles[tile_index], scene, width, height, &pixels);
+                render_tile::<R>(tiles[tile_index], scene, width, &pixels);
 
                 if sender.send(tile_index).is_err() {
                     // The receiver has early exited
@@ -219,7 +208,7 @@ where
         }
 
         if preview {
-            let mut window = create_preview_window(scene.film_width, scene.film_height);
+            let mut window = create_preview_window(width, height);
             preview_buffer = Some(show_preview(
                 &mut window,
                 width,
@@ -272,14 +261,14 @@ fn main() -> Result<(), ParserError> {
     };
     println!("Scene constructed in {:?}", start.elapsed());
 
+    let (width, height) = scene.film_bounds();
+
     // Render to a buffer
     let (pixels, preview_window, preview_buffer) = render::<SmallRng>(&scene, args.preview, start);
     println!("Rendering finished in {:?}", start.elapsed());
 
     // Save to file
-    let image_buffer =
-        image::Rgb32FImage::from_raw(scene.film_width as u32, scene.film_height as u32, pixels)
-            .unwrap();
+    let image_buffer = image::Rgb32FImage::from_raw(width as u32, height as u32, pixels).unwrap();
     image_buffer.save(&args.output).expect("Error saving file");
     println!("Output written to {}", &args.output);
 
@@ -288,7 +277,7 @@ fn main() -> Result<(), ParserError> {
         let mut preview_buffer = preview_buffer.unwrap();
         while preview_window.is_open() && !preview_window.is_key_released(Key::Escape) {
             preview_window
-                .update_with_buffer(&mut preview_buffer, scene.film_width, scene.film_height)
+                .update_with_buffer(&mut preview_buffer, width, height)
                 .unwrap();
         }
     }

@@ -715,6 +715,7 @@ pub mod scene_parser {
     use crate::{
         camera::Camera,
         color::Color,
+        film::Film,
         geometry::{point::Point, vector::Vector},
         light::Light,
         material::Material,
@@ -742,27 +743,37 @@ pub mod scene_parser {
             let map = &typed_map.map;
             match typed_map.name.as_str() {
                 "Projection" => {
+                    let film: Film = map.get("film")?;
                     let origin: Point = map.get("origin")?;
                     let target: Point = map.get("target")?;
                     let up: Vector = map.get("up")?;
-                    let focal_distance: f64 = map.get("focal_distance")?;
-                    let film_width: usize = map.get("film_width")?;
-                    let film_height: usize = map.get("film_height")?;
+                    let fov: f64 = map.get("fov")?;
 
-                    Ok(Camera::new_projection_camera(
-                        origin,
-                        target,
-                        up,
-                        focal_distance,
-                        film_width,
-                        film_height,
-                    ))
+                    Ok(Camera::new_projection_camera(film, origin, target, up, fov))
                 }
                 _ => Err(ParserError::without_location(&format!(
                     "Unknown camera type: {}",
                     typed_map.name
                 ))),
             }
+        }
+    }
+
+    /// RawValue -> Film
+    impl TryFrom<&RawValue> for Film {
+        type Error = ParserError;
+        fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
+            let map = match value {
+                RawValue::Map(map) => Ok(map),
+                _ => Err(ParserError::without_location(&format!(
+                    "Cannot get Film, found {:?}",
+                    value
+                ))),
+            }?;
+            let width: usize = map.get("width")?;
+            let height: usize = map.get("height")?;
+
+            Ok(Film { width, height })
         }
     }
 
@@ -945,20 +956,9 @@ pub mod scene_parser {
             primitives.extend(create_primitives(primitive_def, &shapes, &materials)?);
         }
 
-        // TODO: move film dimensions to Scene
-        let (film_width, film_height) = match camera {
-            Camera::Projection {
-                film_width,
-                film_height,
-                ..
-            } => (film_width, film_height),
-        };
-
         Ok(Scene::new(
             max_depth,
             num_samples,
-            film_width,
-            film_height,
             camera,
             lights,
             primitives,

@@ -367,6 +367,7 @@ mod parser {
     use craytracer::{
         camera::Camera,
         color::Color,
+        film::Film,
         geometry::{point::Point, vector::Vector},
         light::Light,
         material::Material,
@@ -603,9 +604,11 @@ mod parser {
         origin: Point(0, 0, 0),
         target: Point(0, 0, 1),
         up: Vector(0, 1, 0),
-        focal_distance: 1,
-        film_width: 400,
-        film_height: 300
+        fov: 60,
+        film: {
+            width: 400,
+            height: 300
+        },    
     },
     lights: [
         Point {
@@ -636,15 +639,15 @@ mod parser {
             Scene::new(
                 3,
                 1,
-                400,
-                300,
                 Camera::new_projection_camera(
+                    Film {
+                        width: 400,
+                        height: 300
+                    },
                     Point::O,
                     Point::new(0, 0, 1),
                     Vector::Y,
-                    1.0,
-                    400,
-                    300
+                    60.0,
                 ),
                 vec![Light::Point {
                     origin: Point::O,

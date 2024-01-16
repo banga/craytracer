@@ -4,9 +4,11 @@
         origin: Point(-10, 10, -30),
         target: Point(0, 0, 1),
         up: Vector(0, 1, 0.2),
-        focal_distance: 4,
-        film_width: 1280,
-        film_height: 832,
+        fov: 30,
+        film: {
+            width: 1280,
+            height: 832,
+        }
     },
     lights: [
         Infinite {

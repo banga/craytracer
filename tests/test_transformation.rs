@@ -156,4 +156,32 @@ pub mod transformation {
         assert_abs_diff_eq!(ray.origin, Point(-1.0, 2.0, 3.0),);
         assert_abs_diff_eq!(ray.direction, Vector(0.0, 1.0, 0.0));
     }
+
+    #[test]
+    pub fn look_at() {
+        // Look along x axis with z axis as the up direction
+        let t = Transformation::look_at(
+            Point(9.0, 0.0, 0.0),
+            Point(10.0, 0.0, 0.0),
+            Vector(0.0, 0.0, 1.0),
+        );
+
+        assert_abs_diff_eq!(t.transform(&Point::O), Point(9.0, 0.0, 0.0));
+        assert_abs_diff_eq!(t.transform(&Vector::Z), Vector::X);
+        assert_abs_diff_eq!(t.transform(&Vector::Y), Vector::Z);
+        assert_abs_diff_eq!(t.transform(&Vector::X), Vector::Y);
+    }
+
+    #[test]
+    pub fn perspective() {
+        let t = Transformation::perspective(90.0, 50.0, 100.0);
+
+        // z' = (f / (f - n)) / (z / (z - n))
+        assert_abs_diff_eq!(t.transform(&Point(0.0, 0.0, 50.0)), Point(0.0, 0.0, 0.0));
+        assert_abs_diff_eq!(t.transform(&Point(0.0, 0.0, 100.0)), Point(0.0, 0.0, 1.0));
+        assert_abs_diff_eq!(
+            t.transform(&Point(0.0, 0.0, 75.0)),
+            Point(0.0, 0.0, (100.0 / (100.0 - 50.0)) / (75.0 / (75.0 - 50.0)))
+        );
+    }
 }
