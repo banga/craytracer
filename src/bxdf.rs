@@ -14,6 +14,7 @@ pub struct SurfaceSample {
     pub w_i: Vector,
     pub f: Color,
     pub pdf: Pdf,
+    pub is_specular: bool,
 }
 
 #[allow(non_snake_case)]
@@ -92,6 +93,7 @@ impl BxDF {
                     w_i,
                     f: self.f(w_o, &w_i, normal),
                     pdf: self.pdf(w_o, &w_i, normal),
+                    is_specular: false,
                 })
             }
             BxDF::OrenNayyarBRDF { .. } => {
@@ -100,6 +102,7 @@ impl BxDF {
                     w_i,
                     f: self.f(w_o, &w_i, normal),
                     pdf: self.pdf(w_o, &w_i, normal),
+                    is_specular: false,
                 })
             }
             BxDF::FresnelConductorBRDF { eta, k } => {
@@ -112,6 +115,7 @@ impl BxDF {
                     w_i,
                     f: fresnel / cos_theta_i.abs(),
                     pdf: self.pdf(w_o, &w_i, normal),
+                    is_specular: true,
                 })
             }
             BxDF::SpecularBRDF {
@@ -141,6 +145,7 @@ impl BxDF {
                     w_i,
                     f: *reflectance * fresnel / cos_theta_i.abs(),
                     pdf: self.pdf(w_o, &w_i, normal),
+                    is_specular: true,
                 })
             }
             BxDF::SpecularBTDF {
@@ -157,6 +162,7 @@ impl BxDF {
                         w_i,
                         f: *transmittance * (1.0 - fresnel) / cos_theta_i.abs(),
                         pdf: self.pdf(w_o, &w_i, normal),
+                        is_specular: true,
                     })
                 } else {
                     None
@@ -176,6 +182,7 @@ impl BxDF {
                         w_i: reflect(w_o, normal),
                         f: *reflectance * fresnel_reflectance / cos_theta_i.abs(),
                         pdf: Pdf::NonDelta(fresnel_reflectance),
+                        is_specular: true,
                     })
                 } else {
                     if let Some(w_i) = refract(w_o, normal, cos_theta_i, *eta_i, *eta_t) {
@@ -183,6 +190,7 @@ impl BxDF {
                             w_i,
                             f: *transmittance * (1.0 - fresnel_reflectance) / cos_theta_i.abs(),
                             pdf: Pdf::NonDelta(1.0 - fresnel_reflectance),
+                            is_specular: true,
                         })
                     } else {
                         None

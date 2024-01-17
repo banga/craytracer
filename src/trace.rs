@@ -98,6 +98,7 @@ where
     let mut L = Color::BLACK;
     let mut beta = Color::WHITE;
     let mut bounces = 0;
+    let mut is_specular_bounce = false;
 
     loop {
         if bounces >= scene.max_depth {
@@ -111,8 +112,7 @@ where
         let intersection = match scene.intersect(&mut ray) {
             Some(intersection) => intersection,
             None => {
-                // TODO: Also do this for specular bounces
-                if bounces == 0 {
+                if is_specular_bounce || bounces == 0 {
                     for light in &scene.lights {
                         L += beta * light.Le(&ray.direction);
                     }
@@ -136,6 +136,8 @@ where
         if surface_sample.f.is_black() {
             break;
         }
+
+        is_specular_bounce = surface_sample.is_specular;
 
         // Estimate the contribution from a path that ends here. We will reuse
         // the path without the terminator in the loop.
