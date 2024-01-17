@@ -1,6 +1,7 @@
 use crate::{
     geometry::{normal::Normal, point::Point},
     material::Material,
+    primitive::Primitive,
 };
 
 #[derive(Debug, PartialEq)]
@@ -15,4 +16,5 @@ pub struct PrimitiveIntersection<'a> {
     pub location: Point,
     pub normal: Normal,
     pub material: &'a Material,
+    pub primitive: &'a Primitive,
 }

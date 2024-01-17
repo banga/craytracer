@@ -1,9 +1,15 @@
+use std::f64::consts::PI;
+
+use rand::Rng;
+
 use crate::{
     bounds::Bounds,
     constants::EPSILON,
     geometry::{normal::Normal, point::Point, traits::DotProduct, vector::Vector},
     intersection::ShapeIntersection,
+    pdf::Pdf,
     ray::Ray,
+    sampling::sample_sphere,
     transformation::{Transformable, Transformation},
 };
 
@@ -15,6 +21,7 @@ pub enum Shape {
         radius: f64,
         radius_squared: f64,
         inv_radius: f64,
+        area: f64,
     },
     Triangle {
         v0: Point,
@@ -26,12 +33,18 @@ pub enum Shape {
     },
 }
 
+pub struct ShapeSample {
+    pub point: Point,
+    pub w_i: Vector,
+}
+
 impl Shape {
     pub fn new_sphere(origin: Point, radius: f64) -> Shape {
         Shape::Sphere {
             radius,
             radius_squared: radius * radius,
             inv_radius: 1.0 / radius,
+            area: radius * radius * 4.0 * PI,
             object_to_world: Transformation::translate(origin.x(), origin.y(), origin.z()),
             world_to_object: Transformation::translate(-origin.x(), -origin.y(), -origin.z()),
         }
@@ -163,6 +176,7 @@ impl Shape {
             }
         }
     }
+
     pub fn bounds(&self) -> Bounds {
         match self {
             Shape::Sphere {
@@ -190,6 +204,54 @@ impl Shape {
                     ),
                 )
             }
+        }
+    }
+
+    /// The sampling methods below are described in
+    /// https://www.pbr-book.org/3ed-2018/Light_Transport_I_Surface_Reflection/Sampling_Light_Sources#SamplingShapes
+    /// So far, these are only used for area lights. They are not implemented
+    /// for triangles yet.
+
+    /// Samples a point on the surface of the shape
+    pub fn sample<R>(&self, rng: &mut R) -> Point
+    where
+        R: Rng,
+    {
+        match &self {
+            Shape::Sphere {
+                object_to_world,
+                radius,
+                ..
+            } => {
+                let point = Point::O + sample_sphere(rng) * *radius;
+                object_to_world.transform(&point)
+            }
+            Shape::Triangle { .. } => todo!(),
+        }
+    }
+
+    /// Pdf w.r.t. solid angle for sampling the given direction from the given
+    /// point.
+    pub fn pdf(&self, point: &Point, w_i: &Vector) -> Pdf {
+        let mut ray = Ray::new(*point, *w_i);
+        match self.intersect(&mut ray) {
+            None => Pdf::Delta,
+            Some(intersection) => {
+                let cos_theta = intersection.normal.dot(w_i).abs();
+                if cos_theta == 0.0 {
+                    return Pdf::Delta;
+                }
+                let pdf_area = 1.0 / self.area();
+                let distance_squared = (*point - intersection.location).magnitude_squared();
+                Pdf::NonDelta(pdf_area * distance_squared / cos_theta)
+            }
+        }
+    }
+
+    pub fn area(&self) -> f64 {
+        match &self {
+            Shape::Sphere { area, .. } => *area,
+            Shape::Triangle { .. } => todo!(),
         }
     }
 }

@@ -55,28 +55,33 @@ where
     }
 
     // Sample the BRDF
-    {
-        if let Some(material_sample) = intersection.material.sample(rng, w_o, &intersection.normal)
-        {
-            let ray = &mut Ray::new(intersection.location, material_sample.w_i);
-            if scene.intersect(ray).is_some() {
-                // TODO: Implement area lights
-                return Ld;
-            }
+    if let Some(material_sample) = intersection.material.sample(rng, w_o, &intersection.normal) {
+        let mut Li = Color::BLACK;
+        let mut weight = 1.0;
 
+        let ray = &mut Ray::new(intersection.location, material_sample.w_i);
+        if let Some(surface_intersection) = scene.intersect(ray) {
+            // If the sampled direction hits something in the scene, it can only
+            // contribute if the thing it hits is the area light we are sampling
+            if Some(light) == surface_intersection.primitive.get_area_light().as_deref() {
+                Li = light.L(&surface_intersection, &material_sample.w_i);
+            }
+        } else if let Pdf::NonDelta(pdf_light) =
+            light.pdf(&intersection.location, &material_sample.w_i)
+        {
             // If the light's direction is delta distributed, there's no chance
             // the BRDF would sample it, so we only add the contribution if it's
             // a non-delta light
-            if let Pdf::NonDelta(pdf_light) = light.pdf(&material_sample.w_i) {
-                let cos_theta_i = material_sample.w_i.dot(&intersection.normal).abs();
-                let mut Li = light.Le(&material_sample.w_i) * material_sample.f * cos_theta_i;
-                let mut weight = 1.0;
-                if let Pdf::NonDelta(pdf_f) = material_sample.pdf {
-                    weight = power_heuristic(1, pdf_f, 1, pdf_light);
-                    Li = Li / pdf_f;
-                }
-                Ld += Li * weight;
+            Li = light.Le(&material_sample.w_i);
+            if let Pdf::NonDelta(pdf_f) = material_sample.pdf {
+                weight = power_heuristic(1, pdf_f, 1, pdf_light);
+                Li = Li / pdf_f;
             }
+        }
+
+        if !Li.is_black() {
+            let cos_theta_i = material_sample.w_i.dot(&intersection.normal).abs();
+            Ld += Li * weight * material_sample.f * cos_theta_i;
         }
     }
 
@@ -164,6 +169,10 @@ where
 
         bounces += 1;
     }
+
+    assert!(L.r.is_finite());
+    assert!(L.g.is_finite());
+    assert!(L.b.is_finite());
 
     L
 }

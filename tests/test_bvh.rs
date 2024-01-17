@@ -14,13 +14,15 @@ use craytracer::{
 #[test]
 fn bvh_node() {
     let node = BvhNode::new(vec![
-        Arc::new(Primitive::new_shape_primitive(
+        Arc::new(Primitive::new(
             Arc::new(Shape::new_sphere(Point(0.5, 0.5, 0.5), 0.5)),
             Arc::new(Material::new_matte(Color::WHITE, 0.0)),
+            None,
         )),
-        Arc::new(Primitive::new_shape_primitive(
+        Arc::new(Primitive::new(
             Arc::new(Shape::new_sphere(Point(1.5, 0.5, 0.5), 0.5)),
             Arc::new(Material::new_matte(Color::WHITE, 0.0)),
+            None,
         )),
     ]);
 

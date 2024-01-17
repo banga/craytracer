@@ -653,16 +653,17 @@ mod parser {
                     1.0,
                     100.0
                 ),
-                vec![Light::Point {
+                vec![Arc::new(Light::Point {
                     origin: Point::O,
                     intensity: Color::WHITE
-                },],
+                }),],
                 vec![
-                    Arc::new(Primitive::new_shape_primitive(
+                    Arc::new(Primitive::new(
                         Arc::new(Shape::new_sphere(Point(0.0, 0.0, 2.0), 1.0)),
-                        Arc::new(Material::new_matte(Color::WHITE, 0.0))
+                        Arc::new(Material::new_matte(Color::WHITE, 0.0)),
+                        None
                     )),
-                    Arc::new(Primitive::new_shape_primitive(
+                    Arc::new(Primitive::new(
                         // source: objs/triangle.obj
                         Arc::new(Shape::new_triangle(
                             Point(1.0, 0.0, 0.0),
@@ -670,7 +671,8 @@ mod parser {
                             // Co-ordinate system correction
                             Point(0.0, 0.0, -1.0),
                         )),
-                        Arc::new(Material::new_matte(Color::WHITE, 0.0))
+                        Arc::new(Material::new_matte(Color::WHITE, 0.0)),
+                        None
                     ))
                 ],
             )

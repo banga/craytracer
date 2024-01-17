@@ -4,7 +4,8 @@ TODO
   - [x] Matrix
   - [x] Spheres
   - [ ] Triangles
-- [ ] Area lights
+- [x] Area lights
+- [ ] Disc shape
 - [ ] Textures
 - [ ] Film
 - [ ] Thin lens camera

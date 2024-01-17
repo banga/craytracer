@@ -21,12 +21,19 @@ where
     UnitDisc.sample(rng)
 }
 
-pub fn sample_hemisphere<R>(rng: &mut R, normal: &Normal) -> Vector
+pub fn sample_sphere<R>(rng: &mut R) -> Vector
 where
     R: Rng,
 {
     let [x, y, z] = UnitSphere.sample(rng);
-    let v = Vector(x, y, z);
+    Vector(x, y, z)
+}
+
+pub fn sample_hemisphere<R>(rng: &mut R, normal: &Normal) -> Vector
+where
+    R: Rng,
+{
+    let v = sample_sphere(rng);
     if v.dot(normal) > 0.0 {
         v
     } else {

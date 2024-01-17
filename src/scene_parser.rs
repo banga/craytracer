@@ -501,6 +501,10 @@ pub mod parser {
                 None => Ok(default),
             }
         }
+
+        pub fn has(&self, key: &str) -> bool {
+            self.map.contains_key(key)
+        }
     }
 
     #[derive(Debug, PartialEq)]
@@ -797,7 +801,7 @@ pub mod scene_parser {
     }
 
     /// RawValue -> Light
-    impl TryFrom<&RawValue> for Light {
+    impl TryFrom<&RawValue> for Arc<Light> {
         type Error = ParserError;
         fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
             let typed_map = match value {
@@ -813,21 +817,21 @@ pub mod scene_parser {
                     let origin: Point = map.get("origin")?;
                     let intensity: Color = map.get("intensity")?;
 
-                    Ok(Light::Point { origin, intensity })
+                    Ok(Arc::new(Light::Point { origin, intensity }))
                 }
                 "Distant" => {
                     let direction: Vector = map.get("direction")?;
                     let intensity: Color = map.get("intensity")?;
 
-                    Ok(Light::Distant {
+                    Ok(Arc::new(Light::Distant {
                         direction: direction.normalized(),
                         intensity,
-                    })
+                    }))
                 }
                 "Infinite" => {
                     let intensity: Color = map.get("intensity")?;
 
-                    Ok(Light::Infinite { intensity })
+                    Ok(Arc::new(Light::Infinite { intensity }))
                 }
                 _ => Err(ParserError::without_location(&format!(
                     "Unknown light type: {}",
@@ -912,8 +916,9 @@ pub mod scene_parser {
     /// relies on state (shapes and materials) outside the raw value itself.
     fn create_primitives(
         primitive_def: &TypedRawValueMap,
-        shapes: &HashMap<String, Arc<Shape>>,
         materials: &HashMap<String, Arc<Material>>,
+        shapes: &HashMap<String, Arc<Shape>>,
+        lights: &mut Vec<Arc<Light>>,
     ) -> Result<Vec<Arc<Primitive>>, ParserError> {
         match primitive_def.name.as_str() {
             "Shape" => {
@@ -929,10 +934,23 @@ pub mod scene_parser {
                     &primitive_def.map.location,
                 ))?;
 
-                Ok(vec![Arc::new(Primitive::new_shape_primitive(
-                    Arc::clone(shape),
-                    Arc::clone(material),
-                ))])
+                let primitive = match primitive_def.map.has("emittance") {
+                    false => Primitive::new(Arc::clone(shape), Arc::clone(material), None),
+                    true => {
+                        let area_light = Arc::new(Light::Area {
+                            shape: Arc::clone(shape),
+                            emittance: primitive_def.map.get("emittance")?,
+                        });
+                        lights.push(Arc::clone(&area_light));
+                        Primitive::new(
+                            Arc::clone(shape),
+                            Arc::clone(material),
+                            Some(Arc::clone(&area_light)),
+                        )
+                    }
+                };
+
+                Ok(vec![Arc::new(primitive)])
             }
             "Mesh" => {
                 let file_name: String = primitive_def.map.get("file_name")?;
@@ -964,15 +982,19 @@ pub mod scene_parser {
         let num_samples: usize = scene_map.get_or("num_samples", DEFAULT_NUM_SAMPLES)?;
         let camera: Camera = scene_map.get("camera")?;
 
-        let lights: Vec<Light> = scene_map.get("lights")?;
-
+        let mut lights: Vec<Arc<Light>> = scene_map.get("lights")?;
         let materials: HashMap<String, Arc<Material>> = scene_map.get("materials")?;
         let shapes: HashMap<String, Arc<Shape>> = scene_map.get("shapes")?;
         let primitive_defs: Vec<&TypedRawValueMap> = scene_map.get("primitives")?;
 
         let mut primitives: Vec<Arc<Primitive>> = Vec::new();
         for primitive_def in primitive_defs {
-            primitives.extend(create_primitives(primitive_def, &shapes, &materials)?);
+            primitives.extend(create_primitives(
+                primitive_def,
+                &materials,
+                &shapes,
+                &mut lights,
+            )?);
         }
 
         Ok(Scene::new(

@@ -10,7 +10,7 @@ pub struct Scene {
     pub max_depth: usize,
     pub num_samples: usize,
     pub camera: Camera,
-    pub lights: Vec<Light>,
+    pub lights: Vec<Arc<Light>>,
     bvh: BvhNode,
 }
 
@@ -19,7 +19,7 @@ impl Scene {
         max_depth: usize,
         num_samples: usize,
         camera: Camera,
-        lights: Vec<Light>,
+        lights: Vec<Arc<Light>>,
         primitives: Vec<Arc<Primitive>>,
     ) -> Self {
         Self {

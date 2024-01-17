@@ -123,9 +123,10 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Pr
                         vertices[*k as usize],
                     )
                 };
-                primitives.push(Arc::new(Primitive::new_shape_primitive(
+                primitives.push(Arc::new(Primitive::new(
                     Arc::new(triangle),
                     Arc::clone(material),
+                    None,
                 )));
             }
         }
