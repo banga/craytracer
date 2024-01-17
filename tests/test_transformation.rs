@@ -120,7 +120,7 @@ pub mod transformation {
 
     #[test]
     pub fn rotate_x() {
-        let t = Transformation::rotate_x(90.0);
+        let t = Transformation::rotate_x(90.0_f64.to_radians());
 
         assert_abs_diff_eq!(t.transform(&Point(2.0, 1.0, 3.0)), Point(2.0, -3.0, 1.0),);
         assert_abs_diff_eq!(t.transform(&Vector(2.0, 1.0, 3.0)), Vector(2.0, -3.0, 1.0),);
@@ -133,7 +133,7 @@ pub mod transformation {
 
     #[test]
     pub fn rotate_y() {
-        let t = Transformation::rotate_y(90.0);
+        let t = Transformation::rotate_y(90.0_f64.to_radians());
 
         assert_abs_diff_eq!(t.transform(&Point(2.0, 1.0, 3.0)), Point(3.0, 1.0, -2.0),);
         assert_abs_diff_eq!(t.transform(&Vector(2.0, 1.0, 3.0)), Vector(3.0, 1.0, -2.0),);
@@ -146,7 +146,7 @@ pub mod transformation {
 
     #[test]
     pub fn rotate_z() {
-        let t = Transformation::rotate_z(90.0);
+        let t = Transformation::rotate_z(90.0_f64.to_radians());
 
         assert_abs_diff_eq!(t.transform(&Point(2.0, 1.0, 3.0)), Point(-1.0, 2.0, 3.0),);
         assert_abs_diff_eq!(t.transform(&Vector(2.0, 1.0, 3.0)), Vector(-1.0, 2.0, 3.0),);

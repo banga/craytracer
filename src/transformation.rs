@@ -308,8 +308,7 @@ impl Transformation {
         }
     }
 
-    pub fn rotate_x(degrees: f64) -> Self {
-        let radians = degrees.to_radians();
+    pub fn rotate_x(radians: f64) -> Self {
         let sin = radians.sin();
         let cos = radians.cos();
         let matrix = Matrix {
@@ -324,8 +323,7 @@ impl Transformation {
         Transformation { matrix, inverse }
     }
 
-    pub fn rotate_y(degrees: f64) -> Self {
-        let radians = degrees.to_radians();
+    pub fn rotate_y(radians: f64) -> Self {
         let sin = radians.sin();
         let cos = radians.cos();
         let matrix = Matrix {
@@ -340,8 +338,7 @@ impl Transformation {
         Transformation { matrix, inverse }
     }
 
-    pub fn rotate_z(degrees: f64) -> Self {
-        let radians = degrees.to_radians();
+    pub fn rotate_z(radians: f64) -> Self {
         let sin = radians.sin();
         let cos = radians.cos();
         let matrix = Matrix {
@@ -384,7 +381,7 @@ impl Transformation {
         let inverse = matrix.inverse().unwrap();
         let persp = Transformation { matrix, inverse };
         let inv_tan_ang = 1.0 / (fov.to_radians() * 0.5).tan();
-        persp.mul(&Transformation::scale(inv_tan_ang, inv_tan_ang, 1.0))
+        persp * Transformation::scale(inv_tan_ang, inv_tan_ang, 1.0)
     }
 
     pub fn orthographic(near: f64, far: f64) -> Self {
@@ -393,6 +390,17 @@ impl Transformation {
 }
 
 impl Mul for &Transformation {
+    type Output = Transformation;
+
+    fn mul(self, rhs: Self) -> Transformation {
+        Transformation {
+            matrix: &self.matrix * &rhs.matrix,
+            inverse: &rhs.inverse * &self.inverse,
+        }
+    }
+}
+
+impl Mul for Transformation {
     type Output = Transformation;
 
     fn mul(self, rhs: Self) -> Transformation {

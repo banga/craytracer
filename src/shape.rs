@@ -31,6 +31,14 @@ pub enum Shape {
         n01: Vector,
         n02: Vector,
     },
+    Disk {
+        object_to_world: Transformation,
+        world_to_object: Transformation,
+        radius: f64,
+        radius_squared: f64,
+        inner_radius_squared: f64,
+        area: f64,
+    },
 }
 
 pub struct ShapeSample {
@@ -84,6 +92,27 @@ impl Shape {
             n0,
             n01: n1 - n0,
             n02: n2 - n0,
+        }
+    }
+    pub fn new_disk(
+        origin: Point,
+        rotate_x: f64,
+        rotate_y: f64,
+        radius: f64,
+        inner_radius: f64,
+    ) -> Shape {
+        let object_to_world = Transformation::translate(origin.x(), origin.y(), origin.z())
+            * Transformation::rotate_x(rotate_x.to_radians())
+            * Transformation::rotate_y(rotate_y.to_radians());
+        let world_to_object = object_to_world.inverse();
+
+        Shape::Disk {
+            radius,
+            radius_squared: radius.powf(2.0),
+            inner_radius_squared: inner_radius.powf(2.0),
+            area: PI * (radius.powf(2.0) - inner_radius.powf(2.0)),
+            object_to_world,
+            world_to_object,
         }
     }
 
@@ -174,6 +203,45 @@ impl Shape {
                     None
                 }
             }
+            Shape::Disk {
+                object_to_world,
+                world_to_object,
+                radius_squared,
+                inner_radius_squared,
+                ..
+            } => {
+                let obj_ray = world_to_object.transform(ray);
+                if obj_ray.direction.z() == 0.0 {
+                    return None;
+                }
+                // The ray will intersect the plane at z = 0.
+                // So, o.z + d.z * t = 0
+                let t = -obj_ray.origin.z() / obj_ray.direction.z();
+                if !obj_ray.contains_distance(t) {
+                    return None;
+                }
+
+                // If the distance of the intersection from (0, 0, 0) is in
+                // [inner_radius, radius], then we have found an intersection
+                let location = Point(
+                    obj_ray.origin.x() + obj_ray.direction.x() * t,
+                    obj_ray.origin.y() + obj_ray.direction.y() * t,
+                    0.0,
+                );
+                let distance_squared = location.x().powf(2.0) + location.y().powf(2.0);
+                if distance_squared < *inner_radius_squared || distance_squared > *radius_squared {
+                    return None;
+                }
+
+                if ray.update_max_distance(t) {
+                    Some(object_to_world.transform(&ShapeIntersection {
+                        location,
+                        normal: Normal::Z,
+                    }))
+                } else {
+                    None
+                }
+            }
         }
     }
 
@@ -204,6 +272,14 @@ impl Shape {
                     ),
                 )
             }
+            Shape::Disk {
+                radius,
+                object_to_world,
+                ..
+            } => object_to_world.transform(&Bounds::new(
+                Point(-*radius, -*radius, 0.0),
+                Point(*radius, *radius, 0.0),
+            )),
         }
     }
 
@@ -227,6 +303,7 @@ impl Shape {
                 object_to_world.transform(&point)
             }
             Shape::Triangle { .. } => todo!(),
+            Shape::Disk { .. } => todo!("Implement disk area lights"),
         }
     }
 
@@ -252,6 +329,7 @@ impl Shape {
         match &self {
             Shape::Sphere { area, .. } => *area,
             Shape::Triangle { .. } => todo!(),
+            Shape::Disk { area, .. } => *area,
         }
     }
 }

@@ -23,8 +23,12 @@ impl Ray {
         self.origin + self.direction * distance
     }
 
+    pub fn contains_distance(&self, distance: f64) -> bool {
+        distance > EPSILON && distance < self.max_distance
+    }
+
     pub fn update_max_distance(&mut self, distance: f64) -> bool {
-        if distance > EPSILON && distance < self.max_distance {
+        if self.contains_distance(distance) {
             self.max_distance = distance;
             true
         } else {

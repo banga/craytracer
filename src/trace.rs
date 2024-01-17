@@ -126,6 +126,10 @@ where
             }
         };
 
+        // TODO: We don't correctly handle inverted normals at the moment. If
+        // the normal faces in the same direction as the ray (and we aren't
+        // doing transmission), the sampled direction will be in the wrong
+        // hemisphere.
         assert_abs_diff_eq!(intersection.normal.magnitude(), 1.0, epsilon = EPSILON);
         assert!(intersection.distance >= 0.0);
 

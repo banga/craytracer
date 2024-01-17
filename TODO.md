@@ -5,6 +5,7 @@ TODO
   - [x] Spheres
   - [ ] Triangles
 - [x] Area lights
+- [ ] Handled flipped normals correctly
 - [ ] Disc shape
 - [ ] Textures
 - [ ] Film

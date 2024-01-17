@@ -902,6 +902,13 @@ pub mod scene_parser {
                     map.get("v1")?,
                     map.get("v2")?,
                 ))),
+                "Disk" => Ok(Arc::new(Shape::new_disk(
+                    map.get("origin")?,
+                    map.get_or("rotate_x", 0.0)?,
+                    map.get_or("rotate_y", 0.0)?,
+                    map.get("radius")?,
+                    map.get_or("inner_radius", 0.0)?,
+                ))),
                 _ => Err(ParserError::without_location(&format!(
                     "Unknown shape type: {}",
                     typed_map.name
