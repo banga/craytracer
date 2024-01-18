@@ -6,7 +6,7 @@ TODO
   - [ ] Triangles
 - [x] Area lights
 - [ ] Handled flipped normals correctly
-- [ ] Disc shape
+- [x] Disc shape
 - [ ] Textures
 - [ ] Film
 - [ ] Thin lens camera
