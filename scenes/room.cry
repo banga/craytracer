@@ -1,0 +1,39 @@
+{
+    num_samples: 5,
+    camera: Perspective {
+        origin: Point(3, 1.7, -5),
+        target: Point(-9, 0.5, 3),
+        up: Vector(0, 1, 0),
+        fov: 20,
+        film: {
+            width: 400,
+            height: 300,
+        }
+    },
+    lights: [
+        Distant {
+            direction: Vector(-1, 1, 1),
+            intensity: Color(2, 3, 4)
+        }
+    ],
+    materials: {
+        matte: Matte {
+            reflectance: Color(0.5, 0.75, 1),
+            sigma: 0
+        }
+    },
+    shapes: {
+        light: Disk {
+            origin: Point(0.5, 2.7, -3),
+            rotate_x: -90,
+            radius: 0.5
+        }
+    },
+    primitives: [
+        Mesh { 
+            file_name: 'objs/local/living_room/living_room.obj',
+            fallback_material: 'matte' 
+        },
+        Shape { shape: 'light', material: 'matte', emittance: Color(5, 4, 3) },
+    ]
+}

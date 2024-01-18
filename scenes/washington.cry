@@ -1,4 +1,3 @@
-// A playground for scenes
 {
     num_samples: 100,
     camera: Perspective {
