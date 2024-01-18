@@ -9,7 +9,7 @@ use crate::{
     intersection::ShapeIntersection,
     pdf::Pdf,
     ray::Ray,
-    sampling::sample_sphere,
+    sampling::{sample_disk, sample_sphere},
     transformation::{Transformable, Transformation},
 };
 
@@ -303,7 +303,16 @@ impl Shape {
                 object_to_world.transform(&point)
             }
             Shape::Triangle { .. } => todo!(),
-            Shape::Disk { .. } => todo!("Implement disk area lights"),
+            Shape::Disk {
+                object_to_world,
+                radius,
+                ..
+            } => {
+                // Note: this does not account for inner_radius
+                let [x, y] = sample_disk(rng);
+                let point = Point(x * radius, y * radius, 0.0);
+                object_to_world.transform(&point)
+            }
         }
     }
 

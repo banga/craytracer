@@ -1,13 +1,13 @@
 {
-    num_samples: 1000,
+    num_samples: 2000,
     camera: Perspective {
         origin: Point(0, 8, -10),
         target: Point(-2.5, 0.5, 12),
         up: Vector(0, 1, 0),
         fov: 35,
         film: {
-            width: 700,
-            height: 400,
+            width: 1400,
+            height: 800,
         }
     },
     lights: [
@@ -35,9 +35,11 @@
             origin: Point(0, 1.5, 12.5),
             radius: 1.5
         },
-        light: Sphere {
-            origin: Point(7, 7, 18),
-            radius: 3
+        light: Disk {
+            origin: Point(5, 5, 15),
+            rotate_y: -40,
+            rotate_x: 90,
+            radius: 2
         }
     },
     primitives: [
