@@ -116,44 +116,51 @@ impl BvhNode {
     }
 
     pub fn intersect(&self, ray: &mut Ray) -> Option<PrimitiveIntersection> {
-        let bounds = match self {
-            Self::LeafNode { bounds, .. } => bounds,
-            Self::InteriorNode { bounds, .. } => bounds,
-        };
+        let mut q = Vec::with_capacity(32);
+        q.push(self);
+        let mut current: Option<PrimitiveIntersection> = None;
+        while let Some(node) = q.pop() {
+            let bounds = match node {
+                Self::LeafNode { bounds, .. } => bounds,
+                Self::InteriorNode { bounds, .. } => bounds,
+            };
 
-        // If the ray doesn't intersect the bounds, it could still be contained
-        // within them, so check for both
-        if bounds.intersect(ray).is_none() && !bounds.contains(&ray.origin) {
-            return None;
-        }
+            // If the ray doesn't intersect the bounds, it could still be contained
+            // within them, so check for both
+            let bounds_intersection = bounds.intersect(ray);
+            if bounds_intersection.is_none() && !bounds.contains(&ray.origin) {
+                continue;
+            }
 
-        match self {
-            Self::LeafNode {
-                primitive_infos, ..
-            } => primitive_infos
-                .iter()
-                .filter_map(|primitive_info| primitive_info.primitive.intersect(ray))
-                .min_by(|a, b| a.distance.total_cmp(&b.distance)),
-            Self::InteriorNode {
-                left, right, split, ..
-            } => {
-                let (x, y) = if ray.direction[split.axis] < 0.0 {
-                    (right.intersect(ray), left.intersect(ray))
-                } else {
-                    (left.intersect(ray), right.intersect(ray))
-                };
-
-                return if x.is_none() {
-                    y
-                } else if y.is_none() {
-                    x
-                } else if x.as_ref().unwrap().distance < y.as_ref().unwrap().distance {
-                    x
-                } else {
-                    y
-                };
+            match node {
+                Self::LeafNode {
+                    primitive_infos, ..
+                } => {
+                    for primitive_info in primitive_infos {
+                        if let Some(intersection) = primitive_info.primitive.intersect(ray) {
+                            if current.is_none()
+                                || intersection.distance < current.as_ref().unwrap().distance
+                            {
+                                current = Some(intersection);
+                            }
+                        }
+                    }
+                }
+                Self::InteriorNode {
+                    left, right, split, ..
+                } => {
+                    if ray.direction[split.axis] < 0.0 {
+                        q.push(left);
+                        q.push(right);
+                    } else {
+                        q.push(right);
+                        q.push(left);
+                    };
+                }
             }
         }
+
+        current
     }
 }
 
