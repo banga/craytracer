@@ -52,9 +52,9 @@ impl Bounds {
             }
         }
 
-        if min_distance > EPSILON && min_distance <= ray.max_distance {
+        if ray.contains_distance(min_distance) {
             Some(min_distance)
-        } else if max_distance > EPSILON && max_distance <= ray.max_distance {
+        } else if ray.contains_distance(max_distance) {
             Some(max_distance)
         } else {
             None
