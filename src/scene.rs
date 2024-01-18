@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    bvh::BvhNode, camera::Camera, intersection::PrimitiveIntersection, light::Light,
+    bvh::Bvh, camera::Camera, intersection::PrimitiveIntersection, light::Light,
     primitive::Primitive, ray::Ray,
 };
 
@@ -11,7 +11,7 @@ pub struct Scene {
     pub num_samples: usize,
     pub camera: Camera,
     pub lights: Vec<Arc<Light>>,
-    bvh: BvhNode,
+    bvh: Bvh,
 }
 
 impl Scene {
@@ -27,7 +27,7 @@ impl Scene {
             num_samples,
             camera,
             lights,
-            bvh: BvhNode::new(primitives),
+            bvh: Bvh::new(primitives),
         }
     }
 

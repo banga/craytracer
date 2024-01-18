@@ -2,7 +2,7 @@ use std::{fmt::Display, sync::Arc};
 
 use crate::{
     bounds::Bounds,
-    geometry::{Axis, AXES},
+    geometry::{point::Point, Axis},
     intersection::PrimitiveIntersection,
     primitive::Primitive,
     ray::Ray,
@@ -11,13 +11,83 @@ use crate::{
 #[derive(Debug, PartialEq)]
 pub struct Split {
     axis: Axis,
-    location: f64,
+    location: usize,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct PrimitiveInfo {
     primitive: Arc<Primitive>,
     bounds: Bounds,
+    centroid: Point,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Bvh {
+    root: BvhNode,
+}
+
+impl Bvh {
+    pub fn new(primitives: Vec<Arc<Primitive>>) -> Self {
+        let mut primitive_infos: Vec<_> = primitives
+            .iter()
+            .map(|p| PrimitiveInfo {
+                primitive: Arc::clone(p),
+                bounds: p.bounds(),
+                centroid: p.bounds().centroid(),
+            })
+            .collect();
+
+        let root = BvhNode::from_primitive_infos(&mut primitive_infos);
+        Bvh { root }
+    }
+
+    pub fn intersect(&self, ray: &mut Ray) -> Option<PrimitiveIntersection> {
+        let mut q = Vec::with_capacity(32);
+        q.push(&self.root);
+        let mut current: Option<PrimitiveIntersection> = None;
+        while let Some(node) = q.pop() {
+            let bounds = match node {
+                BvhNode::LeafNode { bounds, .. } => bounds,
+                BvhNode::InteriorNode { bounds, .. } => bounds,
+            };
+
+            // If the ray doesn't intersect the bounds, it could still be contained
+            // within them, so check for both
+            let bounds_intersection = bounds.intersect(ray);
+            if bounds_intersection.is_none() && !bounds.contains(&ray.origin) {
+                continue;
+            }
+
+            match node {
+                BvhNode::LeafNode {
+                    primitive_infos, ..
+                } => {
+                    for primitive_info in primitive_infos {
+                        if let Some(intersection) = primitive_info.primitive.intersect(ray) {
+                            if current.is_none()
+                                || intersection.distance < current.as_ref().unwrap().distance
+                            {
+                                current = Some(intersection);
+                            }
+                        }
+                    }
+                }
+                BvhNode::InteriorNode {
+                    left, right, split, ..
+                } => {
+                    if ray.direction[split.axis] < 0.0 {
+                        q.push(left);
+                        q.push(right);
+                    } else {
+                        q.push(right);
+                        q.push(left);
+                    };
+                }
+            }
+        }
+
+        current
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -41,126 +111,56 @@ impl Display for PrimitiveInfo {
 }
 
 impl BvhNode {
-    pub fn new(primitives: Vec<Arc<Primitive>>) -> BvhNode {
-        let primitive_infos = primitives
-            .iter()
-            .map(|p| PrimitiveInfo {
-                primitive: Arc::clone(p),
-                bounds: p.bounds(),
-            })
-            .collect();
-
-        BvhNode::from_primitive_infos(primitive_infos)
-    }
-
-    fn from_primitive_infos(primitive_infos: Vec<PrimitiveInfo>) -> BvhNode {
+    fn from_primitive_infos(mut primitive_infos: &mut [PrimitiveInfo]) -> BvhNode {
         assert!(primitive_infos.len() > 0);
         let bounds: Bounds = primitive_infos.iter().map(|p| p.bounds).sum();
 
         if primitive_infos.len() <= 4 {
             return BvhNode::LeafNode {
                 bounds,
-                primitive_infos,
+                primitive_infos: primitive_infos.to_vec(),
             };
         }
 
-        let split = BvhNode::find_split(&primitive_infos);
-        let (left, right): (Vec<PrimitiveInfo>, Vec<PrimitiveInfo>) = primitive_infos
-            .into_iter()
-            .partition(|primitive| primitive.bounds.max[split.axis] <= split.location);
-
-        if left.len() == 0 {
-            BvhNode::LeafNode {
+        let split = BvhNode::find_split(&mut primitive_infos);
+        if split.is_none() {
+            return BvhNode::LeafNode {
                 bounds,
-                primitive_infos: right,
-            }
-        } else if right.len() == 0 {
-            BvhNode::LeafNode {
-                bounds,
-                primitive_infos: left,
-            }
-        } else {
-            BvhNode::InteriorNode {
-                bounds,
-                left: Box::new(BvhNode::from_primitive_infos(left)),
-                right: Box::new(BvhNode::from_primitive_infos(right)),
-                split,
-            }
+                primitive_infos: primitive_infos.to_vec(),
+            };
+        }
+        let split = split.unwrap();
+        let (l, r) = primitive_infos.split_at_mut(split.location);
+        BvhNode::InteriorNode {
+            bounds,
+            left: Box::new(BvhNode::from_primitive_infos(l)),
+            right: Box::new(BvhNode::from_primitive_infos(r)),
+            split,
         }
     }
 
-    fn find_split(primitives: &Vec<PrimitiveInfo>) -> Split {
+    fn find_split(primitives: &mut [PrimitiveInfo]) -> Option<Split> {
         // TODO: This is a very naive implementation that just always picks the
         // median edge. We should use a SAH to find a better split.
-        let extents = primitives
-            .iter()
-            .map(|p| p.bounds)
-            .reduce(|x, y| x + y)
-            .unwrap();
+        let extents = primitives.iter().map(|p| p.centroid).fold(
+            Bounds::new(primitives[0].centroid, primitives[0].centroid),
+            |x, y| x + y,
+        );
 
-        let span = extents.span();
-        let max_axis = AXES
-            .iter()
-            .max_by(|&x, &y| span[*x].total_cmp(&span[*y]))
-            .unwrap();
-
-        let mut locations: Vec<f64> = primitives.iter().map(|p| p.bounds.max[*max_axis]).collect();
-        locations.sort_by(|a, b| a.total_cmp(b));
-
-        let location = locations[(locations.len() - 1) / 2];
-
-        Split {
-            axis: *max_axis,
-            location,
-        }
-    }
-
-    pub fn intersect(&self, ray: &mut Ray) -> Option<PrimitiveIntersection> {
-        let mut q = Vec::with_capacity(32);
-        q.push(self);
-        let mut current: Option<PrimitiveIntersection> = None;
-        while let Some(node) = q.pop() {
-            let bounds = match node {
-                Self::LeafNode { bounds, .. } => bounds,
-                Self::InteriorNode { bounds, .. } => bounds,
-            };
-
-            // If the ray doesn't intersect the bounds, it could still be contained
-            // within them, so check for both
-            let bounds_intersection = bounds.intersect(ray);
-            if bounds_intersection.is_none() && !bounds.contains(&ray.origin) {
-                continue;
-            }
-
-            match node {
-                Self::LeafNode {
-                    primitive_infos, ..
-                } => {
-                    for primitive_info in primitive_infos {
-                        if let Some(intersection) = primitive_info.primitive.intersect(ray) {
-                            if current.is_none()
-                                || intersection.distance < current.as_ref().unwrap().distance
-                            {
-                                current = Some(intersection);
-                            }
-                        }
-                    }
-                }
-                Self::InteriorNode {
-                    left, right, split, ..
-                } => {
-                    if ray.direction[split.axis] < 0.0 {
-                        q.push(left);
-                        q.push(right);
-                    } else {
-                        q.push(right);
-                        q.push(left);
-                    };
-                }
-            }
+        let split_axis = extents.maximum_extent();
+        if extents.min[split_axis] == extents.max[split_axis] {
+            return None;
         }
 
-        current
+        let mid = (primitives.len() - 1) / 2;
+        primitives.select_nth_unstable_by(mid, |a, b| {
+            a.centroid[split_axis].total_cmp(&b.centroid[split_axis])
+        });
+
+        Some(Split {
+            axis: split_axis,
+            location: mid,
+        })
     }
 }
 

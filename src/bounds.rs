@@ -2,7 +2,7 @@ use std::{iter::Sum, mem::swap, ops::Add};
 
 use crate::{
     constants::EPSILON,
-    geometry::{point::Point, vector::Vector, AXES},
+    geometry::{point::Point, vector::Vector, Axis, AXES},
     ray::Ray,
 };
 
@@ -17,6 +17,26 @@ impl Bounds {
         Bounds {
             min: a.min(b),
             max: a.max(b),
+        }
+    }
+    pub fn centroid(&self) -> Point {
+        Point(
+            (self.min.x() + self.max.x()) * 0.5,
+            (self.min.y() + self.max.y()) * 0.5,
+            (self.min.z() + self.max.z()) * 0.5,
+        )
+    }
+    pub fn diagonal(&self) -> Vector {
+        self.max - self.min
+    }
+    pub fn maximum_extent(&self) -> Axis {
+        let diagonal = self.diagonal();
+        if diagonal.x() > diagonal.y() && diagonal.x() > diagonal.z() {
+            Axis::X
+        } else if diagonal.y() > diagonal.z() {
+            Axis::Y
+        } else {
+            Axis::Z
         }
     }
     pub fn contains(&self, point: &Point) -> bool {
@@ -62,12 +82,6 @@ impl Bounds {
     }
 }
 
-impl Bounds {
-    pub fn span(&self) -> Vector {
-        self.max - self.min
-    }
-}
-
 impl Add for Bounds {
     type Output = Bounds;
 
@@ -82,6 +96,25 @@ impl Add for Bounds {
                 self.max.x().max(rhs.max.x()),
                 self.max.y().max(rhs.max.y()),
                 self.max.z().max(rhs.max.z()),
+            ),
+        }
+    }
+}
+
+impl Add<Point> for Bounds {
+    type Output = Bounds;
+
+    fn add(self, rhs: Point) -> Self::Output {
+        Bounds {
+            min: Point(
+                self.min.x().min(rhs.x()),
+                self.min.y().min(rhs.y()),
+                self.min.z().min(rhs.z()),
+            ),
+            max: Point(
+                self.max.x().max(rhs.x()),
+                self.max.y().max(rhs.y()),
+                self.max.z().max(rhs.z()),
             ),
         }
     }

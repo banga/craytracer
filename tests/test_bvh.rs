@@ -2,7 +2,7 @@ use pretty_assertions::assert_eq;
 use std::sync::Arc;
 
 use craytracer::{
-    bvh::BvhNode,
+    bvh::Bvh,
     color::Color,
     geometry::{point::Point, X},
     material::Material,
@@ -14,7 +14,7 @@ use craytracer::{
 
 #[test]
 fn bvh_node() {
-    let node = BvhNode::new(vec![
+    let node = Bvh::new(vec![
         Arc::new(Primitive::new(
             Arc::new(Shape::new_sphere(p!(0.5, 0.5, 0.5), 0.5)),
             Arc::new(Material::new_matte(Color::WHITE, 0.0)),
