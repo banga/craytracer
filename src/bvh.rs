@@ -8,17 +8,31 @@ use crate::{
     ray::Ray,
 };
 
-#[derive(Debug, PartialEq)]
-pub struct Split {
-    axis: Axis,
-    location: usize,
-}
-
 #[derive(Debug, PartialEq, Clone)]
 pub struct PrimitiveInfo {
     primitive: Arc<Primitive>,
     bounds: Bounds,
     centroid: Point,
+}
+
+impl Display for PrimitiveInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&format!("{:?}", self.bounds))
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub enum BvhNode {
+    InteriorNode {
+        bounds: Bounds,
+        left: Box<BvhNode>,
+        right: Box<BvhNode>,
+        split_axis: Axis,
+    },
+    LeafNode {
+        bounds: Bounds,
+        primitives: Vec<Arc<Primitive>>,
+    },
 }
 
 #[derive(Debug, PartialEq)]
@@ -59,11 +73,9 @@ impl Bvh {
             }
 
             match node {
-                BvhNode::LeafNode {
-                    primitive_infos, ..
-                } => {
-                    for primitive_info in primitive_infos {
-                        if let Some(intersection) = primitive_info.primitive.intersect(ray) {
+                BvhNode::LeafNode { primitives, .. } => {
+                    for primitive in primitives {
+                        if let Some(intersection) = primitive.intersect(ray) {
                             if current.is_none()
                                 || intersection.distance < current.as_ref().unwrap().distance
                             {
@@ -73,9 +85,12 @@ impl Bvh {
                     }
                 }
                 BvhNode::InteriorNode {
-                    left, right, split, ..
+                    left,
+                    right,
+                    split_axis,
+                    ..
                 } => {
-                    if ray.direction[split.axis] < 0.0 {
+                    if ray.direction[*split_axis] < 0.0 {
                         q.push(left);
                         q.push(right);
                     } else {
@@ -90,26 +105,6 @@ impl Bvh {
     }
 }
 
-#[derive(Debug, PartialEq)]
-pub enum BvhNode {
-    InteriorNode {
-        bounds: Bounds,
-        left: Box<BvhNode>,
-        right: Box<BvhNode>,
-        split: Split,
-    },
-    LeafNode {
-        bounds: Bounds,
-        primitive_infos: Vec<PrimitiveInfo>,
-    },
-}
-
-impl Display for PrimitiveInfo {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&format!("{:?}", self.bounds))
-    }
-}
-
 impl BvhNode {
     fn from_primitive_infos(mut primitive_infos: &mut [PrimitiveInfo]) -> BvhNode {
         assert!(primitive_infos.len() > 0);
@@ -118,7 +113,10 @@ impl BvhNode {
         if primitive_infos.len() <= 4 {
             return BvhNode::LeafNode {
                 bounds,
-                primitive_infos: primitive_infos.to_vec(),
+                primitives: primitive_infos
+                    .iter()
+                    .map(|p| Arc::clone(&p.primitive))
+                    .collect(),
             };
         }
 
@@ -126,20 +124,23 @@ impl BvhNode {
         if split.is_none() {
             return BvhNode::LeafNode {
                 bounds,
-                primitive_infos: primitive_infos.to_vec(),
+                primitives: primitive_infos
+                    .iter()
+                    .map(|p| Arc::clone(&p.primitive))
+                    .collect(),
             };
         }
-        let split = split.unwrap();
-        let (l, r) = primitive_infos.split_at_mut(split.location);
+        let (split_axis, location) = split.unwrap();
+        let (l, r) = primitive_infos.split_at_mut(location);
         BvhNode::InteriorNode {
             bounds,
             left: Box::new(BvhNode::from_primitive_infos(l)),
             right: Box::new(BvhNode::from_primitive_infos(r)),
-            split,
+            split_axis,
         }
     }
 
-    fn find_split(primitives: &mut [PrimitiveInfo]) -> Option<Split> {
+    fn find_split(primitives: &mut [PrimitiveInfo]) -> Option<(Axis, usize)> {
         // TODO: This is a very naive implementation that just always picks the
         // median edge. We should use a SAH to find a better split.
         let extents = primitives.iter().map(|p| p.centroid).fold(
@@ -157,35 +158,29 @@ impl BvhNode {
             a.centroid[split_axis].total_cmp(&b.centroid[split_axis])
         });
 
-        Some(Split {
-            axis: split_axis,
-            location: mid,
-        })
+        Some((split_axis, mid))
     }
 }
 
 impl Display for BvhNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::LeafNode {
-                bounds,
-                primitive_infos,
-            } => f.write_str(&format!(
+            Self::LeafNode { bounds, primitives } => f.write_str(&format!(
                 "primitives: ({:?}) bounds: ({:?})",
-                primitive_infos
+                primitives
                     .iter()
-                    .map(|p| format!("{:?} ", p.bounds))
+                    .map(|p| format!("{:?} ", p.bounds()))
                     .collect::<String>(),
                 bounds,
             )),
             Self::InteriorNode {
                 left,
                 right,
-                split,
+                split_axis,
                 bounds,
             } => f.write_str(&format!(
-                "left: ({}), right: ({}), split: ({:?}, {}), bounds: {:?}",
-                left, right, split.axis, split.location, bounds
+                "left: ({}), right: ({}), split: ({:?}), bounds: {:?}",
+                left, right, split_axis, bounds
             )),
         }
     }
