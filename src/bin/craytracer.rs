@@ -152,6 +152,19 @@ fn render_tile<R>(
     }
 }
 
+fn update_render_progress(start: Instant, num_rendered: usize, num_total: usize) {
+    let elapsed = start.elapsed().as_secs_f32();
+    let estimate = elapsed * num_total as f32 / num_rendered as f32;
+    eprint!(
+        "\r{:3} / {:3} tiles {:5.1}s / {:5.1}s ({:5.1}s remaining)",
+        num_rendered,
+        num_total,
+        elapsed,
+        estimate,
+        estimate - elapsed
+    );
+}
+
 fn render<R>(
     scene: &Scene,
     preview: bool,
@@ -183,27 +196,23 @@ where
             let sender = sender.clone();
 
             handles.push(scope.spawn(move || loop {
-                let tile_index = tile_index.fetch_add(1, Ordering::SeqCst);
-                if tile_index >= tiles.len() {
+                let index = tile_index.fetch_add(1, Ordering::SeqCst);
+                if index >= tiles.len() {
                     break;
                 }
 
-                render_tile::<R>(tiles[tile_index], scene, width, &pixels);
+                render_tile::<R>(tiles[index], scene, width, &pixels);
 
-                if sender.send(tile_index).is_err() {
+                update_render_progress(
+                    start,
+                    tile_index.load(Ordering::Relaxed).min(tiles.len()),
+                    tiles.len(),
+                );
+
+                if sender.send(index).is_err() {
                     // The receiver has early exited
                     break;
                 }
-
-                let elapsed = start.elapsed().as_secs_f32();
-                let estimate = elapsed * tiles.len() as f32 / (tile_index + 1) as f32;
-                eprint!(
-                    "\r{:3} / {:3} tiles {:5.1}s / {:5.1}s",
-                    tile_index + 1,
-                    tiles.len(),
-                    elapsed,
-                    estimate
-                );
             }));
         }
 
@@ -224,7 +233,6 @@ where
             for handle in handles {
                 handle.join().unwrap();
             }
-            println!();
         }
     });
 
