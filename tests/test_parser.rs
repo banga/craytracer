@@ -371,6 +371,7 @@ mod parser {
         geometry::{point::Point, vector::Vector},
         light::Light,
         material::Material,
+        p,
         primitive::Primitive,
         scene::Scene,
         scene_parser::scene_parser::parse_scene,
@@ -380,6 +381,7 @@ mod parser {
             Location,
         },
         shape::Shape,
+        v,
     };
 
     fn expect_raw_value(s: &str, expected: RawValue) {
@@ -413,10 +415,7 @@ mod parser {
     fn raw_value() {
         expect_raw_value("1.23", RawValue::Number(1.23));
         expect_raw_value("'hello'", RawValue::String("hello".to_string()));
-        expect_raw_value(
-            "Vector(1, -2, 3.1)",
-            RawValue::Vector(Vector(1.0, -2.0, 3.1)),
-        );
+        expect_raw_value("Vector(1, -2, 3.1)", RawValue::Vector(v!(1, -2, 3.1)));
         expect_raw_value(
             "Color(0, 0.5, 1)",
             RawValue::Color(Color {
@@ -502,7 +501,7 @@ mod parser {
             HashMap::from([
                 ("x".to_string(), RawValue::Number(1.0)),
                 ("y".to_string(), RawValue::String("z".to_string())),
-                ("v".to_string(), RawValue::Vector(Vector(1.0, 2.0, 3.0))),
+                ("v".to_string(), RawValue::Vector(v!(1, 2, 3))),
                 (
                     "c".to_string(),
                     RawValue::Color(Color {
@@ -659,17 +658,17 @@ mod parser {
                 }),],
                 vec![
                     Arc::new(Primitive::new(
-                        Arc::new(Shape::new_sphere(Point(0.0, 0.0, 2.0), 1.0)),
+                        Arc::new(Shape::new_sphere(p!(0, 0, 2), 1.0)),
                         Arc::new(Material::new_matte(Color::WHITE, 0.0)),
                         None
                     )),
                     Arc::new(Primitive::new(
                         // source: objs/triangle.obj
                         Arc::new(Shape::new_triangle(
-                            Point(1.0, 0.0, 0.0),
-                            Point(0.0, 1.0, 0.0),
+                            p!(1, 0, 0),
+                            p!(0, 1, 0),
                             // Co-ordinate system correction
-                            Point(0.0, 0.0, -1.0),
+                            p!(0, 0, -1),
                         )),
                         Arc::new(Material::new_matte(Color::WHITE, 0.0)),
                         None

@@ -10,6 +10,7 @@ use crate::{
     constants::EPSILON,
     geometry::{normal::Normal, point::Point, vector::Vector},
     intersection::PrimitiveIntersection,
+    n,
     pdf::Pdf,
     ray::Ray,
     sampling::sample_hemisphere,
@@ -92,9 +93,9 @@ impl Light {
             }
             Light::Infinite { intensity } => {
                 let normal = if rng.gen_bool(0.5) {
-                    Normal(1.0, 0.0, 0.0)
+                    n!(1, 0, 0)
                 } else {
-                    Normal(-1.0, 0.0, 0.0)
+                    n!(-1, 0, 0)
                 };
 
                 let w_i = sample_hemisphere(rng, &normal);

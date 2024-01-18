@@ -1,4 +1,4 @@
-use craytracer::{geometry::normal::Normal, sampling::sample_hemisphere};
+use craytracer::{geometry::normal::Normal, n, sampling::sample_hemisphere};
 use minifb::{Key, Scale, ScaleMode, Window, WindowOptions};
 use rand::{rngs::SmallRng, SeedableRng};
 
@@ -24,7 +24,7 @@ fn draw_samples() {
     .unwrap();
 
     let mut buffer = vec![0u32; width * height];
-    let normal = Normal(0.0, 0.0, 1.0).normalized();
+    let normal = n!(0, 0, 1).normalized();
     let mut rng = SmallRng::from_entropy();
 
     while !window.is_key_released(Key::Escape) {

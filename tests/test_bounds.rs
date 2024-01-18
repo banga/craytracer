@@ -6,14 +6,15 @@ use craytracer::{
     bounds::Bounds,
     constants::EPSILON,
     geometry::{point::Point, vector::Vector},
+    p,
     ray::Ray,
 };
 
 #[test]
 fn test_intersect_axes() {
     let b = Bounds {
-        min: Point(-1.0, -1.0, -1.0),
-        max: Point(1.0, 1.0, 1.0),
+        min: p!(-1, -1, -1),
+        max: p!(1, 1, 1),
     };
 
     // X axis

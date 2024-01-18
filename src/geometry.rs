@@ -23,14 +23,21 @@ pub mod vector {
     #[derive(Clone, Copy, Debug)]
     pub struct Vector(pub f64, pub f64, pub f64);
 
+    #[macro_export]
+    macro_rules! v {
+        ($x:expr, $y:expr, $z:expr) => {
+            Vector($x as f64, $y as f64, $z as f64)
+        };
+    }
+
     impl Vector {
         pub fn new(x: i32, y: i32, z: i32) -> Vector {
             Vector(x as f64, y as f64, z as f64)
         }
-        pub const X: Vector = Vector(1.0, 0.0, 0.0);
-        pub const Y: Vector = Vector(0.0, 1.0, 0.0);
-        pub const Z: Vector = Vector(0.0, 0.0, 1.0);
-        pub const NULL: Vector = Vector(0.0, 0.0, 0.0);
+        pub const X: Vector = v!(1, 0, 0);
+        pub const Y: Vector = v!(0, 1, 0);
+        pub const Z: Vector = v!(0, 0, 1);
+        pub const NULL: Vector = v!(0, 0, 0);
         pub fn x(&self) -> f64 {
             self.0
         }
@@ -206,11 +213,19 @@ pub mod point {
     #[derive(Clone, Copy, Debug)]
     pub struct Point(pub f64, pub f64, pub f64);
 
+    #[macro_export]
+    macro_rules! p {
+        ($x:expr, $y:expr, $z:expr) => {
+            Point($x as f64, $y as f64, $z as f64)
+        };
+    }
+
     impl Point {
+        pub const O: Point = p!(0, 0, 0);
+
         pub fn new(x: i32, y: i32, z: i32) -> Point {
             Point(x as f64, y as f64, z as f64)
         }
-        pub const O: Point = Point(0.0, 0.0, 0.0);
         pub fn x(&self) -> f64 {
             self.0
         }
@@ -356,10 +371,17 @@ pub mod normal {
     #[derive(Clone, Copy, Debug)]
     pub struct Normal(pub f64, pub f64, pub f64);
 
+    #[macro_export]
+    macro_rules! n {
+        ($x:expr, $y:expr, $z:expr) => {
+            Normal($x as f64, $y as f64, $z as f64)
+        };
+    }
+
     impl Normal {
-        pub const X: Normal = Normal(1.0, 0.0, 0.0);
-        pub const Y: Normal = Normal(0.0, 1.0, 0.0);
-        pub const Z: Normal = Normal(0.0, 0.0, 1.0);
+        pub const X: Normal = n!(1, 0, 0);
+        pub const Y: Normal = n!(0, 1, 0);
+        pub const Z: Normal = n!(0, 0, 1);
 
         pub fn new(x: i32, y: i32, z: i32) -> Normal {
             Normal(x as f64, y as f64, z as f64)

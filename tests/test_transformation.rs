@@ -76,22 +76,23 @@ pub mod transformation {
     use craytracer::geometry::vector::Vector;
     use craytracer::ray::Ray;
     use craytracer::transformation::{Transformable, Transformation};
+    use craytracer::{n, p, v};
     use pretty_assertions::assert_eq;
 
     #[test]
     pub fn translation() {
         let t = Transformation::translate(5.0, -3.0, 2.0);
 
-        assert_eq!(t.transform(&Point(-3.0, 4.0, 5.0)), Point(2.0, 1.0, 7.0));
-        assert_eq!(t.transform(&Vector(-3.0, 4.0, 5.0)), Vector(-3.0, 4.0, 5.0));
-        assert_eq!(t.transform(&Normal(-3.0, 4.0, 5.0)), Normal(-3.0, 4.0, 5.0));
+        assert_eq!(t.transform(&p!(-3, 4, 5)), p!(2, 1, 7));
+        assert_eq!(t.transform(&v!(-3, 4, 5)), v!(-3, 4, 5));
+        assert_eq!(t.transform(&n!(-3, 4, 5)), n!(-3, 4, 5));
         assert_eq!(
-            t.transform(&Ray::new(Point(-3.0, 4.0, 5.0), Vector(0.0, 0.0, 1.0))),
-            Ray::new(Point(2.0, 1.0, 7.0), Vector(0.0, 0.0, 1.0))
+            t.transform(&Ray::new(p!(-3, 4, 5), v!(0, 0, 1))),
+            Ray::new(p!(2, 1, 7), v!(0, 0, 1))
         );
         assert_eq!(
-            t.transform(&Bounds::new(Point::O, Point(1.0, 2.0, 3.0))),
-            Bounds::new(Point(5.0, -3.0, 2.0), Point(6.0, -1.0, 5.0))
+            t.transform(&Bounds::new(Point::O, p!(1, 2, 3))),
+            Bounds::new(p!(5, -3, 2), p!(6, -1, 5))
         );
     }
 
@@ -99,22 +100,19 @@ pub mod transformation {
     pub fn scale() {
         let t = Transformation::scale(2.0, -3.0, 0.5);
 
-        assert_eq!(t.transform(&Point(-3.0, 4.0, 5.0)), Point(-6.0, -12.0, 2.5));
+        assert_eq!(t.transform(&p!(-3, 4, 5)), p!(-6, -12, 2.5));
+        assert_eq!(t.transform(&v!(-3, 4, 5)), v!(-6, -12, 2.5));
         assert_eq!(
-            t.transform(&Vector(-3.0, 4.0, 5.0)),
-            Vector(-6.0, -12.0, 2.5)
+            t.transform(&n!(-3, 4, 5)),
+            n!(-3.0 / 2.0, -4.0 / 3.0, 5.0 / 0.5)
         );
         assert_eq!(
-            t.transform(&Normal(-3.0, 4.0, 5.0)),
-            Normal(-3.0 / 2.0, -4.0 / 3.0, 5.0 / 0.5)
+            t.transform(&Ray::new(p!(-3, 4, 5), v!(0, 0, 1))),
+            Ray::new(p!(-6, -12, 2.5), v!(0, 0, 0.5))
         );
         assert_eq!(
-            t.transform(&Ray::new(Point(-3.0, 4.0, 5.0), Vector(0.0, 0.0, 1.0))),
-            Ray::new(Point(-6.0, -12.0, 2.5), Vector(0.0, 0.0, 0.5))
-        );
-        assert_eq!(
-            t.transform(&Bounds::new(Point::O, Point(1.0, 2.0, 3.0))),
-            Bounds::new(Point::O, Point(2.0, -6.0, 1.5))
+            t.transform(&Bounds::new(Point::O, p!(1, 2, 3))),
+            Bounds::new(Point::O, p!(2, -6, 1.5))
         );
     }
 
@@ -122,51 +120,47 @@ pub mod transformation {
     pub fn rotate_x() {
         let t = Transformation::rotate_x(90.0_f64.to_radians());
 
-        assert_abs_diff_eq!(t.transform(&Point(2.0, 1.0, 3.0)), Point(2.0, -3.0, 1.0),);
-        assert_abs_diff_eq!(t.transform(&Vector(2.0, 1.0, 3.0)), Vector(2.0, -3.0, 1.0),);
-        assert_abs_diff_eq!(t.transform(&Normal(2.0, 1.0, 3.0)), Normal(2.0, -3.0, 1.0),);
+        assert_abs_diff_eq!(t.transform(&p!(2, 1, 3)), p!(2, -3, 1),);
+        assert_abs_diff_eq!(t.transform(&v!(2, 1, 3)), v!(2, -3, 1),);
+        assert_abs_diff_eq!(t.transform(&n!(2, 1, 3)), n!(2, -3, 1),);
 
-        let ray = t.transform(&Ray::new(Point(2.0, 1.0, 3.0), Vector(0.0, 0.0, 1.0)));
-        assert_abs_diff_eq!(ray.origin, Point(2.0, -3.0, 1.0),);
-        assert_abs_diff_eq!(ray.direction, Vector(0.0, -1.0, 0.0));
+        let ray = t.transform(&Ray::new(p!(2, 1, 3), v!(0, 0, 1)));
+        assert_abs_diff_eq!(ray.origin, p!(2, -3, 1),);
+        assert_abs_diff_eq!(ray.direction, v!(0, -1, 0));
     }
 
     #[test]
     pub fn rotate_y() {
         let t = Transformation::rotate_y(90.0_f64.to_radians());
 
-        assert_abs_diff_eq!(t.transform(&Point(2.0, 1.0, 3.0)), Point(3.0, 1.0, -2.0),);
-        assert_abs_diff_eq!(t.transform(&Vector(2.0, 1.0, 3.0)), Vector(3.0, 1.0, -2.0),);
-        assert_abs_diff_eq!(t.transform(&Normal(2.0, 1.0, 3.0)), Normal(3.0, 1.0, -2.0),);
+        assert_abs_diff_eq!(t.transform(&p!(2, 1, 3)), p!(3, 1, -2),);
+        assert_abs_diff_eq!(t.transform(&v!(2, 1, 3)), v!(3, 1, -2),);
+        assert_abs_diff_eq!(t.transform(&n!(2, 1, 3)), n!(3, 1, -2),);
 
-        let ray = t.transform(&Ray::new(Point(2.0, 1.0, 3.0), Vector(0.0, 0.0, 1.0)));
-        assert_abs_diff_eq!(ray.origin, Point(3.0, 1.0, -2.0),);
-        assert_abs_diff_eq!(ray.direction, Vector(1.0, 0.0, 0.0));
+        let ray = t.transform(&Ray::new(p!(2, 1, 3), v!(0, 0, 1)));
+        assert_abs_diff_eq!(ray.origin, p!(3, 1, -2),);
+        assert_abs_diff_eq!(ray.direction, v!(1, 0, 0));
     }
 
     #[test]
     pub fn rotate_z() {
         let t = Transformation::rotate_z(90.0_f64.to_radians());
 
-        assert_abs_diff_eq!(t.transform(&Point(2.0, 1.0, 3.0)), Point(-1.0, 2.0, 3.0),);
-        assert_abs_diff_eq!(t.transform(&Vector(2.0, 1.0, 3.0)), Vector(-1.0, 2.0, 3.0),);
-        assert_abs_diff_eq!(t.transform(&Normal(2.0, 1.0, 3.0)), Normal(-1.0, 2.0, 3.0),);
+        assert_abs_diff_eq!(t.transform(&p!(2, 1, 3)), p!(-1, 2, 3),);
+        assert_abs_diff_eq!(t.transform(&v!(2, 1, 3)), v!(-1, 2, 3),);
+        assert_abs_diff_eq!(t.transform(&n!(2, 1, 3)), n!(-1, 2, 3),);
 
-        let ray = t.transform(&Ray::new(Point(2.0, 1.0, 3.0), Vector(1.0, 0.0, 0.0)));
-        assert_abs_diff_eq!(ray.origin, Point(-1.0, 2.0, 3.0),);
-        assert_abs_diff_eq!(ray.direction, Vector(0.0, 1.0, 0.0));
+        let ray = t.transform(&Ray::new(p!(2, 1, 3), v!(1, 0, 0)));
+        assert_abs_diff_eq!(ray.origin, p!(-1, 2, 3),);
+        assert_abs_diff_eq!(ray.direction, v!(0, 1, 0));
     }
 
     #[test]
     pub fn look_at() {
         // Look along x axis with z axis as the up direction
-        let t = Transformation::look_at(
-            Point(9.0, 0.0, 0.0),
-            Point(10.0, 0.0, 0.0),
-            Vector(0.0, 0.0, 1.0),
-        );
+        let t = Transformation::look_at(p!(9, 0, 0), p!(10, 0, 0), v!(0, 0, 1));
 
-        assert_abs_diff_eq!(t.transform(&Point::O), Point(9.0, 0.0, 0.0));
+        assert_abs_diff_eq!(t.transform(&Point::O), p!(9, 0, 0));
         assert_abs_diff_eq!(t.transform(&Vector::Z), Vector::X);
         assert_abs_diff_eq!(t.transform(&Vector::Y), Vector::Z);
         assert_abs_diff_eq!(t.transform(&Vector::X), Vector::Y);
@@ -177,11 +171,11 @@ pub mod transformation {
         let t = Transformation::perspective(90.0, 50.0, 100.0);
 
         // z' = (f / (f - n)) / (z / (z - n))
-        assert_abs_diff_eq!(t.transform(&Point(0.0, 0.0, 50.0)), Point(0.0, 0.0, 0.0));
-        assert_abs_diff_eq!(t.transform(&Point(0.0, 0.0, 100.0)), Point(0.0, 0.0, 1.0));
+        assert_abs_diff_eq!(t.transform(&p!(0, 0, 50)), p!(0, 0, 0));
+        assert_abs_diff_eq!(t.transform(&p!(0, 0, 100)), p!(0, 0, 1));
         assert_abs_diff_eq!(
-            t.transform(&Point(0.0, 0.0, 75.0)),
-            Point(0.0, 0.0, (100.0 / (100.0 - 50.0)) / (75.0 / (75.0 - 50.0)))
+            t.transform(&p!(0, 0, 75)),
+            p!(0, 0, (100.0 / (100.0 - 50.0)) / (75.0 / (75.0 - 50.0)))
         );
     }
 }
