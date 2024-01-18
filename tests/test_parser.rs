@@ -368,7 +368,7 @@ mod parser {
         camera::Camera,
         color::Color,
         film::Film,
-        geometry::{point::Point, vector::Vector},
+        geometry::{point::Point, vector::Vector, O, Y},
         light::Light,
         material::Material,
         p,
@@ -447,7 +447,7 @@ mod parser {
                 name: "Sphere".to_string(),
                 map: RawValueMap {
                     map: HashMap::from([
-                        ("center".to_string(), RawValue::Point(Point::O)),
+                        ("center".to_string(), RawValue::Point(O)),
                         ("radius".to_string(), RawValue::Number(1000.0)),
                     ]),
                     location: Location { line: 1, column: 8 },
@@ -645,15 +645,15 @@ mod parser {
                         width: 400,
                         height: 300
                     },
-                    Point::O,
+                    O,
                     Point::new(0, 0, 1),
-                    Vector::Y,
+                    Y,
                     60.0,
                     1.0,
                     100.0
                 ),
                 vec![Arc::new(Light::Point {
-                    origin: Point::O,
+                    origin: O,
                     intensity: Color::WHITE
                 }),],
                 vec![

@@ -4,7 +4,7 @@ use rand_distr::{UnitDisc, UnitSphere};
 
 use crate::{
     constants::EPSILON,
-    geometry::{normal::Normal, traits::DotProduct, vector::Vector},
+    geometry::{normal::Normal, traits::DotProduct, vector::Vector, X, Y, Z},
 };
 
 pub fn sample_2d<R>(rng: &mut R) -> (f64, f64)
@@ -43,11 +43,11 @@ where
 
 fn generate_tangents(vector: &Vector) -> (Vector, Vector) {
     let other = if vector.x().abs() < EPSILON {
-        Vector::X
+        X
     } else if vector.y().abs() < EPSILON {
-        Vector::Y
+        Y
     } else {
-        Vector::Z
+        Z
     };
     let tangent = vector.cross(&other).normalized();
     let bitangent = vector.cross(&tangent).normalized();

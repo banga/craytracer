@@ -74,6 +74,7 @@ pub mod transformation {
     use craytracer::geometry::normal::Normal;
     use craytracer::geometry::point::Point;
     use craytracer::geometry::vector::Vector;
+    use craytracer::geometry::{O, X, Y, Z};
     use craytracer::ray::Ray;
     use craytracer::transformation::{Transformable, Transformation};
     use craytracer::{n, p, v};
@@ -91,7 +92,7 @@ pub mod transformation {
             Ray::new(p!(2, 1, 7), v!(0, 0, 1))
         );
         assert_eq!(
-            t.transform(&Bounds::new(Point::O, p!(1, 2, 3))),
+            t.transform(&Bounds::new(O, p!(1, 2, 3))),
             Bounds::new(p!(5, -3, 2), p!(6, -1, 5))
         );
     }
@@ -111,8 +112,8 @@ pub mod transformation {
             Ray::new(p!(-6, -12, 2.5), v!(0, 0, 0.5))
         );
         assert_eq!(
-            t.transform(&Bounds::new(Point::O, p!(1, 2, 3))),
-            Bounds::new(Point::O, p!(2, -6, 1.5))
+            t.transform(&Bounds::new(O, p!(1, 2, 3))),
+            Bounds::new(O, p!(2, -6, 1.5))
         );
     }
 
@@ -160,10 +161,10 @@ pub mod transformation {
         // Look along x axis with z axis as the up direction
         let t = Transformation::look_at(p!(9, 0, 0), p!(10, 0, 0), v!(0, 0, 1));
 
-        assert_abs_diff_eq!(t.transform(&Point::O), p!(9, 0, 0));
-        assert_abs_diff_eq!(t.transform(&Vector::Z), Vector::X);
-        assert_abs_diff_eq!(t.transform(&Vector::Y), Vector::Z);
-        assert_abs_diff_eq!(t.transform(&Vector::X), Vector::Y);
+        assert_abs_diff_eq!(t.transform(&O), p!(9, 0, 0));
+        assert_abs_diff_eq!(t.transform(&Z), X);
+        assert_abs_diff_eq!(t.transform(&Y), Z);
+        assert_abs_diff_eq!(t.transform(&X), Y);
     }
 
     #[test]

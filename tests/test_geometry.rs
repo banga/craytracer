@@ -1,7 +1,7 @@
 #[cfg(test)]
 pub mod vector {
     use craytracer::{
-        geometry::{traits::DotProduct, vector::Vector},
+        geometry::{traits::DotProduct, vector::Vector, X, Y, Z},
         v,
     };
     use pretty_assertions::assert_eq;
@@ -27,18 +27,18 @@ pub mod vector {
 
     #[test]
     fn cross() {
-        assert_eq!(Vector::X.cross(&Vector::Y), Vector::Z);
-        assert_eq!(Vector::Y.cross(&Vector::Z), Vector::X);
-        assert_eq!(Vector::Z.cross(&Vector::X), Vector::Y);
+        assert_eq!(X.cross(&Y), Z);
+        assert_eq!(Y.cross(&Z), X);
+        assert_eq!(Z.cross(&X), Y);
 
         let a = v!(1, 1, 0);
 
         // Cross product with itself is the null vector
-        assert_eq!(a.cross(&a), Vector::NULL);
+        assert_eq!(a.cross(&a), v!(0, 0, 0));
 
-        assert_eq!(a.cross(&Vector::X), v!(0, 0, -1));
-        assert_eq!(a.cross(&Vector::Y), v!(0, 0, 1));
-        assert_eq!(a.cross(&Vector::Z), v!(1, -1, 0));
+        assert_eq!(a.cross(&X), v!(0, 0, -1));
+        assert_eq!(a.cross(&Y), v!(0, 0, 1));
+        assert_eq!(a.cross(&Z), v!(1, -1, 0));
     }
 
     #[test]

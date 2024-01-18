@@ -112,7 +112,7 @@ mod triangle {
     use craytracer::{
         bounds::Bounds,
         constants::EPSILON,
-        geometry::{normal::Normal, point::Point, vector::Vector},
+        geometry::{normal::Normal, point::Point, vector::Vector, O, Z},
         n, p,
         ray::Ray,
         shape::Shape,
@@ -138,7 +138,7 @@ mod triangle {
         match triangle() {
             Shape::Triangle { v0, e1, e2, .. } => {
                 for point in [v0, v0 + e1, v0 + e2] {
-                    let ray = &mut Ray::new(Point(point.x(), point.y(), -2.0), Vector::Z);
+                    let ray = &mut Ray::new(Point(point.x(), point.y(), -2.0), Z);
                     let intersection = t.intersect(ray).unwrap();
                     assert_eq!(ray.max_distance, 2.0);
                     assert_eq!(intersection.normal, n!(0, 0, 1));
@@ -152,7 +152,7 @@ mod triangle {
     fn from_behind() {
         // Shoot ray from the opposite side
         let t = triangle();
-        let ray = &mut Ray::new(p!(1, 0, 2), -Vector::Z);
+        let ray = &mut Ray::new(p!(1, 0, 2), -Z);
         let intersection = t.intersect(ray).unwrap();
         assert_eq!(ray.max_distance, 2.0);
         assert_eq!(intersection.normal, n!(0, 0, 1));
@@ -161,7 +161,7 @@ mod triangle {
     #[test]
     fn parallel_to_triangle() {
         assert!(triangle()
-            .intersect(&mut Ray::new(Point::O, v!(1, 1, 0).normalized(),))
+            .intersect(&mut Ray::new(O, v!(1, 1, 0).normalized(),))
             .is_none());
     }
 

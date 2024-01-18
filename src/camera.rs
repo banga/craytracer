@@ -2,7 +2,7 @@ use rand::Rng;
 
 use crate::{
     film::Film,
-    geometry::{point::Point, vector::Vector},
+    geometry::{point::Point, vector::Vector, O, Z},
     ray::Ray,
     sampling::{sample_2d, sample_disk},
     transformation::{Transformable, Transformation},
@@ -148,8 +148,8 @@ impl Camera {
         R: Rng,
     {
         let ray = match self.camera_type {
-            CameraType::Perspective => Ray::new(p_camera, (p_camera - Point::O).normalized()),
-            CameraType::Orthographic => Ray::new(p_camera, Vector::Z),
+            CameraType::Perspective => Ray::new(p_camera, (p_camera - O).normalized()),
+            CameraType::Orthographic => Ray::new(p_camera, Z),
         };
 
         if self.lens_radius == 0.0 {

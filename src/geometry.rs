@@ -1,3 +1,12 @@
+use crate::{p, v};
+
+use self::{point::Point, vector::Vector};
+
+pub const X: Vector = v!(1, 0, 0);
+pub const Y: Vector = v!(0, 1, 0);
+pub const Z: Vector = v!(0, 0, 1);
+pub const O: Point = p!(0, 0, 0);
+
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub enum Axis {
     X = 0,
@@ -34,10 +43,6 @@ pub mod vector {
         pub fn new(x: i32, y: i32, z: i32) -> Vector {
             Vector(x as f64, y as f64, z as f64)
         }
-        pub const X: Vector = v!(1, 0, 0);
-        pub const Y: Vector = v!(0, 1, 0);
-        pub const Z: Vector = v!(0, 0, 1);
-        pub const NULL: Vector = v!(0, 0, 0);
         pub fn x(&self) -> f64 {
             self.0
         }
@@ -221,8 +226,6 @@ pub mod point {
     }
 
     impl Point {
-        pub const O: Point = p!(0, 0, 0);
-
         pub fn new(x: i32, y: i32, z: i32) -> Point {
             Point(x as f64, y as f64, z as f64)
         }

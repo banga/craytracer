@@ -5,12 +5,13 @@ use rand::Rng;
 use crate::{
     bounds::Bounds,
     constants::EPSILON,
-    geometry::{normal::Normal, point::Point, traits::DotProduct, vector::Vector},
+    geometry::{normal::Normal, point::Point, traits::DotProduct, vector::Vector, O},
     intersection::ShapeIntersection,
     pdf::Pdf,
     ray::Ray,
     sampling::{sample_disk, sample_sphere},
     transformation::{Transformable, Transformation},
+    v,
 };
 
 #[derive(Debug, PartialEq)]
@@ -70,8 +71,8 @@ impl Shape {
             e1,
             e2,
             n0,
-            n01: Vector::NULL,
-            n02: Vector::NULL,
+            n01: v!(0, 0, 0),
+            n02: v!(0, 0, 0),
         }
     }
     pub fn new_triangle_with_normals(
@@ -299,7 +300,7 @@ impl Shape {
                 radius,
                 ..
             } => {
-                let point = Point::O + sample_sphere(rng) * *radius;
+                let point = O + sample_sphere(rng) * *radius;
                 object_to_world.transform(&point)
             }
             Shape::Triangle { .. } => todo!(),

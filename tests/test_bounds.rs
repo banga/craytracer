@@ -5,7 +5,7 @@ use rand::{thread_rng, Rng};
 use craytracer::{
     bounds::Bounds,
     constants::EPSILON,
-    geometry::{point::Point, vector::Vector},
+    geometry::{point::Point, O, X, Y, Z},
     p,
     ray::Ray,
 };
@@ -18,16 +18,16 @@ fn test_intersect_axes() {
     };
 
     // X axis
-    // assert_eq!(b.intersect(&Ray::new(Point::O, Vector::X,)), Some(1.0));
-    assert_eq!(b.intersect(&Ray::new(Point::O, -Vector::X,)), Some(1.0));
+    assert_eq!(b.intersect(&Ray::new(O, X,)), Some(1.0));
+    assert_eq!(b.intersect(&Ray::new(O, -X,)), Some(1.0));
 
     // Y axis
-    assert_eq!(b.intersect(&Ray::new(Point::O, Vector::Y,)), Some(1.0));
-    assert_eq!(b.intersect(&Ray::new(Point::O, -Vector::Y,)), Some(1.0));
+    assert_eq!(b.intersect(&Ray::new(O, Y,)), Some(1.0));
+    assert_eq!(b.intersect(&Ray::new(O, -Y,)), Some(1.0));
 
     // Z axis
-    assert_eq!(b.intersect(&Ray::new(Point::O, Vector::Z,)), Some(1.0));
-    assert_eq!(b.intersect(&Ray::new(Point::O, -Vector::Z,)), Some(1.0));
+    assert_eq!(b.intersect(&Ray::new(O, Z,)), Some(1.0));
+    assert_eq!(b.intersect(&Ray::new(O, -Z,)), Some(1.0));
 }
 
 #[test]
@@ -61,20 +61,14 @@ fn test_intersect_random() {
 #[test]
 fn test_intersect_miss() {
     let b = Bounds {
-        min: Point::O,
+        min: O,
         max: Point::new(1, 1, 1),
     };
 
-    assert_eq!(b.intersect(&Ray::new(Point::new(0, 2, 0), Vector::X)), None);
-    assert_eq!(
-        b.intersect(&Ray::new(Point::new(0, -2, 0), -Vector::X)),
-        None
-    );
-    assert_eq!(b.intersect(&Ray::new(Point::new(2, 0, 0), Vector::Y)), None);
-    assert_eq!(
-        b.intersect(&Ray::new(Point::new(-2, 0, 0), -Vector::Y)),
-        None
-    );
+    assert_eq!(b.intersect(&Ray::new(Point::new(0, 2, 0), X)), None);
+    assert_eq!(b.intersect(&Ray::new(Point::new(0, -2, 0), -X)), None);
+    assert_eq!(b.intersect(&Ray::new(Point::new(2, 0, 0), Y)), None);
+    assert_eq!(b.intersect(&Ray::new(Point::new(-2, 0, 0), -Y)), None);
 }
 
 #[test]
