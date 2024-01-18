@@ -1,8 +1,12 @@
 use std::sync::Arc;
 
 use crate::{
-    bvh::Bvh, camera::Camera, intersection::PrimitiveIntersection, light::Light,
-    primitive::Primitive, ray::Ray,
+    bvh::{Bvh, SplitMethod},
+    camera::Camera,
+    intersection::PrimitiveIntersection,
+    light::Light,
+    primitive::Primitive,
+    ray::Ray,
 };
 
 #[derive(Debug, PartialEq)]
@@ -22,12 +26,13 @@ impl Scene {
         lights: Vec<Arc<Light>>,
         primitives: Vec<Arc<Primitive>>,
     ) -> Self {
+        let bvh = Bvh::new(primitives, SplitMethod::Median);
         Self {
             max_depth,
             num_samples,
             camera,
             lights,
-            bvh: Bvh::new(primitives),
+            bvh,
         }
     }
 
