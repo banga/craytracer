@@ -664,12 +664,15 @@ mod parser {
                     )),
                     Arc::new(Primitive::new(
                         // source: objs/triangle.obj
-                        Arc::new(Shape::new_triangle(
-                            p!(1, 0, 0),
-                            p!(0, 1, 0),
-                            // Co-ordinate system correction
-                            p!(0, 0, -1),
-                        )),
+                        Arc::new(
+                            Shape::new_triangle(
+                                p!(1, 0, 0),
+                                p!(0, 1, 0),
+                                // Co-ordinate system correction
+                                p!(0, 0, -1),
+                            )
+                            .unwrap()
+                        ),
                         Arc::new(Material::new_matte(Color::WHITE, 0.0)),
                         None
                     ))

@@ -897,11 +897,14 @@ pub mod scene_parser {
                     map.get("origin")?,
                     map.get("radius")?,
                 ))),
-                "Triangle" => Ok(Arc::new(Shape::new_triangle(
-                    map.get("v0")?,
-                    map.get("v1")?,
-                    map.get("v2")?,
-                ))),
+                "Triangle" => Ok(Arc::new(
+                    Shape::new_triangle(map.get("v0")?, map.get("v1")?, map.get("v2")?).unwrap_or(
+                        Err(ParserError::new(
+                            &format!("Degenerate triangle: {}", typed_map.name),
+                            &typed_map.map.location,
+                        ))?,
+                    ),
+                )),
                 "Disk" => Ok(Arc::new(Shape::new_disk(
                     map.get("origin")?,
                     map.get_or("rotate_x", 0.0)?,

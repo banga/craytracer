@@ -132,6 +132,17 @@ impl Add for &SAHBucket {
 }
 
 impl BvhNode {
+    fn leaf_node(primitive_infos: &[PrimitiveInfo]) -> BvhNode {
+        let bounds: Bounds = primitive_infos.iter().map(|p| p.bounds).sum();
+        BvhNode::LeafNode {
+            bounds,
+            primitives: primitive_infos
+                .iter()
+                .map(|pi| Arc::clone(&pi.primitive))
+                .collect(),
+        }
+    }
+
     fn from_median_splitting(mut primitive_infos: &mut [PrimitiveInfo]) -> BvhNode {
         assert!(primitive_infos.len() > 0);
         let bounds: Bounds = primitive_infos.iter().map(|p| p.bounds).sum();
@@ -146,13 +157,7 @@ impl BvhNode {
                     split_axis,
                 }
             }
-            None => BvhNode::LeafNode {
-                bounds,
-                primitives: primitive_infos
-                    .iter()
-                    .map(|p| Arc::clone(&p.primitive))
-                    .collect(),
-            },
+            None => BvhNode::leaf_node(primitive_infos),
         }
     }
 
@@ -188,20 +193,17 @@ impl BvhNode {
 
         let bounds: Bounds = primitive_infos.iter().map(|i| i.bounds).sum();
         if primitive_infos.len() <= 1 {
-            return BvhNode::LeafNode {
-                bounds,
-                primitives: primitive_infos
-                    .iter()
-                    .map(|p| Arc::clone(&p.primitive))
-                    .collect(),
-            };
+            return BvhNode::leaf_node(&primitive_infos);
         }
 
         let total_surface_area = bounds.surface_area();
-        assert!(
-            total_surface_area > 0.0,
-            "Encountered primitives with no surface"
-        );
+        if total_surface_area == 0.0 {
+            println!(
+                "Encountered primitives with no surface area: {:#?}",
+                primitive_infos
+            );
+            return BvhNode::leaf_node(&primitive_infos);
+        }
 
         let centroid_bounds: Bounds = primitive_infos
             .iter()

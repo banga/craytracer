@@ -123,7 +123,7 @@ mod triangle {
 
     // Triangle in XY plane
     fn triangle() -> Shape {
-        Shape::new_triangle(p!(1, 0, 0), p!(1, 1, 0), p!(2, 0, 0))
+        Shape::new_triangle(p!(1, 0, 0), p!(1, 1, 0), p!(2, 0, 0)).unwrap()
     }
 
     #[test]

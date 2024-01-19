@@ -11,8 +11,7 @@ use crate::{
 pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Primitive>> {
     println!("Loading mesh from \"{}\"", file_name);
 
-    let (models, input_materials) =
-        tobj::load_obj(file_name, &tobj::GPU_LOAD_OPTIONS).expect("Error loading models");
+    let (models, input_materials) = tobj::load_obj(file_name, &tobj::GPU_LOAD_OPTIONS).unwrap();
     let input_materials = match input_materials {
         Ok(m) => m,
         Err(e) => {
@@ -60,10 +59,14 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Pr
 
         if ambient.is_some() && !ambient.unwrap().is_black() {
             // TODO: add area lights
-            materials.push(Arc::new(Material::new_matte(diffuse, 90.0)));
-        } else {
+            materials.push(Arc::clone(&fallback_material));
+        } else if !diffuse.is_black() {
+            // Hack: ignore completely black materials because we don't render
+            // them correctly yet. These tend to be image textured materials.
             // TODO: read roughness
             materials.push(Arc::new(Material::new_matte(diffuse, 0.0)));
+        } else {
+            materials.push(Arc::clone(&fallback_material));
         }
     }
 
@@ -111,10 +114,6 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Pr
                 let vi = vertices[*i as usize];
                 let vj = vertices[*j as usize];
                 let vk = vertices[*k as usize];
-                if vi == vj || vi == vk {
-                    println!("Skipping degenerate triangle with vertices {i}, {j}, {k}");
-                    continue;
-                }
 
                 let triangle = if normals.len() > 0 {
                     let ni = normals[*i as usize];
@@ -124,16 +123,21 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Pr
                 } else {
                     Shape::new_triangle(vi, vj, vk)
                 };
-                primitives.push(Arc::new(Primitive::new(
-                    Arc::new(triangle),
-                    Arc::clone(material),
-                    None,
-                )));
+
+                if let Some(triangle) = triangle {
+                    primitives.push(Arc::new(Primitive::new(
+                        Arc::new(triangle),
+                        Arc::clone(material),
+                        None,
+                    )));
+                } else {
+                    println!("Skipping degenerate triangle with vertices {i}, {j}, {k}");
+                }
             }
         }
 
         println!(
-            "Loaded mesh \"{}\" with {} material, {} triangles, {} vertices and {} normals",
+            "Loaded mesh \"{}\" with {} material, {} triangles, {} vertices and {} normals {:?}",
             model.name,
             match mesh.material_id {
                 Some(id) => format!("\"{}\"", &input_materials[id].name),
@@ -141,7 +145,8 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Pr
             },
             mesh.indices.len() / 3,
             mesh.positions.len() / 3,
-            mesh.normals.len() / 3
+            mesh.normals.len() / 3,
+            material,
         );
     }
 

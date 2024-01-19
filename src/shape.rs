@@ -58,7 +58,7 @@ impl Shape {
             world_to_object: Transformation::translate(-origin.x(), -origin.y(), -origin.z()),
         }
     }
-    pub fn new_triangle(v0: Point, v1: Point, v2: Point) -> Shape {
+    pub fn new_triangle(v0: Point, v1: Point, v2: Point) -> Option<Shape> {
         let e1 = v1 - v0;
         let e2 = v2 - v0;
 
@@ -66,14 +66,19 @@ impl Shape {
         // in a left handed co-ordinate system:
         let n0 = e2.cross(&e1).normalized();
 
-        Shape::Triangle {
+        if n0.magnitude_squared() == 0.0 {
+            // Degenerate triangle
+            return None;
+        }
+
+        Some(Shape::Triangle {
             v0,
             e1,
             e2,
             n0,
             n01: v!(0, 0, 0),
             n02: v!(0, 0, 0),
-        }
+        })
     }
     pub fn new_triangle_with_normals(
         v0: Point,
@@ -82,18 +87,22 @@ impl Shape {
         n0: Vector,
         n1: Vector,
         n2: Vector,
-    ) -> Shape {
+    ) -> Option<Shape> {
         let e1 = v1 - v0;
         let e2 = v2 - v0;
 
-        Shape::Triangle {
+        if e2.cross(&e1).magnitude_squared() == 0.0 {
+            return None;
+        }
+
+        Some(Shape::Triangle {
             v0,
             e1,
             e2,
             n0,
             n01: n1 - n0,
             n02: n2 - n0,
-        }
+        })
     }
     pub fn new_disk(
         origin: Point,
