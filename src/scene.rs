@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Instant};
 
 use crate::{
     bvh::{Bvh, SplitMethod},
@@ -27,7 +27,9 @@ impl Scene {
         primitives: Vec<Arc<Primitive>>,
     ) -> Self {
         // TODO: Maybe allow picking split method in scene files
+        let start = Instant::now();
         let bvh = Bvh::new(primitives, SplitMethod::SAH);
+        println!("BVH constructed in {:?}", start.elapsed());
         Self {
             max_depth,
             num_samples,
