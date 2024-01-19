@@ -6,6 +6,7 @@ use crate::{
     intersection::PrimitiveIntersection,
     primitive::Primitive,
     ray::Ray,
+    util::partition_by,
 };
 
 #[derive(Debug, PartialEq)]
@@ -45,7 +46,7 @@ impl Bvh {
 
         let root = match split_method {
             SplitMethod::Median => BvhNode::from_median_splitting(&mut primitive_infos),
-            SplitMethod::SAH => BvhNode::from_sah_splitting(primitive_infos),
+            SplitMethod::SAH => BvhNode::from_sah_splitting(&mut primitive_infos),
         };
 
         Bvh { root }
@@ -132,8 +133,7 @@ impl Add for &SAHBucket {
 }
 
 impl BvhNode {
-    fn leaf_node(primitive_infos: &[PrimitiveInfo]) -> BvhNode {
-        let bounds: Bounds = primitive_infos.iter().map(|p| p.bounds).sum();
+    fn leaf_node(primitive_infos: &[PrimitiveInfo], bounds: Bounds) -> BvhNode {
         BvhNode::LeafNode {
             bounds,
             primitives: primitive_infos
@@ -157,7 +157,7 @@ impl BvhNode {
                     split_axis,
                 }
             }
-            None => BvhNode::leaf_node(primitive_infos),
+            None => BvhNode::leaf_node(primitive_infos, bounds),
         }
     }
 
@@ -186,24 +186,22 @@ impl BvhNode {
 
     // Surface Area Heuristic
 
-    fn from_sah_splitting(primitive_infos: Vec<PrimitiveInfo>) -> BvhNode {
+    fn from_sah_splitting(primitive_infos: &mut [PrimitiveInfo]) -> BvhNode {
         const NUM_BUCKETS: usize = 12;
         const TRAVERSAL_TO_INTERSECTION_COST_RATIO: f64 = 1.0 / 8.0;
         const MAX_LEAF_PRIMITIVES: usize = 4;
 
         let bounds: Bounds = primitive_infos.iter().map(|i| i.bounds).sum();
         if primitive_infos.len() <= 1 {
-            return BvhNode::leaf_node(&primitive_infos);
+            return BvhNode::leaf_node(&primitive_infos, bounds);
         }
 
         let total_surface_area = bounds.surface_area();
-        if total_surface_area == 0.0 {
-            println!(
-                "Encountered primitives with no surface area: {:#?}",
-                primitive_infos
-            );
-            return BvhNode::leaf_node(&primitive_infos);
-        }
+        assert!(
+            total_surface_area > 0.0,
+            "Encountered primitives with no surface area: {:#?}",
+            primitive_infos
+        );
 
         let centroid_bounds: Bounds = primitive_infos
             .iter()
@@ -272,33 +270,22 @@ impl BvhNode {
         // Create a leaf if it will cost less and not have too many primitives
         let leaf_cost = primitive_infos.len() as f64;
         if leaf_cost <= costs[min_cost_bucket_idx] && primitive_infos.len() <= MAX_LEAF_PRIMITIVES {
-            return BvhNode::LeafNode {
-                bounds,
-                primitives: primitive_infos
-                    .iter()
-                    .map(|p| Arc::clone(&p.primitive))
-                    .collect(),
-            };
+            return BvhNode::leaf_node(primitive_infos, bounds);
         }
 
         // Otherwise, split at the minimum cost bucket
-
-        // TODO: construction would be faster if we could in-place partition the
-        // slice (a la std::partition in C++), but rust std does not seem to
-        // have that.
-        let (left, right): (Vec<_>, Vec<_>) =
-            primitive_infos.into_iter().partition(|primitive_info| {
-                let bucket_idx = get_bucket_idx(&primitive_info);
-                bucket_idx <= min_cost_bucket_idx
-            });
+        let (mut left, mut right) = partition_by(primitive_infos, |primitive_info| {
+            let bucket_idx = get_bucket_idx(&primitive_info);
+            bucket_idx <= min_cost_bucket_idx
+        });
 
         assert!(left.len() > 0);
         assert!(right.len() > 0);
 
         BvhNode::InteriorNode {
             bounds,
-            left: Box::new(Self::from_sah_splitting(left)),
-            right: Box::new(Self::from_sah_splitting(right)),
+            left: Box::new(Self::from_sah_splitting(&mut left)),
+            right: Box::new(Self::from_sah_splitting(&mut right)),
             split_axis,
         }
     }

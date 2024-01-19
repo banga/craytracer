@@ -20,3 +20,4 @@ pub mod scene_parser;
 pub mod shape;
 pub mod trace;
 pub mod transformation;
+pub mod util;
