@@ -26,6 +26,10 @@ impl Bounds {
             (self.min.z() + self.max.z()) * 0.5,
         )
     }
+    pub fn surface_area(&self) -> f64 {
+        let Vector(dx, dy, dz) = self.diagonal();
+        2.0 * (dx * dy + dy * dz + dz * dx)
+    }
     pub fn diagonal(&self) -> Vector {
         self.max - self.min
     }
@@ -46,6 +50,14 @@ impl Bounds {
             && self.max.x() >= point.x()
             && self.max.y() >= point.y()
             && self.max.z() >= point.z()
+    }
+    /// Convert a `point` within bounds to [0, 1]^3
+    pub fn offset(&self, point: &Point) -> Vector {
+        Vector(
+            (point.x() - self.min.x()) / (self.max.x() - self.min.x()),
+            (point.y() - self.min.y()) / (self.max.y() - self.min.y()),
+            (point.z() - self.min.z()) / (self.max.z() - self.min.z()),
+        )
     }
     pub fn intersect(&self, ray: &Ray) -> Option<f64> {
         let mut min_distance = f64::NEG_INFINITY;

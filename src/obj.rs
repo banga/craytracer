@@ -16,7 +16,7 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Pr
     let input_materials = match input_materials {
         Ok(m) => m,
         Err(e) => {
-            eprintln!(
+            println!(
                 "Error loading materials in {:?}: {}, skipping",
                 file_name, e
             );
@@ -30,7 +30,7 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Pr
         } else if let Ok(i) = s.parse::<i32>() {
             i as f64
         } else {
-            eprintln!("Could not parse float from '{}'", s);
+            println!("Could not parse float from '{}'", s);
             0.0
         }
     }
@@ -108,21 +108,21 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Pr
 
         for chunk in mesh.indices.chunks(3) {
             if let [i, j, k] = chunk {
+                let vi = vertices[*i as usize];
+                let vj = vertices[*j as usize];
+                let vk = vertices[*k as usize];
+                if vi == vj || vi == vk {
+                    println!("Skipping degenerate triangle with vertices {i}, {j}, {k}");
+                    continue;
+                }
+
                 let triangle = if normals.len() > 0 {
-                    Shape::new_triangle_with_normals(
-                        vertices[*i as usize],
-                        vertices[*j as usize],
-                        vertices[*k as usize],
-                        normals[*i as usize],
-                        normals[*j as usize],
-                        normals[*k as usize],
-                    )
+                    let ni = normals[*i as usize];
+                    let nj = normals[*j as usize];
+                    let nk = normals[*k as usize];
+                    Shape::new_triangle_with_normals(vi, vj, vk, ni, nj, nk)
                 } else {
-                    Shape::new_triangle(
-                        vertices[*i as usize],
-                        vertices[*j as usize],
-                        vertices[*k as usize],
-                    )
+                    Shape::new_triangle(vi, vj, vk)
                 };
                 primitives.push(Arc::new(Primitive::new(
                     Arc::new(triangle),

@@ -1,4 +1,4 @@
-use std::{fmt::Display, sync::Arc};
+use std::{fmt::Display, ops::Add, sync::Arc};
 
 use crate::{
     bounds::Bounds,
@@ -24,7 +24,6 @@ pub enum BvhNode {
 
 pub enum SplitMethod {
     Median,
-    Middle,
     SAH,
 }
 
@@ -46,8 +45,7 @@ impl Bvh {
 
         let root = match split_method {
             SplitMethod::Median => BvhNode::from_median_splitting(&mut primitive_infos),
-            SplitMethod::Middle => todo!(),
-            SplitMethod::SAH => todo!(),
+            SplitMethod::SAH => BvhNode::from_sah_splitting(primitive_infos),
         };
 
         Bvh { root }
@@ -116,6 +114,23 @@ impl Display for PrimitiveInfo {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+struct SAHBucket {
+    bounds: Bounds,
+    count: usize,
+}
+
+impl Add for &SAHBucket {
+    type Output = SAHBucket;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        SAHBucket {
+            bounds: self.bounds + rhs.bounds,
+            count: self.count + rhs.count,
+        }
+    }
+}
+
 impl BvhNode {
     fn from_median_splitting(mut primitive_infos: &mut [PrimitiveInfo]) -> BvhNode {
         assert!(primitive_infos.len() > 0);
@@ -146,15 +161,13 @@ impl BvhNode {
             return None;
         }
 
-        // TODO: This is a very naive implementation that just always picks the
-        // median edge. We should use a SAH to find a better split.
-        let extents = primitive_infos.iter().map(|p| p.centroid).fold(
-            Bounds::new(primitive_infos[0].centroid, primitive_infos[0].centroid),
-            |x, y| x + y,
-        );
+        let centroid_bounds: Bounds = primitive_infos
+            .iter()
+            .map(|p| Bounds::new(p.centroid, p.centroid))
+            .sum();
 
-        let split_axis = extents.maximum_extent();
-        if extents.min[split_axis] == extents.max[split_axis] {
+        let split_axis = centroid_bounds.maximum_extent();
+        if centroid_bounds.min[split_axis] == centroid_bounds.max[split_axis] {
             return None;
         }
 
@@ -164,6 +177,128 @@ impl BvhNode {
         });
 
         Some((split_axis, mid))
+    }
+
+    // Surface Area Heuristic
+
+    fn from_sah_splitting(primitive_infos: Vec<PrimitiveInfo>) -> BvhNode {
+        const NUM_BUCKETS: usize = 12;
+        const TRAVERSAL_TO_INTERSECTION_COST_RATIO: f64 = 1.0 / 8.0;
+        const MAX_LEAF_PRIMITIVES: usize = 4;
+
+        let bounds: Bounds = primitive_infos.iter().map(|i| i.bounds).sum();
+        if primitive_infos.len() <= 1 {
+            return BvhNode::LeafNode {
+                bounds,
+                primitives: primitive_infos
+                    .iter()
+                    .map(|p| Arc::clone(&p.primitive))
+                    .collect(),
+            };
+        }
+
+        let total_surface_area = bounds.surface_area();
+        assert!(
+            total_surface_area > 0.0,
+            "Encountered primitives with no surface"
+        );
+
+        let centroid_bounds: Bounds = primitive_infos
+            .iter()
+            .map(|p| Bounds::new(p.centroid, p.centroid))
+            .sum();
+        let split_axis = centroid_bounds.maximum_extent();
+
+        // We will assign primitives to buckets that their centroids lie in.
+        // Some buckets will be left empty, which is represented with None.
+        let mut buckets: Vec<Option<SAHBucket>> = (0..NUM_BUCKETS).map(|_| None).collect();
+        let get_bucket_idx = |p: &PrimitiveInfo| {
+            let centroid_offset = centroid_bounds.offset(&p.centroid)[split_axis];
+            let idx = (NUM_BUCKETS as f64 * centroid_offset) as usize;
+            // Include the centroid furthest to the right into the last bucket
+            idx.min(NUM_BUCKETS - 1)
+        };
+
+        // Add primitives to buckets
+        for primitive_info in primitive_infos.iter() {
+            let bucket_idx: usize = get_bucket_idx(&primitive_info);
+            buckets[bucket_idx] = buckets[bucket_idx]
+                .as_ref()
+                .and_then(|bucket| {
+                    Some(SAHBucket {
+                        bounds: bucket.bounds + primitive_info.bounds,
+                        count: bucket.count + 1,
+                    })
+                })
+                .or(Some(SAHBucket {
+                    bounds: primitive_info.bounds,
+                    count: 1,
+                }));
+        }
+
+        // Calculate costs of splitting at each bucket (except the last, since
+        // that would assign everything to the left node)
+        let mut costs = [0.0; NUM_BUCKETS - 1];
+        for i in 0..NUM_BUCKETS - 1 {
+            let mut cost = TRAVERSAL_TO_INTERSECTION_COST_RATIO;
+            let (left, right) = buckets.split_at(i + 1);
+            for part in [left, right] {
+                let mut merged_bucket: Option<SAHBucket> = None;
+                for bucket in part {
+                    if let Some(bucket) = bucket {
+                        merged_bucket = merged_bucket
+                            .and_then(|merged_bucket| Some(&merged_bucket + &bucket))
+                            .or(Some(*bucket));
+                    }
+                }
+                if let Some(SAHBucket { bounds, count }) = merged_bucket {
+                    cost += count as f64 * bounds.surface_area() / total_surface_area;
+                }
+            }
+            // Guard against bad calculations / degenerate cases
+            assert!(cost.is_finite());
+            costs[i] = cost;
+        }
+
+        let mut min_cost_bucket_idx = 0;
+        for (i, c) in costs.iter().enumerate() {
+            if *c < costs[min_cost_bucket_idx] {
+                min_cost_bucket_idx = i;
+            }
+        }
+
+        // Create a leaf if it will cost less and not have too many primitives
+        let leaf_cost = primitive_infos.len() as f64;
+        if leaf_cost <= costs[min_cost_bucket_idx] && primitive_infos.len() <= MAX_LEAF_PRIMITIVES {
+            return BvhNode::LeafNode {
+                bounds,
+                primitives: primitive_infos
+                    .iter()
+                    .map(|p| Arc::clone(&p.primitive))
+                    .collect(),
+            };
+        }
+
+        // Otherwise, split at the minimum cost bucket
+
+        // TODO: construction would be faster if we could in-place partition the
+        // slice (a la std::partition in C++), but rust std does not seem to
+        // have that.
+        let (left, right): (Vec<_>, Vec<_>) =
+            primitive_infos.into_iter().partition(|primitive_info| {
+                let bucket_idx = get_bucket_idx(&primitive_info);
+                bucket_idx <= min_cost_bucket_idx
+            });
+
+        assert!(left.len() > 0);
+        assert!(right.len() > 0);
+
+        BvhNode::InteriorNode {
+            bounds,
+            left: Box::new(Self::from_sah_splitting(left)),
+            right: Box::new(Self::from_sah_splitting(right)),
+            split_axis,
+        }
     }
 }
 

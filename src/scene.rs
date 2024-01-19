@@ -26,7 +26,8 @@ impl Scene {
         lights: Vec<Arc<Light>>,
         primitives: Vec<Arc<Primitive>>,
     ) -> Self {
-        let bvh = Bvh::new(primitives, SplitMethod::Median);
+        // TODO: Maybe allow picking split method in scene files
+        let bvh = Bvh::new(primitives, SplitMethod::SAH);
         Self {
             max_depth,
             num_samples,
