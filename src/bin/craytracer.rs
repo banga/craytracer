@@ -61,7 +61,7 @@ fn create_preview_window(width: usize, height: usize) -> Window {
     window
 }
 
-fn show_preview(
+fn show_preview<C, F>(
     window: &mut Window,
     width: usize,
     height: usize,
@@ -70,7 +70,12 @@ fn show_preview(
     tiles: &Vec<(usize, usize, usize, usize)>,
     pixels: Arc<Mutex<Vec<f32>>>,
     receiver: Receiver<usize>,
-) -> Vec<u32> {
+    on_click: C,
+    on_finish: F,
+) where
+    C: Fn(usize, usize),
+    F: FnOnce(),
+{
     let mut preview_buffer = vec![0u32; width * height];
 
     // Initialize buffer to draw a checkerboard pattern
@@ -119,7 +124,38 @@ fn show_preview(
         }
     }
 
-    preview_buffer
+    on_finish();
+
+    // Wait for user to close the preview window. If the left mouse button is
+    // released, invoke on_click with the pixel value.
+    let mut is_left_button_down = false;
+    while window.is_open() && !window.is_key_released(Key::Escape) {
+        window
+            .update_with_buffer(&mut preview_buffer, width, height)
+            .unwrap();
+
+        // TODO: Sometimes the mouse events stop reporting if you click too
+        // often.
+        if window.get_mouse_down(minifb::MouseButton::Left) {
+            is_left_button_down = true;
+        } else if is_left_button_down {
+            if let Some((x, y)) = window.get_mouse_pos(minifb::MouseMode::Pass) {
+                on_click(x as usize, y as usize)
+            }
+            is_left_button_down = false;
+        } else {
+            is_left_button_down = false;
+        }
+    }
+}
+
+#[inline]
+fn render_pixel<R>(rng: &mut R, x: usize, y: usize, scene: &Scene) -> Color
+where
+    R: SeedableRng + Rng + ?Sized,
+{
+    let ray = scene.camera.sample(rng, x, y);
+    path_trace(rng, ray, &scene)
 }
 
 fn render_tile<R>(
@@ -137,8 +173,7 @@ fn render_tile<R>(
         for x in x1..x2 {
             let mut color = Color::BLACK;
             for _ in 0..scene.num_samples {
-                let ray = scene.camera.sample(&mut rng, x, y);
-                color += path_trace(&mut rng, ray, &scene);
+                color += render_pixel(&mut rng, x, y, scene);
             }
             color /= scene.num_samples as f64;
 
@@ -165,13 +200,10 @@ fn update_render_progress(start: Instant, num_rendered: usize, num_total: usize)
     );
 }
 
-fn render<R>(
-    scene: &Scene,
-    preview: bool,
-    start: Instant,
-) -> (Vec<f32>, Option<Window>, Option<Vec<u32>>)
+fn render<R, F>(scene: &Scene, preview: bool, start: Instant, on_render_finish: F)
 where
     R: SeedableRng + Rng + ?Sized,
+    F: FnOnce(Vec<f32>),
 {
     let num_threads = num_cpus::get();
 
@@ -181,12 +213,10 @@ where
     let tiles = &generate_tiles(height, width, tile_width, tile_height);
 
     let pixels = Arc::new(Mutex::new(vec![0f32; width * height * 3]));
+    let on_finish = || on_render_finish(pixels.lock().unwrap().clone());
 
     let tile_index = Arc::new(AtomicUsize::new(0));
     let (sender, receiver) = mpsc::channel();
-
-    let mut preview_window: Option<Window> = None;
-    let mut preview_buffer: Option<Vec<u32>> = None;
 
     thread::scope(|scope| {
         let mut handles = vec![];
@@ -218,7 +248,7 @@ where
 
         if preview {
             let mut window = create_preview_window(width, height);
-            preview_buffer = Some(show_preview(
+            show_preview(
                 &mut window,
                 width,
                 height,
@@ -227,17 +257,21 @@ where
                 tiles,
                 Arc::clone(&pixels),
                 receiver,
-            ));
-            preview_window = Some(window);
+                |x, y| {
+                    println!("Rendering pixel at ({x},{y})");
+                    let mut rng = R::from_entropy();
+                    let color = render_pixel(&mut rng, x, y, scene);
+                    println!("Color = {}", color);
+                },
+                on_finish,
+            );
         } else {
             for handle in handles {
                 handle.join().unwrap();
             }
+            on_finish();
         }
     });
-
-    let pixels = pixels.lock().unwrap().clone();
-    (pixels, preview_window, preview_buffer)
 }
 
 #[derive(Parser)]
@@ -272,23 +306,15 @@ fn main() -> Result<(), ParserError> {
     let (width, height) = scene.film_bounds();
 
     // Render to a buffer
-    let (pixels, preview_window, preview_buffer) = render::<SmallRng>(&scene, args.preview, start);
-    println!("Rendering finished in {:?}", start.elapsed());
+    render::<SmallRng, _>(&scene, args.preview, start, |pixels| {
+        println!("Rendering finished in {:?}", start.elapsed());
 
-    // Save to file
-    let image_buffer = image::Rgb32FImage::from_raw(width as u32, height as u32, pixels).unwrap();
-    image_buffer.save(&args.output).expect("Error saving file");
-    println!("Output written to {}", &args.output);
-
-    // Wait for user to close the preview window
-    if let Some(mut preview_window) = preview_window {
-        let mut preview_buffer = preview_buffer.unwrap();
-        while preview_window.is_open() && !preview_window.is_key_released(Key::Escape) {
-            preview_window
-                .update_with_buffer(&mut preview_buffer, width, height)
-                .unwrap();
-        }
-    }
+        // Save to file
+        let image_buffer =
+            image::Rgb32FImage::from_raw(width as u32, height as u32, pixels).unwrap();
+        image_buffer.save(&args.output).expect("Error saving file");
+        println!("Output written to {}", &args.output);
+    });
 
     Ok(())
 }
