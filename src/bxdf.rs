@@ -82,6 +82,10 @@ impl BxDF {
         }
     }
 
+    /// Samples the BRDF given a surface `normal` and an outgoing direction for
+    /// light `w_o`. The sample includes `w_i` the sampled incoming direction of
+    /// light, `f` the value of the BRDF at this sample and `pdf` the value of
+    /// the probability density function at this sample.
     pub fn sample<R>(&self, rng: &mut R, w_o: &Vector, normal: &Normal) -> Option<SurfaceSample>
     where
         R: Rng,
@@ -200,6 +204,8 @@ impl BxDF {
         }
     }
 
+    /// Returns the value of the BRDF given outgoing and incoming directions for
+    /// light `w_o` and `w_i`
     pub fn f(&self, w_o: &Vector, w_i: &Vector, normal: &Normal) -> Color {
         match self {
             BxDF::LambertianBRDF { reflectance } => *reflectance * FRAC_1_PI,
@@ -227,6 +233,8 @@ impl BxDF {
         }
     }
 
+    /// Return the value of the probability density function of sampling this
+    /// BRDF in the incoming direction `w_i`
     pub fn pdf(&self, _w_o: &Vector, w_i: &Vector, normal: &Normal) -> Pdf {
         match self {
             BxDF::LambertianBRDF { .. } => {

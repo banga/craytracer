@@ -12,6 +12,98 @@ use crate::{
 use approx::assert_abs_diff_eq;
 use rand::Rng;
 
+#[allow(non_snake_case)]
+fn sample_light<R>(
+    rng: &mut R,
+    intersection: &PrimitiveIntersection<'_>,
+    w_o: &Vector,
+    light: &Light,
+    scene: &Scene,
+) -> Color
+where
+    R: Rng,
+{
+    let mut light_sample = light.sample(rng, &intersection.location);
+    if light_sample.Li.is_black() {
+        return Color::BLACK;
+    }
+    // TODO: Implement a fast intersection method that just returns a boolean
+    let shadow_intersection = scene.intersect(&mut light_sample.shadow_ray);
+    if shadow_intersection.is_some() {
+        return Color::BLACK;
+    }
+    let f = intersection
+        .material
+        .f(w_o, &light_sample.w_i, &intersection.normal);
+    if f.is_black() {
+        return Color::BLACK;
+    }
+
+    let cos_theta_i = light_sample.w_i.dot(&intersection.normal).abs();
+    let mut Li = f * light_sample.Li * cos_theta_i;
+    let pdf_f = intersection
+        .material
+        .pdf(w_o, &light_sample.w_i, &intersection.normal);
+    let pdf_f = match pdf_f {
+        Pdf::Delta => 0.0,
+        Pdf::NonDelta(pdf_f) => pdf_f,
+    };
+    let mut weight = 1.0;
+    if let Pdf::NonDelta(pdf_light) = light_sample.pdf {
+        weight = power_heuristic(1, pdf_light, 1, pdf_f);
+        Li = Li / pdf_light;
+    }
+    Li * weight
+}
+
+#[allow(non_snake_case)]
+fn sample_brdf<R>(
+    rng: &mut R,
+    intersection: &PrimitiveIntersection<'_>,
+    w_o: &Vector,
+    light: &Light,
+    scene: &Scene,
+) -> Color
+where
+    R: Rng,
+{
+    let material_sample = intersection.material.sample(rng, w_o, &intersection.normal);
+    if material_sample.is_none() {
+        return Color::BLACK;
+    }
+    let material_sample = material_sample.unwrap();
+
+    let mut Li = Color::BLACK;
+    let mut weight = 1.0;
+
+    let ray = &mut Ray::new(intersection.location, material_sample.w_i);
+    // If the sampled direction hits something in the scene, it can only
+    // contribute if the thing it hits is the area light we are sampling
+    if let Some(surface_intersection) = scene.intersect(ray) {
+        if Some(light) == surface_intersection.primitive.get_area_light().as_deref() {
+            Li = light.L(&surface_intersection, &material_sample.w_i);
+        }
+    } else if
+    // If the light's direction is delta distributed, there's no chance the BRDF
+    // would sample it, so we only add the contribution if it's a non-delta
+    // light
+    let Pdf::NonDelta(pdf_light) = light.pdf(&intersection.location, &material_sample.w_i)
+    {
+        Li = light.Le(&material_sample.w_i);
+        if let Pdf::NonDelta(pdf_f) = material_sample.pdf {
+            weight = power_heuristic(1, pdf_f, 1, pdf_light);
+            Li = Li / pdf_f;
+        }
+    }
+
+    if Li.is_black() {
+        return Color::BLACK;
+    }
+
+    let cos_theta_i = material_sample.w_i.dot(&intersection.normal).abs();
+    Li * weight * material_sample.f * cos_theta_i
+}
+
 /// Estimate the radiance leaving the given point in the direction w_o from the
 /// given light source.
 #[allow(non_snake_case)]
@@ -27,63 +119,8 @@ where
 {
     let mut Ld = Color::BLACK;
 
-    // Sample the light source
-    let mut light_sample = light.sample(rng, &intersection.location);
-    let shadow_intersection = scene.intersect(&mut light_sample.shadow_ray);
-    if shadow_intersection.is_none() {
-        let cos_theta_i = light_sample.w_i.dot(&intersection.normal).abs();
-        let mut Li = intersection
-            .material
-            .f(w_o, &light_sample.w_i, &intersection.normal)
-            * light_sample.Li
-            * cos_theta_i;
-        if !Li.is_black() {
-            let pdf_f = intersection
-                .material
-                .pdf(w_o, &light_sample.w_i, &intersection.normal);
-            let pdf_f = match pdf_f {
-                Pdf::Delta => 0.0,
-                Pdf::NonDelta(pdf_f) => pdf_f,
-            };
-            let mut weight = 1.0;
-            if let Pdf::NonDelta(pdf_light) = light_sample.pdf {
-                weight = power_heuristic(1, pdf_light, 1, pdf_f);
-                Li = Li / pdf_light;
-            }
-            Ld += Li * weight;
-        }
-    }
-
-    // Sample the BRDF
-    if let Some(material_sample) = intersection.material.sample(rng, w_o, &intersection.normal) {
-        let mut Li = Color::BLACK;
-        let mut weight = 1.0;
-
-        let ray = &mut Ray::new(intersection.location, material_sample.w_i);
-        if let Some(surface_intersection) = scene.intersect(ray) {
-            // If the sampled direction hits something in the scene, it can only
-            // contribute if the thing it hits is the area light we are sampling
-            if Some(light) == surface_intersection.primitive.get_area_light().as_deref() {
-                Li = light.L(&surface_intersection, &material_sample.w_i);
-            }
-        } else if let Pdf::NonDelta(pdf_light) =
-            light.pdf(&intersection.location, &material_sample.w_i)
-        {
-            // If the light's direction is delta distributed, there's no chance
-            // the BRDF would sample it, so we only add the contribution if it's
-            // a non-delta light
-            Li = light.Le(&material_sample.w_i);
-            if let Pdf::NonDelta(pdf_f) = material_sample.pdf {
-                weight = power_heuristic(1, pdf_f, 1, pdf_light);
-                Li = Li / pdf_f;
-            }
-        }
-
-        if !Li.is_black() {
-            let cos_theta_i = material_sample.w_i.dot(&intersection.normal).abs();
-            Ld += Li * weight * material_sample.f * cos_theta_i;
-        }
-    }
+    Ld += sample_light(rng, intersection, w_o, light, scene);
+    Ld += sample_brdf(rng, intersection, w_o, light, scene);
 
     Ld
 }
