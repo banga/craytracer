@@ -28,27 +28,26 @@ fn get_camera_from_raster_transformation(
     screen_from_camera: Transformation,
     film: &Film,
 ) -> Transformation {
-    // Screen goes from [-0.5, 0.5] in the narrow dimension and [-a/2, a/2]
+    let film_width = film.width as f64;
+    let film_height = film.width as f64;
+    // Screen goes from [-1, 1] in the narrow dimension and [-a, a]
     // in the wider dimension, where a is the aspect ratio
-    let (screen_width, screen_height) = if film.width > film.height {
-        (film.width as f64 / film.height as f64, 1.0)
+    let (screen_width, screen_height) = if film_width > film_height {
+        (film_width / film_height, 1.0)
     } else {
-        (1.0, film.height as f64 / film.width as f64)
+        (1.0, film_height / film_width)
     };
 
-    // Raster co-ordinates will be from [0, 0] to [film.width, film.height],
+    // Raster co-ordinates will be from [0, 0] to [w, h],
     // where the y axis points downwards. This transform converts them to
     // screen co-ordinates s.t. y points upwards and (0, 0) on screen goes
     // through the center of the film.
-    let screen_from_raster = &Transformation::scale(
-        screen_width / (film.width as f64),
-        -screen_height / (film.height as f64),
-        1.0,
-    ) * &Transformation::translate(
-        -(film.width as f64) * 0.5,
-        -(film.height as f64) * 0.5,
-        0.0,
-    );
+    let screen_from_raster =
+        &Transformation::scale(
+            2.0 * screen_width / film_width,
+            -2.0 * screen_height / film_height,
+            1.0,
+        ) * &Transformation::translate(-film_width / 2.0, -film_height / 2.0, 0.0);
     let camera_from_raster = &screen_from_camera.inverse() * &screen_from_raster;
 
     debug_assert!(camera_from_raster.is_valid());

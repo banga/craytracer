@@ -1,15 +1,15 @@
 {
     num_samples: 1000,
     camera: Perspective {
-        origin: Point(-10, 10, 30),
-        target: Point(0, 0, 1),
-        up: Vector(0, 1, -0.2),
+        origin: Point(-15, 10, 15),
+        target: Point(0, -2.5, 1),
+        up: Vector(0, 1, 0),
         fov: 30,
         lens_radius: 0.25,
-        focal_distance: 31,
+        focal_distance: 22,
         film: {
-            width: 1280,
-            height: 832,
+            width: 640,
+            height: 416,
         }
     },
     lights: [

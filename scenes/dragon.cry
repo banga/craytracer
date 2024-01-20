@@ -1,23 +1,16 @@
 {
-    num_samples: 100,
+    num_samples: 10,
     camera: Perspective {
-        origin: Point(150, 20, 150),
-        target: Point(30, -10, 0),
+        origin: Point(150, 70, 150),
+        target: Point(30, -50, 0),
         up: Vector(0, 1, 0),
-        fov: 90,
+        fov: 60,
         film: {
             width: 600,
             height: 400,
         }
     },
     lights: [
-        Infinite {
-            intensity: Color(0.7, 0.7, 0.7)
-        },
-        Distant {
-            direction: Vector(1, 1, 1),
-            intensity: Color(0.7, 0.7, 0.7)
-        }
     ],
     materials: {
         ground: Matte {
@@ -30,8 +23,9 @@
         }
     },
     shapes: {
-        light: Sphere {
-            origin: Point(0, 100, 150),
+        light: Disk {
+            origin: Point(0, 80, 0),
+            rotate_x: 90,
             radius: 50
         },
         ground: Sphere {
@@ -41,6 +35,7 @@
     },
     primitives: [
         Shape { shape: 'ground', material: 'ground' },
+        Shape { shape: 'light', material: 'ground', emittance: Color(1, 1, 1) },
         Mesh { file_name: 'objs/xyzrgb_dragon.obj', fallback_material: 'dragon' }
     ]
 }
