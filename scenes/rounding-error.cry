@@ -1,0 +1,35 @@
+// Demonstrates a bug caused by rounding error. The shadow of the "ball" below 
+// displays has a box shaped hole, which is caused by the shadow ray not intersecting
+// the bounding box of the ball + area light node. The shadow ray's origin lies on the 
+// disk, which has a y value of around 1e-19, whereas the bounding box of the ball 
+// starts at a y of around 1e-12. Since the ray ends within the bounding box, when
+// it does not intersect 
+{
+    num_samples: 10,
+    max_depth: 1,
+    camera: Perspective {
+        origin: Point(0, 5, -5),
+        target: Point(0, -1, 5),
+        up: Vector(0, 1, 0),
+        fov: 60,
+        film: {
+            width: 400,
+            height: 400,
+        }
+    },
+    lights: [
+    ],
+    materials: {
+        ground: Matte { reflectance: Color(0.8, 0.8, 0.8), sigma: 0 }
+    },
+    shapes: {
+        ground: Disk { origin: Point(0, 0, 0), rotate_x: -90, radius: 10 },
+        ball: Sphere { origin: Point(0, 1.5, 2.5), radius: 1.5 },
+        light: Sphere { origin: Point(0, 5, 5), radius: 1 }
+    },
+    primitives: [
+        Shape { shape: 'ground', material: 'ground' },
+        Shape { shape: 'ball', material: 'ground' },
+        Shape { shape: 'light', emittance: Color(5, 5, 5), material: 'ground' },
+    ]
+}
