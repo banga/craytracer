@@ -64,12 +64,13 @@ impl Shape {
 
         // Assuming that vertices are in clockwise order, calculate the normal
         // in a left handed co-ordinate system:
-        let n0 = e2.cross(&e1).normalized();
-
-        if n0.magnitude_squared() == 0.0 {
+        let mut n0 = e2.cross(&e1);
+        let magnitude = n0.magnitude();
+        if magnitude == 0.0 {
             // Degenerate triangle
             return None;
         }
+        n0 = n0 / magnitude;
 
         Some(Shape::Triangle {
             v0,
