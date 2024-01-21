@@ -37,37 +37,37 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Pr
     let mut materials: Vec<Arc<Material>> = vec![];
     for m in &input_materials {
         let diffuse = if let Some([r, g, b]) = m.diffuse {
-            Color {
-                r: r as f64,
-                g: g as f64,
-                b: b as f64,
-            }
+            Color { r, g, b }
         } else {
             Color::WHITE
         };
         let ambient = if let Some(emission) = m.unknown_param.get("Ke") {
-            let parts: Vec<&str> = emission.split_whitespace().collect();
-            let emission: Vec<f64> = parts.iter().map(|s| parse_float(s)).collect();
+            let emission = emission
+                .split_whitespace()
+                .map(parse_float)
+                .collect::<Vec<_>>();
             Some(Color {
-                r: emission[0] as f64,
-                g: emission[1] as f64,
-                b: emission[2] as f64,
+                r: emission[0],
+                g: emission[1],
+                b: emission[2],
             })
         } else {
             None
         };
 
-        if ambient.is_some() && !ambient.unwrap().is_black() {
+        let material = if ambient.is_some() && !ambient.unwrap().is_black() {
             // TODO: add area lights
-            materials.push(Arc::clone(&fallback_material));
+            Arc::clone(&fallback_material)
         } else if !diffuse.is_black() {
             // Hack: ignore completely black materials because we don't render
             // them correctly yet. These tend to be image textured materials.
             // TODO: read roughness
-            materials.push(Arc::new(Material::new_matte(diffuse, 0.0)));
+            Arc::new(Material::new_matte(diffuse, 0.0))
         } else {
-            materials.push(Arc::clone(&fallback_material));
-        }
+            Arc::clone(&fallback_material)
+        };
+        println!("Created material \"{}\": {:?}", m.name, material);
+        materials.push(material);
     }
 
     let mut primitives: Vec<Arc<Primitive>> = Vec::new();
@@ -90,22 +90,16 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Pr
         let mut vertices = Vec::new();
         for chunk in mesh.positions.chunks(3) {
             if let [x, y, z] = chunk {
-                vertices.push(Point(
-                    *x as f64, *y as f64,
-                    // Convert from right-handed to left-handed coordinate system
-                    -*z as f64,
-                ));
+                // Convert from right-handed to left-handed coordinate system
+                vertices.push(Point(*x, *y, -*z));
             }
         }
 
         let mut normals = Vec::new();
         for chunk in mesh.normals.chunks(3) {
             if let [x, y, z] = chunk {
-                normals.push(Vector(
-                    *x as f64, *y as f64,
-                    // Convert from right-handed to left-handed coordinate system
-                    -*z as f64,
-                ));
+                // Convert from right-handed to left-handed coordinate system
+                normals.push(Vector(*x, *y, -*z));
             }
         }
 
@@ -137,7 +131,7 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Pr
         }
 
         println!(
-            "Loaded mesh \"{}\" with {} material, {} triangles, {} vertices and {} normals {:?}",
+            "Loaded mesh \"{}\" with {} material, {} triangles, {} vertices and {} normals",
             model.name,
             match mesh.material_id {
                 Some(id) => format!("\"{}\"", &input_materials[id].name),
@@ -146,7 +140,6 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Pr
             mesh.indices.len() / 3,
             mesh.positions.len() / 3,
             mesh.normals.len() / 3,
-            material,
         );
     }
 
