@@ -1,5 +1,5 @@
 {
-    num_samples: 100,
+    num_samples: 1000,
     camera: Perspective {
         origin: Point(2000, 1000, -2000.0),
         target: Point(250, 550, 0),
@@ -11,10 +11,6 @@
         }
     },
     lights: [
-        Point {
-            origin: Point(0, 3200, -400),
-            intensity: Color(5000000, 5000000, 4000000)
-        },
         Distant {
             direction: Vector(1, 1, -0.2),
             intensity: Color(0.01, 0.03, 0.05)
@@ -24,15 +20,14 @@
         }
     ],
     materials: {
-        statue: Matte {
-            reflectance: Color(1, 1, 1),
-            sigma: 90
-        }
+        statue: Matte { reflectance: Color(1, 1, 1), sigma: 90 },
     },
     shapes: {
-        sky: Sphere { origin: Point(0, 0, 0), radius: 100000 }
+        sky: Sphere { origin: Point(0, 0, 0), radius: 100000 },
+        light: Disk { origin: Point(0, 2500, 0), rotate_x: 90, radius: 1000 },
     },
     primitives: [
+        Shape { shape: 'light', material: 'statue', emittance: Color(1, 1, 1) },
         Mesh { 
             file_name: 'objs/local/george_washington_greenough_statue_1840/george_washington_greenough_statue_1840.obj',
             fallback_material: 'statue' 

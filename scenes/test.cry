@@ -1,7 +1,4 @@
 // Test scene for judging correctness of various things
-// Currently demonstrates how normals are incorrectly handled:
-// The triangles and disks are lit from behind, so they should 
-// appear dark like the sphere, but they appear brightly lit.
 {
     num_samples: 100,
     max_depth: 10,
