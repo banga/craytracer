@@ -1,0 +1,30 @@
+{
+    num_samples: 10,
+    max_depth: 20,
+    camera: Perspective {
+        origin: Point(0, 2.2, -4.6),
+        target: Point(0, 2.25, 0),
+        up: Vector(0, 1, 0),
+        lens_radius: 0.025,
+        focal_distance: 7,
+        fov: 40,
+        film: {
+            width: 500,
+            height: 700,
+        }
+    },
+    lights: [
+        // Point { origin: Point(-0.2, 5, 0), intensity: Color(10, 10, 10) }
+    ],
+    materials: {
+        default: Matte { reflectance: Color(1, 1, 1), sigma: 0 }
+    },
+    shapes: {
+        light: Disk { origin: Point(-0.35, 4.5, 0), radius: 0.5, rotate_x: 90 },
+    },
+    primitives: [
+        // Model from https://blendswap.com/blend/14449
+        Mesh { file_name: 'objs/local/staircase/staircase.obj', fallback_material: 'default' },
+        Shape { shape: 'light', material: 'default', emittance: Color(50, 32, 18) },
+    ]
+}
