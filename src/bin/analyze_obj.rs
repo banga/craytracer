@@ -9,8 +9,6 @@ fn analyze_obj(file_name: &str) {
     let (models, materials) =
         tobj::load_obj(file_name, &tobj::GPU_LOAD_OPTIONS).expect("Error loading models");
     let materials = materials.expect("Missing materials");
-    println!("{} models", models.len());
-    println!("{} materials", materials.len());
 
     for m in &materials {
         println!("Material: \"{}\"", m.name);
@@ -76,7 +74,8 @@ fn analyze_obj(file_name: &str) {
         println!();
     }
 
-    for model in models {
+    let mut world_bounds: Option<Bounds> = None;
+    for model in models.iter() {
         println!("Model: {}", model.name);
         let Mesh {
             material_id,
@@ -88,9 +87,9 @@ fn analyze_obj(file_name: &str) {
             face_arities,
             texcoord_indices,
             normal_indices,
-        } = model.mesh;
+        } = &model.mesh;
         if let Some(material_id) = material_id {
-            println!("\tmaterial: \"{}\"", materials[material_id].name);
+            println!("\tmaterial: \"{}\"", materials[*material_id].name);
         }
         if positions.len() > 0 {
             println!("\t{} positions", positions.len());
@@ -100,6 +99,7 @@ fn analyze_obj(file_name: &str) {
                 .sum();
             println!("\t\tmin: {}", bounds.min);
             println!("\t\tmax: {}", bounds.max);
+            world_bounds = world_bounds.or(Some(bounds)).map(|b| b + bounds);
         }
         if vertex_color.len() > 0 {
             println!("\t{} vertex_color", vertex_color.len());
@@ -123,6 +123,13 @@ fn analyze_obj(file_name: &str) {
             println!("\t{} normal_indices", normal_indices.len());
         }
         println!();
+    }
+
+    println!("\nWorld:");
+    println!("\t{} models", models.len());
+    println!("\t{} materials", materials.len());
+    if let Some(world_bounds) = world_bounds {
+        println!("\tBounds: {} -> {}", world_bounds.min, world_bounds.max);
     }
 }
 
