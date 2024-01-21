@@ -92,7 +92,11 @@ impl BxDF {
     {
         match self {
             BxDF::LambertianBRDF { .. } => {
-                let w_i = cosine_sample_hemisphere(rng, normal);
+                let mut w_i = cosine_sample_hemisphere(rng, normal);
+                // Make sure w_i is in the same hemisphere as w_o
+                if normal.dot(w_o) < 0.0 {
+                    w_i = -w_i;
+                }
                 Some(SurfaceSample {
                     w_i,
                     f: self.f(w_o, &w_i, normal),
@@ -101,7 +105,11 @@ impl BxDF {
                 })
             }
             BxDF::OrenNayyarBRDF { .. } => {
-                let w_i = cosine_sample_hemisphere(rng, normal);
+                let mut w_i = cosine_sample_hemisphere(rng, normal);
+                // Make sure w_i is in the same hemisphere as w_o
+                if normal.dot(w_o) < 0.0 {
+                    w_i = -w_i;
+                }
                 Some(SurfaceSample {
                     w_i,
                     f: self.f(w_o, &w_i, normal),
@@ -113,7 +121,7 @@ impl BxDF {
                 let w_i = reflect(&w_o, &normal);
                 assert_abs_diff_eq!(w_i.magnitude(), 1.0, epsilon = EPSILON);
 
-                let cos_theta_i = -w_o.dot(normal);
+                let cos_theta_i = w_o.dot(normal);
                 let fresnel = fresnel_conductor(&Color::WHITE, eta, k, cos_theta_i);
                 Some(SurfaceSample {
                     w_i,
@@ -129,7 +137,7 @@ impl BxDF {
                 let w_i = reflect(&w_o, &normal);
                 assert_abs_diff_eq!(w_i.magnitude(), 1.0, epsilon = EPSILON);
 
-                let cos_theta_i = -w_o.dot(normal);
+                let cos_theta_i = w_o.dot(normal);
                 let fresnel = match fresnel {
                     Fresnel::Dielectric(dielectric) => {
                         Color::WHITE
@@ -157,7 +165,7 @@ impl BxDF {
                 eta_i,
                 eta_t,
             } => {
-                let cos_theta_i = -w_o.dot(normal);
+                let cos_theta_i = w_o.dot(normal);
 
                 if let Some(w_i) = refract(&w_o, &normal, cos_theta_i, *eta_i, *eta_t) {
                     assert_abs_diff_eq!(w_i.magnitude(), 1.0, epsilon = EPSILON);
@@ -178,7 +186,7 @@ impl BxDF {
                 eta_i,
                 eta_t,
             } => {
-                let cos_theta_i = -w_o.dot(normal);
+                let cos_theta_i = w_o.dot(normal);
                 let fresnel_reflectance = fresnel_dielectric(*eta_i, *eta_t, cos_theta_i);
 
                 if rng.gen_range(0.0..1.0) < fresnel_reflectance {
@@ -208,23 +216,33 @@ impl BxDF {
     /// light `w_o` and `w_i`
     pub fn f(&self, w_o: &Vector, w_i: &Vector, normal: &Normal) -> Color {
         match self {
-            BxDF::LambertianBRDF { reflectance } => *reflectance * FRAC_1_PI,
-            BxDF::OrenNayyarBRDF { reflectance, A, B } => {
-                let cos_theta_i = w_i.dot(normal).abs();
-                let cos_theta_o = w_o.dot(normal).abs();
-
-                let sin_theta_i = (1.0 - cos_theta_i).sqrt();
-                let sin_theta_o = (1.0 - cos_theta_o).sqrt();
-                let max_cos = (cos_theta_i * cos_theta_o + sin_theta_i * sin_theta_o).max(0.0);
-
-                let (sin_alpha, tan_beta) = if cos_theta_i > cos_theta_o {
-                    // theta_i <= theta_o
-                    (sin_theta_o, sin_theta_i / cos_theta_i)
+            BxDF::LambertianBRDF { reflectance } => {
+                if normal.same_hemisphere(w_o, w_i) {
+                    *reflectance * FRAC_1_PI
                 } else {
-                    (sin_theta_i, sin_theta_o / cos_theta_o)
-                };
+                    Color::BLACK
+                }
+            }
+            BxDF::OrenNayyarBRDF { reflectance, A, B } => {
+                if normal.same_hemisphere(w_o, w_i) {
+                    let cos_theta_i = w_i.dot(normal).abs();
+                    let cos_theta_o = w_o.dot(normal).abs();
 
-                *reflectance * (A + B * max_cos * sin_alpha * tan_beta) * FRAC_1_PI
+                    let sin_theta_i = (1.0 - cos_theta_i).sqrt();
+                    let sin_theta_o = (1.0 - cos_theta_o).sqrt();
+                    let max_cos = (cos_theta_i * cos_theta_o + sin_theta_i * sin_theta_o).max(0.0);
+
+                    let (sin_alpha, tan_beta) = if cos_theta_i > cos_theta_o {
+                        // theta_i <= theta_o
+                        (sin_theta_o, sin_theta_i / cos_theta_i)
+                    } else {
+                        (sin_theta_i, sin_theta_o / cos_theta_o)
+                    };
+
+                    *reflectance * (A + B * max_cos * sin_alpha * tan_beta) * FRAC_1_PI
+                } else {
+                    Color::BLACK
+                }
             }
             BxDF::FresnelConductorBRDF { .. } => Color::BLACK,
             BxDF::SpecularBRDF { .. } => Color::BLACK,
@@ -255,7 +273,7 @@ impl BxDF {
 
 pub fn reflect(direction: &Vector, normal: &Normal) -> Vector {
     let normal: Vector = normal.into();
-    *direction - normal * (normal.dot(direction) * 2.0)
+    normal * (normal.dot(direction) * 2.0) - *direction
 }
 
 pub fn refract(
@@ -277,7 +295,7 @@ pub fn refract(
         return None;
     }
 
-    let r_perpendicular = (*direction + normal * cos_theta) / eta_relative;
+    let r_perpendicular = (normal * cos_theta - *direction) / eta_relative;
     let r_parallel = normal * -(1.0 - r_perpendicular.dot(&r_perpendicular)).sqrt();
     Some(r_perpendicular + r_parallel)
 }

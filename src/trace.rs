@@ -170,7 +170,8 @@ where
         assert_abs_diff_eq!(intersection.normal.magnitude(), 1.0, epsilon = EPSILON);
         assert!(intersection.distance >= 0.0);
 
-        let w_o = ray.direction;
+        // Both `w_o` and `w_i` should be coming out of the surface
+        let w_o = -ray.direction;
         let surface_sample = match intersection
             .material
             .sample(rng, &w_o, &intersection.normal)
@@ -189,7 +190,7 @@ where
         // the path without the terminator in the loop.
         let light_pdf = 1.0 / scene.lights.len() as f64;
         let light = &scene.lights[rng.gen_range(0..scene.lights.len())];
-        L += beta * estimate_direct(rng, &intersection, &ray.direction, &light, scene) / light_pdf;
+        L += beta * estimate_direct(rng, &intersection, &w_o, &light, scene) / light_pdf;
 
         let cos_theta = surface_sample.w_i.dot(&intersection.normal).abs();
         beta = beta * surface_sample.f * cos_theta;

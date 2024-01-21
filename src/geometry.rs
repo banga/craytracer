@@ -405,6 +405,11 @@ pub mod normal {
             let mag = self.magnitude();
             Normal(self.x() / mag, self.y() / mag, self.z() / mag)
         }
+        /// Returns true if `v1` and `v2` are both in the same hemisphere
+        /// relative to this normal
+        pub fn same_hemisphere(&self, v1: &Vector, v2: &Vector) -> bool {
+            self.dot(v1) * self.dot(v2) > 0.0
+        }
     }
 
     impl From<&Vector> for Normal {

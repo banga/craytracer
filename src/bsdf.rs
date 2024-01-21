@@ -16,7 +16,7 @@ impl BSDF {
     // TODO: This isn't quite right. The caller should be able to specify which
     // bxdf types to use.
     fn get_relevant_bxdfs(&self, w_o: &Vector, normal: &Normal) -> Vec<&BxDF> {
-        let is_reflecting = w_o.dot(normal) < 0.0;
+        let is_reflecting = w_o.dot(normal) > 0.0;
         self.bxdfs
             .iter()
             .filter(|b| {
