@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{f64::consts::E, sync::Arc};
 
 use crate::{
     color::Color,
@@ -34,44 +34,60 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Pr
         }
     }
 
+    fn parse_float_3(s: &str) -> [f64; 3] {
+        let mut iter = s.split_whitespace().map(parse_float);
+        [
+            iter.next().unwrap(),
+            iter.next().unwrap(),
+            iter.next().unwrap(),
+        ]
+    }
+
     let mut materials: Vec<Arc<Material>> = vec![];
     for m in &input_materials {
-        let diffuse = if let Some([r, g, b]) = m.diffuse {
-            Color { r, g, b }
-        } else {
-            Color::WHITE
-        };
-        let ambient = if let Some(emission) = m.unknown_param.get("Ke") {
-            let emission = emission
-                .split_whitespace()
-                .map(parse_float)
-                .collect::<Vec<_>>();
-            Some(Color {
-                r: emission[0],
-                g: emission[1],
-                b: emission[2],
-            })
-        } else {
-            None
-        };
+        println!("Creating material \"{}\":", m.name);
 
-        let material = if ambient.is_some() && !ambient.unwrap().is_black() {
+        let diffuse: Color = m.diffuse.unwrap().into();
+        let specular: Color = m.specular.map(|c| c.into()).unwrap_or(Color::BLACK);
+        let emission: Color = m
+            .unknown_param
+            .get("Ke")
+            .map(|emission| parse_float_3(emission).into())
+            .unwrap_or(Color::BLACK);
+
+        let shininess: f64 = m.shininess.unwrap_or(0.0);
+        // TODO: Figure out how to properly convert these
+        let roughness = 180.0 * (1.0 - E.powf(-shininess / 100.0));
+
+        let dissolve: f64 = m.dissolve.unwrap_or(0.0);
+
+        let material = if !emission.is_black() {
             // TODO: add area lights
+            println!(
+                "\tTODO: Emissive material found: {} {}, using fallback",
+                m.name, emission
+            );
             Arc::clone(&fallback_material)
-        } else if !diffuse.is_black() {
-            // Hack: ignore completely black materials because we don't render
-            // them correctly yet. These tend to be image textured materials.
-            // TODO: read roughness
-            Arc::new(Material::new_matte(diffuse, 0.0))
+        } else if dissolve < 1.0 {
+            let reflectance = diffuse * dissolve;
+            let transmittance = diffuse * (1.0 - dissolve);
+            let eta = m.optical_density.unwrap_or(1.0);
+            println!(
+                "\tTransmissive material: {} {dissolve} {reflectance} {transmittance} {eta}",
+                m.name
+            );
+            Arc::new(Material::new_glass(reflectance, transmittance, eta))
         } else {
-            Arc::clone(&fallback_material)
+            Arc::new(Material::new_plastic(diffuse, specular, roughness))
         };
-        println!("Created material \"{}\": {:?}", m.name, material);
+        println!("\t{:?}", material);
         materials.push(material);
     }
 
     let mut primitives: Vec<Arc<Primitive>> = Vec::new();
     for (i, model) in models.iter().enumerate() {
+        println!("Loading model \"{}\":", model.name,);
+
         let mesh = &model.mesh;
 
         let material = if let Some(material_id) = mesh.material_id {
@@ -125,17 +141,16 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Pr
                         None,
                     )));
                 } else {
-                    println!("Skipping degenerate triangle with vertices {i}, {j}, {k}");
+                    println!("\tSkipping degenerate triangle with vertices {i}, {j}, {k}");
                 }
             }
         }
 
         println!(
-            "Loaded mesh \"{}\" with {} material, {} triangles, {} vertices and {} normals",
-            model.name,
+            "\t\"{}\" material\n\t{} triangles\n\t{} vertices\n\t{} normals",
             match mesh.material_id {
-                Some(id) => format!("\"{}\"", &input_materials[id].name),
-                None => "fallback".to_string(),
+                Some(id) => &input_materials[id].name,
+                None => "fallback",
             },
             mesh.indices.len() / 3,
             mesh.positions.len() / 3,

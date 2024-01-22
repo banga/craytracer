@@ -54,6 +54,12 @@ impl From<Color> for (f32, f32, f32) {
     }
 }
 
+impl From<[f64; 3]> for Color {
+    fn from([r, g, b]: [f64; 3]) -> Color {
+        Color { r, g, b }
+    }
+}
+
 impl PartialEq for Color {
     fn eq(&self, other: &Self) -> bool {
         self.r == other.r && self.g == other.g && self.b == other.b
