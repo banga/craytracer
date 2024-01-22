@@ -26,7 +26,7 @@
         glass: Glass { reflectance: Color(1, 1, 1), transmittance: Color(0.9, 0.9, 0.9), eta: 1.5 },
     },
     shapes: {
-        light: Sphere { origin: Point(1.5, 1.5, 2), radius: 0.5 },
+        light: Triangle { v0: Point(0, 0, 0), v1: Point(0, 0, -1), v2: Point(0, 1, 0) },
         
         ground: Sphere { origin: Point(0, -1000, 0), radius: 1000 },
 
@@ -46,7 +46,7 @@
         sphere: Sphere { origin: Point(1.5, 0.25, -1), radius: 0.25},
     },
     primitives: [
- //       Shape { shape: 'light', material: 'white', emittance: Color(3, 3, 3) },
+        Shape { shape: 'light', material: 'white', emittance: Color(1, 1, 1) },
 
         Shape { shape: 'ground', material: 'white' },
         Shape { shape: 'triangle1', material: 'red' },

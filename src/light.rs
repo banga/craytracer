@@ -54,23 +54,28 @@ impl Light {
     ///
     /// Returns the radiance, the direction from which it is arriving (pointing
     /// to the light source) and the pdf value of sampling that direction.
-    pub fn sample<R>(self: &Self, rng: &mut R, point: &Point) -> LightSample
+    #[allow(non_snake_case)]
+    pub fn sample_Li<R>(
+        self: &Self,
+        rng: &mut R,
+        intersection: &PrimitiveIntersection,
+    ) -> LightSample
     where
         R: Rng,
     {
         match &self {
             Light::Point { origin, intensity } => {
-                let op = *origin - *point;
+                let op = *origin - intersection.location;
                 let dist_squared = op.magnitude_squared();
                 let dist = dist_squared.sqrt();
                 let w_i = op / dist;
-                let mut shadow_ray = Ray::new(*point, w_i);
+                let mut shadow_ray = Ray::new(intersection.location, w_i);
                 shadow_ray.update_max_distance(dist);
 
                 LightSample {
                     Li: *intensity / dist_squared,
                     w_i,
-                    pdf: self.pdf(point, &w_i),
+                    pdf: self.pdf_Li(intersection, &w_i),
                     shadow_ray,
                 }
             }
@@ -81,13 +86,13 @@ impl Light {
                 assert_abs_diff_eq!(direction.magnitude(), 1.0, epsilon = EPSILON);
 
                 // Leave the max distance to infinity, since the light is at qz
-                let shadow_ray = Ray::new(*point, *direction);
+                let shadow_ray = Ray::new(intersection.location, *direction);
                 let w_i = *direction;
 
                 LightSample {
                     Li: *intensity,
                     w_i,
-                    pdf: self.pdf(point, &w_i),
+                    pdf: self.pdf_Li(intersection, &w_i),
                     shadow_ray,
                 }
             }
@@ -99,44 +104,43 @@ impl Light {
                 };
 
                 let w_i = sample_hemisphere(rng, &normal);
-                let shadow_ray = Ray::new(*point, w_i);
+                let shadow_ray = Ray::new(intersection.location, w_i);
 
                 LightSample {
                     Li: *intensity,
                     w_i,
-                    pdf: self.pdf(point, &w_i),
+                    pdf: self.pdf_Li(intersection, &w_i),
                     shadow_ray,
                 }
             }
             Light::Area {
                 shape, emittance, ..
             } => {
-                // TODO: This sampling approach is not efficient, because we
-                // will also sample points on the shape that are not visible
-                // from the target point.
-                let shape_point = shape.sample(rng);
-                let delta = shape_point - *point;
-                let distance_squared = delta.magnitude_squared();
-                let distance = distance_squared.sqrt();
-                let w_i = delta / distance;
-                let mut shadow_ray = Ray::new(*point, w_i);
+                // TODO: The way sample_from is implemented, it can sample a
+                // point that is not actually visible from the intersection. It
+                // returns a pdf of 0.0 in such cases, which must be handled
+                // where it is used.
+                let (shape_point, w_i, pdf) = shape.sample_from(rng, intersection);
+                let distance = (shape_point - intersection.location).magnitude();
+                let mut shadow_ray = Ray::new(intersection.location, w_i);
                 shadow_ray.update_max_distance(distance - EPSILON);
-                LightSample {
+                return LightSample {
                     Li: *emittance,
                     w_i,
-                    pdf: self.pdf(point, &w_i),
+                    pdf,
                     shadow_ray,
-                }
+                };
             }
         }
     }
 
-    pub fn pdf(self: &Self, point: &Point, w_i: &Vector) -> Pdf {
+    #[allow(non_snake_case)]
+    pub fn pdf_Li(self: &Self, intersection: &PrimitiveIntersection, w_i: &Vector) -> Pdf {
         match &self {
             Light::Point { .. } => Pdf::Delta,
             Light::Distant { .. } => Pdf::Delta,
             Light::Infinite { .. } => Pdf::NonDelta(FRAC_1_PI / 4.0),
-            Light::Area { shape, .. } => shape.pdf(point, w_i),
+            Light::Area { shape, .. } => shape.pdf_from(intersection, w_i),
         }
     }
 
@@ -144,9 +148,9 @@ impl Light {
     #[allow(non_snake_case)]
     pub fn L(self: &Self, _i: &PrimitiveIntersection, _w_i: &Vector) -> Color {
         match &self {
-            Light::Point { .. } => Color::BLACK,
-            Light::Distant { .. } => Color::BLACK,
-            Light::Infinite { .. } => Color::BLACK,
+            Light::Point { .. } => unreachable!(),
+            Light::Distant { .. } => unreachable!(),
+            Light::Infinite { .. } => unreachable!(),
             // Area lights are currently assumed to be two-sided. If sidedness
             // needs to be added, we can check which side the normal at the
             // intersection lies w.r.t. w_i

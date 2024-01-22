@@ -23,10 +23,16 @@ fn sample_light<R>(
 where
     R: Rng,
 {
-    let mut light_sample = light.sample(rng, &intersection.location);
+    let mut light_sample = light.sample_Li(rng, &intersection);
+    if let Pdf::NonDelta(pdf) = light_sample.pdf {
+        if pdf == 0.0 {
+            return Color::BLACK;
+        }
+    }
     if light_sample.Li.is_black() {
         return Color::BLACK;
     }
+
     // TODO: Implement a fast intersection method that just returns a boolean
     let shadow_intersection = scene.intersect(&mut light_sample.shadow_ray);
     if shadow_intersection.is_some() {
@@ -80,15 +86,16 @@ where
     // If the sampled direction hits something in the scene, it can only
     // contribute if the thing it hits is the area light we are sampling
     if let Some(surface_intersection) = scene.intersect(ray) {
-        if Some(light) == surface_intersection.primitive.get_area_light().as_deref() {
-            Li = light.L(&surface_intersection, &material_sample.w_i);
+        if let Some(area_light) = surface_intersection.primitive.get_area_light() {
+            if light == area_light.as_ref() {
+                Li = light.L(&surface_intersection, &material_sample.w_i);
+            }
         }
     } else if
     // If the light's direction is delta distributed, there's no chance the BRDF
     // would sample it, so we only add the contribution if it's a non-delta
     // light
-    let Pdf::NonDelta(pdf_light) = light.pdf(&intersection.location, &material_sample.w_i)
-    {
+    let Pdf::NonDelta(pdf_light) = light.pdf_Li(&intersection, &material_sample.w_i) {
         Li = light.Le(&material_sample.w_i);
         if let Pdf::NonDelta(pdf_f) = material_sample.pdf {
             weight = power_heuristic(1, pdf_f, 1, pdf_light);
@@ -172,6 +179,18 @@ where
 
         // Both `w_o` and `w_i` should be coming out of the surface
         let w_o = -ray.direction;
+
+        // Normally, contribution from emissive surfaces will be included via
+        // `sample_light`, but it will miss two cases:
+        // 1. If a camera ray directly hits an emissive surface. The surface
+        //    will try to sample itself as a light, but this tends not to work
+        //    well.
+        // 2. If the material in the previous step returned a delta PDF (i.e. a
+        //    specular bounce).
+        if is_specular_bounce || bounces == 0 {
+            L += beta * intersection.Le(&w_o);
+        }
+
         let surface_sample = match intersection
             .material
             .sample(rng, &w_o, &intersection.normal)
@@ -179,7 +198,6 @@ where
             Some(surface_sample) => surface_sample,
             None => break,
         };
-
         if surface_sample.f.is_black() {
             break;
         }

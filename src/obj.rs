@@ -1,8 +1,9 @@
-use std::{f64::consts::E, sync::Arc};
+use std::{collections::HashMap, f64::consts::E, sync::Arc};
 
 use crate::{
     color::Color,
     geometry::{point::Point, vector::Vector},
+    light::Light,
     material::Material,
     primitive::Primitive,
     shape::Shape,
@@ -43,13 +44,14 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Pr
         ]
     }
 
-    let mut materials: Vec<Arc<Material>> = vec![];
-    for m in &input_materials {
+    let mut materials = Vec::new();
+    let mut emittances = HashMap::new();
+    for (id, m) in input_materials.iter().enumerate() {
         println!("Creating material \"{}\":", m.name);
 
         let diffuse: Color = m.diffuse.unwrap().into();
         let specular: Color = m.specular.map(|c| c.into()).unwrap_or(Color::BLACK);
-        let emission: Color = m
+        let emittance: Color = m
             .unknown_param
             .get("Ke")
             .map(|emission| parse_float_3(emission).into())
@@ -61,12 +63,8 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Pr
 
         let dissolve: f64 = m.dissolve.unwrap_or(0.0);
 
-        let material = if !emission.is_black() {
-            // TODO: add area lights
-            println!(
-                "\tTODO: Emissive material found: {} {}, using fallback",
-                m.name, emission
-            );
+        let material = if !emittance.is_black() {
+            emittances.insert(id, emittance);
             Arc::clone(&fallback_material)
         } else if dissolve < 1.0 {
             let reflectance = diffuse * dissolve;
@@ -90,10 +88,10 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Pr
 
         let mesh = &model.mesh;
 
-        let material = if let Some(material_id) = mesh.material_id {
-            &materials[material_id]
+        let (material, emittance) = if let Some(material_id) = mesh.material_id {
+            (&materials[material_id], emittances.get(&material_id))
         } else {
-            &fallback_material
+            (&fallback_material, None)
         };
 
         assert!(
@@ -135,11 +133,18 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Pr
                 };
 
                 if let Some(triangle) = triangle {
-                    primitives.push(Arc::new(Primitive::new(
-                        Arc::new(triangle),
-                        Arc::clone(material),
-                        None,
-                    )));
+                    let triangle = Arc::new(triangle);
+                    let primitive = match emittance {
+                        None => Primitive::new(Arc::clone(&triangle), Arc::clone(&material)),
+                        Some(&emittance) => Primitive::new_area_light(
+                            Arc::clone(&triangle),
+                            Arc::new(Light::Area {
+                                shape: Arc::clone(&triangle),
+                                emittance,
+                            }),
+                        ),
+                    };
+                    primitives.push(Arc::new(primitive));
                 } else {
                     println!("\tSkipping degenerate triangle with vertices {i}, {j}, {k}");
                 }

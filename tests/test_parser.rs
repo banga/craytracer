@@ -660,7 +660,6 @@ mod parser {
                     Arc::new(Primitive::new(
                         Arc::new(Shape::new_sphere(p!(0, 0, 2), 1.0)),
                         Arc::new(Material::new_matte(Color::WHITE, 0.0)),
-                        None
                     )),
                     Arc::new(Primitive::new(
                         // source: objs/triangle.obj
@@ -674,7 +673,6 @@ mod parser {
                             .unwrap()
                         ),
                         Arc::new(Material::new_matte(Color::WHITE, 0.0)),
-                        None
                     ))
                 ],
             )

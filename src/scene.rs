@@ -28,6 +28,11 @@ impl Scene {
     ) -> Self {
         // TODO: Maybe allow picking split method in scene files
         let start = Instant::now();
+        println!(
+            "Scene with {} lights and {} primitives",
+            lights.len(),
+            primitives.len()
+        );
         let bvh = Bvh::new(primitives, SplitMethod::SAH);
         println!("BVH constructed in {:?}", start.elapsed());
         Self {

@@ -928,7 +928,6 @@ pub mod scene_parser {
         primitive_def: &TypedRawValueMap,
         materials: &HashMap<String, Arc<Material>>,
         shapes: &HashMap<String, Arc<Shape>>,
-        lights: &mut Vec<Arc<Light>>,
     ) -> Result<Vec<Arc<Primitive>>, ParserError> {
         match primitive_def.name.as_str() {
             "Shape" => {
@@ -938,25 +937,21 @@ pub mod scene_parser {
                     &primitive_def.map.location,
                 ))?;
 
-                let material_name: String = primitive_def.map.get("material")?;
-                let material = materials.get(&material_name).ok_or(ParserError::new(
-                    &format!("Cannot find material named '{}'", material_name),
-                    &primitive_def.map.location,
-                ))?;
-
                 let primitive = match primitive_def.map.has("emittance") {
-                    false => Primitive::new(Arc::clone(shape), Arc::clone(material), None),
+                    false => {
+                        let material_name: String = primitive_def.map.get("material")?;
+                        let material = materials.get(&material_name).ok_or(ParserError::new(
+                            &format!("Cannot find material named '{}'", material_name),
+                            &primitive_def.map.location,
+                        ))?;
+                        Primitive::new(Arc::clone(shape), Arc::clone(material))
+                    }
                     true => {
                         let area_light = Arc::new(Light::Area {
                             shape: Arc::clone(shape),
                             emittance: primitive_def.map.get("emittance")?,
                         });
-                        lights.push(Arc::clone(&area_light));
-                        Primitive::new(
-                            Arc::clone(shape),
-                            Arc::clone(material),
-                            Some(Arc::clone(&area_light)),
-                        )
+                        Primitive::new_area_light(Arc::clone(shape), Arc::clone(&area_light))
                     }
                 };
 
@@ -999,12 +994,12 @@ pub mod scene_parser {
 
         let mut primitives: Vec<Arc<Primitive>> = Vec::new();
         for primitive_def in primitive_defs {
-            primitives.extend(create_primitives(
-                primitive_def,
-                &materials,
-                &shapes,
-                &mut lights,
-            )?);
+            for primitive in create_primitives(primitive_def, &materials, &shapes)? {
+                if let Some(area_light) = primitive.get_area_light() {
+                    lights.push(Arc::clone(area_light));
+                }
+                primitives.push(primitive);
+            }
         }
 
         Ok(Scene::new(

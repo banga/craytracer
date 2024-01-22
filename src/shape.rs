@@ -6,10 +6,10 @@ use crate::{
     bounds::Bounds,
     constants::EPSILON,
     geometry::{normal::Normal, point::Point, traits::DotProduct, vector::Vector, O},
-    intersection::ShapeIntersection,
+    intersection::{PrimitiveIntersection, ShapeIntersection},
     pdf::Pdf,
     ray::Ray,
-    sampling::{sample_disk, sample_sphere},
+    sampling::{sample_disk, sample_sphere, sample_triangle},
     transformation::{Transformable, Transformation},
     v,
 };
@@ -31,6 +31,7 @@ pub enum Shape {
         n0: Vector,
         n01: Vector,
         n02: Vector,
+        area: f64,
     },
     Disk {
         object_to_world: Transformation,
@@ -79,6 +80,7 @@ impl Shape {
             n0,
             n01: v!(0, 0, 0),
             n02: v!(0, 0, 0),
+            area: magnitude * 0.5,
         })
     }
     pub fn new_triangle_with_normals(
@@ -92,7 +94,8 @@ impl Shape {
         let e1 = v1 - v0;
         let e2 = v2 - v0;
 
-        if e2.cross(&e1).magnitude_squared() == 0.0 {
+        let magnitude = e2.cross(&e1).magnitude();
+        if magnitude == 0.0 {
             return None;
         }
 
@@ -103,6 +106,7 @@ impl Shape {
             n0,
             n01: n1 - n0,
             n02: n2 - n0,
+            area: magnitude * 0.5,
         })
     }
     pub fn new_disk(
@@ -181,6 +185,7 @@ impl Shape {
                 n0,
                 n01,
                 n02,
+                ..
             } => {
                 // Source: http://www.graphics.cornell.edu/pubs/1997/MT97.pdf
                 let P = ray.direction.cross(e2);
@@ -296,10 +301,9 @@ impl Shape {
 
     /// The sampling methods below are described in
     /// https://www.pbr-book.org/3ed-2018/Light_Transport_I_Surface_Reflection/Sampling_Light_Sources#SamplingShapes
-    /// So far, these are only used for area lights. They are not implemented
-    /// for triangles yet.
+    /// So far, these are only used for area lights.
 
-    /// Samples a point on the surface of the shape
+    /// Samples a point uniformly on the surface of the shape
     pub fn sample<R>(&self, rng: &mut R) -> Point
     where
         R: Rng,
@@ -313,7 +317,10 @@ impl Shape {
                 let point = O + sample_sphere(rng) * *radius;
                 object_to_world.transform(&point)
             }
-            Shape::Triangle { .. } => todo!(),
+            Shape::Triangle { v0, e1, e2, .. } => {
+                let [b1, b2] = sample_triangle(rng);
+                *v0 + *e1 * b1 + *e2 * b2
+            }
             Shape::Disk {
                 object_to_world,
                 radius,
@@ -327,28 +334,45 @@ impl Shape {
         }
     }
 
-    /// Pdf w.r.t. solid angle for sampling the given direction from the given
-    /// point.
-    pub fn pdf(&self, point: &Point, w_i: &Vector) -> Pdf {
-        let mut ray = Ray::new(*point, *w_i);
+    pub fn sample_from<R>(
+        &self,
+        rng: &mut R,
+        intersection: &PrimitiveIntersection,
+    ) -> (Point, Vector, Pdf)
+    where
+        R: Rng,
+    {
+        // TODO: We should use a better method than sampling the surface of the
+        // shape uniformly. It's currently possible that we will return a point
+        // that is not actually visible from the intersection.
+        let point = self.sample(rng);
+        let w_i = (point - intersection.location).normalized();
+        let pdf = self.pdf_from(intersection, &w_i);
+        (point, w_i, pdf)
+    }
+
+    /// Pdf for sampling in the given direction on this shape from the given intersection
+    pub fn pdf_from(&self, intersection: &PrimitiveIntersection, w_i: &Vector) -> Pdf {
+        let mut ray = Ray::new(intersection.location, *w_i);
         match self.intersect(&mut ray) {
-            None => Pdf::Delta,
-            Some(intersection) => {
-                let cos_theta = intersection.normal.dot(w_i).abs();
-                if cos_theta == 0.0 {
-                    return Pdf::Delta;
-                }
-                let pdf_area = 1.0 / self.area();
-                let distance_squared = (*point - intersection.location).magnitude_squared();
-                Pdf::NonDelta(pdf_area * distance_squared / cos_theta)
+            Some(shape_intersection) => {
+                let distance_squared =
+                    (shape_intersection.location - intersection.location).magnitude_squared();
+                let cos_theta = w_i.dot(&intersection.normal).abs();
+                let pdf = distance_squared / (cos_theta * self.area());
+                Pdf::NonDelta(pdf)
             }
+            // We should ideally never sample a direction that does not hit this
+            // shape, so the pdf should be 0.0. This not currently true, since
+            // we sample the surface uniformly (see above)
+            None => Pdf::NonDelta(0.0),
         }
     }
 
     pub fn area(&self) -> f64 {
         match &self {
             Shape::Sphere { area, .. } => *area,
-            Shape::Triangle { .. } => todo!(),
+            Shape::Triangle { area, .. } => *area,
             Shape::Disk { area, .. } => *area,
         }
     }

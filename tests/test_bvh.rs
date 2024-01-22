@@ -19,12 +19,10 @@ fn bvh_node() {
             Arc::new(Primitive::new(
                 Arc::new(Shape::new_sphere(p!(0.5, 0.5, 0.5), 0.5)),
                 Arc::new(Material::new_matte(Color::WHITE, 0.0)),
-                None,
             )),
             Arc::new(Primitive::new(
                 Arc::new(Shape::new_sphere(p!(1.5, 0.5, 0.5), 0.5)),
                 Arc::new(Material::new_matte(Color::WHITE, 0.0)),
-                None,
             )),
         ],
         SplitMethod::Median,

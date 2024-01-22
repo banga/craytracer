@@ -41,6 +41,16 @@ where
     }
 }
 
+/// Returns the barycentric co-ordinates
+pub fn sample_triangle<R>(rng: &mut R) -> [f64; 2]
+where
+    R: Rng,
+{
+    let (u, v): (f64, f64) = (rng.gen_range(0.0..=1.0), rng.gen_range(0.0..=1.0));
+    let su: f64 = u.sqrt();
+    [1.0 - su, v * su]
+}
+
 fn generate_tangents(vector: &Vector) -> (Vector, Vector) {
     let other = if vector.x().abs() < EPSILON {
         X
