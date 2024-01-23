@@ -26,6 +26,6 @@
             file_name: 'objs/local/hintze-hall/source/NHMHintzeHall01/NHMHintzeHall01.obj',
             fallback_material: 'matte' 
         },
-        Shape { shape: 'light', material: 'matte', emittance: Color(3, 3, 3) },
+        Shape { shape: 'light', emittance: Color(3, 3, 3) },
     ]
 }

@@ -46,7 +46,7 @@
         sphere: Sphere { origin: Point(1.5, 0.25, -1), radius: 0.25},
     },
     primitives: [
-        Shape { shape: 'light', material: 'white', emittance: Color(1, 1, 1) },
+        Shape { shape: 'light', emittance: Color(1, 1, 1) },
 
         Shape { shape: 'ground', material: 'white' },
         Shape { shape: 'triangle1', material: 'red' },

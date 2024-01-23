@@ -68,7 +68,7 @@ pub mod tokenizer {
         }
     }
 
-    #[derive(Debug, PartialEq)]
+    #[derive(Debug)]
     pub struct ParserError {
         pub message: String,
         pub location: Option<Location>,
@@ -263,8 +263,9 @@ pub mod parser {
         scene_parser::tokenizer::TokenValue,
     };
     use std::{
-        collections::HashMap,
+        collections::{HashMap, HashSet},
         convert::{TryFrom, TryInto},
+        fmt::Debug,
         iter::Peekable,
     };
 
@@ -319,7 +320,7 @@ pub mod parser {
     }
 
     // TODO: Add location to raw values
-    #[derive(Debug, PartialEq)]
+    #[derive(Debug)]
     pub enum RawValue {
         Number(f64),
         String(String),
@@ -388,6 +389,7 @@ pub mod parser {
                         &TokenValue::LeftBrace => Ok(RawValue::TypedMap(TypedRawValueMap {
                             name: name.to_string(),
                             map: RawValueMap::from_tokens(tokens)?,
+                            used_keys: HashSet::new(),
                         })),
                         value => Err(ParserError::new(
                             &format!("Expected '(' or '{{', got {}", value),
@@ -405,10 +407,18 @@ pub mod parser {
         }
     }
 
-    #[derive(Debug, PartialEq)]
     pub struct RawValueMap {
-        pub map: HashMap<String, RawValue>,
         pub location: Location,
+        pub map: HashMap<String, RawValue>,
+    }
+
+    impl Debug for RawValueMap {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            f.debug_struct("RawValueMap")
+                .field("map", &self.map)
+                .field("location", &self.location)
+                .finish()
+        }
     }
 
     impl RawValueMap {
@@ -462,12 +472,13 @@ pub mod parser {
             Ok(RawValueMap { map, location })
         }
 
-        pub fn get<'a, T>(&'a self, key: &str) -> Result<T, ParserError>
+        pub fn get<'a, T>(&'a mut self, key: &str) -> Result<T, ParserError>
         where
-            T: TryFrom<&'a RawValue, Error = ParserError>,
+            T: TryFrom<&'a mut RawValue, Error = ParserError>,
         {
+            let location = self.location.clone();
             self.map
-                .get(key)
+                .get_mut(key)
                 .ok_or(ParserError::new(
                     &format!("{} not found in map", key),
                     &self.location,
@@ -479,23 +490,24 @@ pub mod parser {
                             "Error converting map value for '{}' to expected type: {}",
                             key, e.message
                         ),
-                        &e.location.unwrap_or(self.location.clone()),
+                        &e.location.unwrap_or(location),
                     )
                 })
         }
 
-        pub fn get_or<'a, T>(&'a self, key: &str, default: T) -> Result<T, ParserError>
+        pub fn get_or<'a, T>(&'a mut self, key: &str, default: T) -> Result<T, ParserError>
         where
-            T: TryFrom<&'a RawValue, Error = ParserError>,
+            T: TryFrom<&'a mut RawValue, Error = ParserError>,
         {
-            match self.map.get(key) {
+            let location = self.location.clone();
+            match self.map.get_mut(key) {
                 Some(v) => v.try_into().map_err(|e: ParserError| {
                     ParserError::new(
                         &format!(
                             "Error converting map value for '{}' to expected type: {}",
                             key, e.message
                         ),
-                        &e.location.unwrap_or(self.location.clone()),
+                        &e.location.unwrap_or(location),
                     )
                 }),
                 None => Ok(default),
@@ -507,10 +519,11 @@ pub mod parser {
         }
     }
 
-    #[derive(Debug, PartialEq)]
+    #[derive(Debug)]
     pub struct TypedRawValueMap {
         pub name: String,
-        pub map: RawValueMap,
+        map: RawValueMap,
+        used_keys: HashSet<String>,
     }
 
     impl TypedRawValueMap {
@@ -520,11 +533,58 @@ pub mod parser {
         ) -> Result<Self, ParserError> {
             let name = expect_identifier(tokens)?;
             let map = RawValueMap::from_tokens(tokens)?;
-            Ok(TypedRawValueMap { name, map })
+            Ok(TypedRawValueMap {
+                name,
+                map,
+                used_keys: HashSet::new(),
+            })
+        }
+
+        pub fn has(&mut self, key: &str) -> bool {
+            self.used_keys.insert(key.to_string());
+            self.map.has(key)
+        }
+
+        pub fn get<'a, T>(&'a mut self, key: &str) -> Result<T, ParserError>
+        where
+            T: TryFrom<&'a mut RawValue, Error = ParserError>,
+        {
+            self.used_keys.insert(key.to_string());
+            self.map.get(key)
+        }
+
+        pub fn get_or<'a, T>(&'a mut self, key: &str, default: T) -> Result<T, ParserError>
+        where
+            T: TryFrom<&'a mut RawValue, Error = ParserError>,
+        {
+            self.used_keys.insert(key.to_string());
+            self.map.get_or(key, default)
+        }
+
+        pub fn location(&self) -> &Location {
+            &self.map.location
         }
     }
 
-    #[derive(Debug, PartialEq)]
+    impl Drop for TypedRawValueMap {
+        fn drop(&mut self) {
+            let unused_keys: Vec<&String> = self
+                .map
+                .map
+                .keys()
+                .filter(|key| !self.used_keys.contains(key.as_str()))
+                .collect();
+            assert!(
+                unused_keys.len() == 0,
+                "Found unused key(s) {:?} in {} at {}",
+                unused_keys,
+                self.name,
+                self.map.location
+            );
+        }
+    }
+
+    #[derive(Debug)]
     pub struct RawValueArray {
         pub array: Vec<RawValue>,
     }
@@ -569,9 +629,9 @@ pub mod parser {
 
     /// Methods for converting RawValues into various concrete values
 
-    impl TryFrom<&RawValue> for f64 {
+    impl TryFrom<&mut RawValue> for f64 {
         type Error = ParserError;
-        fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
+        fn try_from(value: &mut RawValue) -> Result<Self, Self::Error> {
             match value {
                 RawValue::Number(value) => Ok(*value),
                 _ => Err(ParserError::without_location(&format!(
@@ -582,9 +642,9 @@ pub mod parser {
         }
     }
 
-    impl TryFrom<&RawValue> for usize {
+    impl TryFrom<&mut RawValue> for usize {
         type Error = ParserError;
-        fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
+        fn try_from(value: &mut RawValue) -> Result<Self, Self::Error> {
             match value {
                 RawValue::Number(value) => Ok(*value as usize),
                 _ => Err(ParserError::without_location(&format!(
@@ -595,9 +655,9 @@ pub mod parser {
         }
     }
 
-    impl TryFrom<&RawValue> for String {
+    impl TryFrom<&mut RawValue> for String {
         type Error = ParserError;
-        fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
+        fn try_from(value: &mut RawValue) -> Result<Self, Self::Error> {
             match value {
                 RawValue::String(value) => Ok(value.clone()),
                 _ => Err(ParserError::without_location(&format!(
@@ -608,9 +668,9 @@ pub mod parser {
         }
     }
 
-    impl TryFrom<&RawValue> for Vector {
+    impl TryFrom<&mut RawValue> for Vector {
         type Error = ParserError;
-        fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
+        fn try_from(value: &mut RawValue) -> Result<Self, Self::Error> {
             match value {
                 RawValue::Vector(value) => Ok(*value),
                 _ => Err(ParserError::without_location(&format!(
@@ -621,9 +681,9 @@ pub mod parser {
         }
     }
 
-    impl TryFrom<&RawValue> for Point {
+    impl TryFrom<&mut RawValue> for Point {
         type Error = ParserError;
-        fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
+        fn try_from(value: &mut RawValue) -> Result<Self, Self::Error> {
             match value {
                 RawValue::Point(value) => Ok(*value),
                 _ => Err(ParserError::without_location(&format!(
@@ -634,9 +694,9 @@ pub mod parser {
         }
     }
 
-    impl TryFrom<&RawValue> for Color {
+    impl TryFrom<&mut RawValue> for Color {
         type Error = ParserError;
-        fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
+        fn try_from(value: &mut RawValue) -> Result<Self, Self::Error> {
             match value {
                 RawValue::Color(value) => Ok(*value),
                 _ => Err(ParserError::without_location(&format!(
@@ -647,9 +707,9 @@ pub mod parser {
         }
     }
 
-    impl<'a: 'b, 'b> TryFrom<&'a RawValue> for &'b TypedRawValueMap {
+    impl<'a: 'b, 'b> TryFrom<&'a mut RawValue> for &'b mut TypedRawValueMap {
         type Error = ParserError;
-        fn try_from(value: &'a RawValue) -> Result<Self, Self::Error> {
+        fn try_from(value: &'a mut RawValue) -> Result<Self, Self::Error> {
             match value {
                 RawValue::TypedMap(value) => Ok(value),
                 _ => Err(ParserError::without_location(&format!(
@@ -663,13 +723,13 @@ pub mod parser {
     /// Converts a RawValueMap into a hashmap with values of given type.
     /// Useful for objects where the keys are names of things of the same type.
     /// For e.g. {materials: {foo: Emissive {...}, bar: Plastic {...}}}
-    impl<'a, 'b, T> TryFrom<&'a RawValue> for HashMap<String, T>
+    impl<'a, 'b, T> TryFrom<&'a mut RawValue> for HashMap<String, T>
     where
         'a: 'b,
-        T: 'b + TryFrom<&'a RawValue, Error = ParserError>,
+        T: 'b + TryFrom<&'a mut RawValue, Error = ParserError>,
     {
         type Error = ParserError;
-        fn try_from(value: &'a RawValue) -> Result<Self, Self::Error> {
+        fn try_from(value: &'a mut RawValue) -> Result<Self, Self::Error> {
             let map = match value {
                 RawValue::Map(map) => Ok(map),
                 _ => Err(ParserError::without_location(&format!(
@@ -678,7 +738,7 @@ pub mod parser {
                 ))),
             }?;
             let mut result = HashMap::new();
-            for (key, value) in map.map.iter() {
+            for (key, value) in map.map.iter_mut() {
                 let t: T = value.try_into()?;
                 result.insert(key.clone(), t);
             }
@@ -687,13 +747,13 @@ pub mod parser {
     }
 
     /// Converts a RawValueArray into a vec with values of given type.
-    impl<'a, 'b, T> TryFrom<&'a RawValue> for Vec<T>
+    impl<'a, 'b, T> TryFrom<&'a mut RawValue> for Vec<T>
     where
         'a: 'b,
-        T: 'b + TryFrom<&'a RawValue, Error = ParserError>,
+        T: 'b + TryFrom<&'a mut RawValue, Error = ParserError>,
     {
         type Error = ParserError;
-        fn try_from(value: &'a RawValue) -> Result<Self, Self::Error> {
+        fn try_from(value: &'a mut RawValue) -> Result<Self, Self::Error> {
             let array = match value {
                 RawValue::Array(array) => Ok(array),
                 _ => Err(ParserError::without_location(&format!(
@@ -702,7 +762,7 @@ pub mod parser {
                 ))),
             }?;
             let mut result = Vec::new();
-            for value in array.array.iter() {
+            for value in array.array.iter_mut() {
                 let t: T = value.try_into()?;
                 result.push(t);
             }
@@ -735,9 +795,9 @@ pub mod scene_parser {
     const DEFAULT_FOCAL_DISTANCE: f64 = 1e6;
 
     /// RawValue -> Camera
-    impl TryFrom<&RawValue> for Camera {
+    impl TryFrom<&mut RawValue> for Camera {
         type Error = ParserError;
-        fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
+        fn try_from(value: &mut RawValue) -> Result<Self, Self::Error> {
             let typed_map = match value {
                 RawValue::TypedMap(typed_map) => Ok(typed_map),
                 _ => Err(ParserError::without_location(&format!(
@@ -745,16 +805,15 @@ pub mod scene_parser {
                     value
                 ))),
             }?;
-            let map = &typed_map.map;
-            let film: Film = map.get("film")?;
-            let origin: Point = map.get("origin")?;
-            let target: Point = map.get("target")?;
-            let up: Vector = map.get("up")?;
-            let lens_radius: f64 = map.get_or("lens_radius", 0.0)?;
-            let focal_distance: f64 = map.get_or("focal_distance", DEFAULT_FOCAL_DISTANCE)?;
+            let film: Film = typed_map.get("film")?;
+            let origin: Point = typed_map.get("origin")?;
+            let target: Point = typed_map.get("target")?;
+            let up: Vector = typed_map.get("up")?;
+            let lens_radius: f64 = typed_map.get_or("lens_radius", 0.0)?;
+            let focal_distance: f64 = typed_map.get_or("focal_distance", DEFAULT_FOCAL_DISTANCE)?;
             match typed_map.name.as_str() {
                 "Perspective" => {
-                    let fov: f64 = map.get("fov")?;
+                    let fov: f64 = typed_map.get("fov")?;
 
                     Ok(Camera::perspective(
                         film,
@@ -783,9 +842,9 @@ pub mod scene_parser {
     }
 
     /// RawValue -> Film
-    impl TryFrom<&RawValue> for Film {
+    impl TryFrom<&mut RawValue> for Film {
         type Error = ParserError;
-        fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
+        fn try_from(value: &mut RawValue) -> Result<Self, Self::Error> {
             let map = match value {
                 RawValue::Map(map) => Ok(map),
                 _ => Err(ParserError::without_location(&format!(
@@ -801,9 +860,9 @@ pub mod scene_parser {
     }
 
     /// RawValue -> Light
-    impl TryFrom<&RawValue> for Arc<Light> {
+    impl TryFrom<&mut RawValue> for Arc<Light> {
         type Error = ParserError;
-        fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
+        fn try_from(value: &mut RawValue) -> Result<Self, Self::Error> {
             let typed_map = match value {
                 RawValue::TypedMap(typed_map) => Ok(typed_map),
                 _ => Err(ParserError::without_location(&format!(
@@ -811,17 +870,16 @@ pub mod scene_parser {
                     value
                 ))),
             }?;
-            let map = &typed_map.map;
             match typed_map.name.as_str() {
                 "Point" => {
-                    let origin: Point = map.get("origin")?;
-                    let intensity: Color = map.get("intensity")?;
+                    let origin: Point = typed_map.get("origin")?;
+                    let intensity: Color = typed_map.get("intensity")?;
 
                     Ok(Arc::new(Light::Point { origin, intensity }))
                 }
                 "Distant" => {
-                    let direction: Vector = map.get("direction")?;
-                    let intensity: Color = map.get("intensity")?;
+                    let direction: Vector = typed_map.get("direction")?;
+                    let intensity: Color = typed_map.get("intensity")?;
 
                     Ok(Arc::new(Light::Distant {
                         direction: direction.normalized(),
@@ -829,7 +887,7 @@ pub mod scene_parser {
                     }))
                 }
                 "Infinite" => {
-                    let intensity: Color = map.get("intensity")?;
+                    let intensity: Color = typed_map.get("intensity")?;
 
                     Ok(Arc::new(Light::Infinite { intensity }))
                 }
@@ -842,9 +900,9 @@ pub mod scene_parser {
     }
 
     /// RawValue -> Material
-    impl TryFrom<&RawValue> for Arc<Material> {
+    impl TryFrom<&mut RawValue> for Arc<Material> {
         type Error = ParserError;
-        fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
+        fn try_from(value: &mut RawValue) -> Result<Self, Self::Error> {
             let typed_map = match value {
                 RawValue::TypedMap(typed_map) => Ok(typed_map),
                 _ => Err(ParserError::without_location(&format!(
@@ -852,38 +910,37 @@ pub mod scene_parser {
                     value
                 ))),
             }?;
-            let map = &typed_map.map;
             match typed_map.name.as_str() {
                 "Matte" => Ok(Arc::new(Material::new_matte(
-                    map.get("reflectance")?,
-                    map.get("sigma")?,
+                    typed_map.get("reflectance")?,
+                    typed_map.get("sigma")?,
                 ))),
                 "Glass" => Ok(Arc::new(Material::new_glass(
-                    map.get("reflectance")?,
-                    map.get("transmittance")?,
-                    map.get("eta")?,
+                    typed_map.get("reflectance")?,
+                    typed_map.get("transmittance")?,
+                    typed_map.get("eta")?,
                 ))),
                 "Plastic" => Ok(Arc::new(Material::new_plastic(
-                    map.get("diffuse")?,
-                    map.get("specular")?,
-                    map.get("roughness")?,
+                    typed_map.get("diffuse")?,
+                    typed_map.get("specular")?,
+                    typed_map.get("roughness")?,
                 ))),
                 "Metal" => Ok(Arc::new(Material::new_metal(
-                    map.get("eta")?,
-                    map.get("k")?,
+                    typed_map.get("eta")?,
+                    typed_map.get("k")?,
                 ))),
                 _ => Err(ParserError::new(
                     &format!("Unknown material type: {}", typed_map.name),
-                    &typed_map.map.location,
+                    &typed_map.location(),
                 )),
             }
         }
     }
 
     /// RawValue -> Shape
-    impl TryFrom<&RawValue> for Arc<Shape> {
+    impl TryFrom<&mut RawValue> for Arc<Shape> {
         type Error = ParserError;
-        fn try_from(value: &RawValue) -> Result<Self, Self::Error> {
+        fn try_from(value: &mut RawValue) -> Result<Self, Self::Error> {
             let typed_map = match value {
                 RawValue::TypedMap(typed_map) => Ok(typed_map),
                 _ => Err(ParserError::without_location(&format!(
@@ -891,26 +948,29 @@ pub mod scene_parser {
                     value
                 ))),
             }?;
-            let map = &typed_map.map;
             match typed_map.name.as_str() {
                 "Sphere" => Ok(Arc::new(Shape::new_sphere(
-                    map.get("origin")?,
-                    map.get("radius")?,
+                    typed_map.get("origin")?,
+                    typed_map.get("radius")?,
                 ))),
-                "Triangle" => Shape::new_triangle(map.get("v0")?, map.get("v1")?, map.get("v2")?)
-                    .ok_or_else(|| {
-                        ParserError::new(
-                            &format!("Degenerate triangle: {}", typed_map.name),
-                            &typed_map.map.location,
-                        )
-                    })
-                    .map(|shape| Arc::new(shape)),
+                "Triangle" => Shape::new_triangle(
+                    typed_map.get("v0")?,
+                    typed_map.get("v1")?,
+                    typed_map.get("v2")?,
+                )
+                .ok_or_else(|| {
+                    ParserError::new(
+                        &format!("Degenerate triangle: {}", typed_map.name),
+                        &typed_map.location(),
+                    )
+                })
+                .map(|shape| Arc::new(shape)),
                 "Disk" => Ok(Arc::new(Shape::new_disk(
-                    map.get("origin")?,
-                    map.get_or("rotate_x", 0.0)?,
-                    map.get_or("rotate_y", 0.0)?,
-                    map.get("radius")?,
-                    map.get_or("inner_radius", 0.0)?,
+                    typed_map.get("origin")?,
+                    typed_map.get_or("rotate_x", 0.0)?,
+                    typed_map.get_or("rotate_y", 0.0)?,
+                    typed_map.get("radius")?,
+                    typed_map.get_or("inner_radius", 0.0)?,
                 ))),
                 _ => Err(ParserError::without_location(&format!(
                     "Unknown shape type: {}",
@@ -925,31 +985,31 @@ pub mod scene_parser {
     /// Unfortunately we can't use the TryFrom pattern for this because it
     /// relies on state (shapes and materials) outside the raw value itself.
     fn create_primitives(
-        primitive_def: &TypedRawValueMap,
+        primitive_def: &mut TypedRawValueMap,
         materials: &HashMap<String, Arc<Material>>,
         shapes: &HashMap<String, Arc<Shape>>,
     ) -> Result<Vec<Arc<Primitive>>, ParserError> {
         match primitive_def.name.as_str() {
             "Shape" => {
-                let shape_name: String = primitive_def.map.get("shape")?;
+                let shape_name: String = primitive_def.get("shape")?;
                 let shape = shapes.get(&shape_name).ok_or(ParserError::new(
                     &format!("Cannot find shape named '{}'", shape_name),
-                    &primitive_def.map.location,
+                    &primitive_def.location(),
                 ))?;
 
-                let primitive = match primitive_def.map.has("emittance") {
+                let primitive = match primitive_def.has("emittance") {
                     false => {
-                        let material_name: String = primitive_def.map.get("material")?;
+                        let material_name: String = primitive_def.get("material")?;
                         let material = materials.get(&material_name).ok_or(ParserError::new(
                             &format!("Cannot find material named '{}'", material_name),
-                            &primitive_def.map.location,
+                            &primitive_def.location(),
                         ))?;
                         Primitive::new(Arc::clone(shape), Arc::clone(material))
                     }
                     true => {
                         let area_light = Arc::new(Light::Area {
                             shape: Arc::clone(shape),
-                            emittance: primitive_def.map.get("emittance")?,
+                            emittance: primitive_def.get("emittance")?,
                         });
                         Primitive::new_area_light(Arc::clone(shape), Arc::clone(&area_light))
                     }
@@ -958,12 +1018,12 @@ pub mod scene_parser {
                 Ok(vec![Arc::new(primitive)])
             }
             "Mesh" => {
-                let file_name: String = primitive_def.map.get("file_name")?;
+                let file_name: String = primitive_def.get("file_name")?;
 
-                let material_name: String = primitive_def.map.get("fallback_material")?;
+                let material_name: String = primitive_def.get("fallback_material")?;
                 let fallback_material = materials.get(&material_name).ok_or(ParserError::new(
                     &format!("Cannot find material named '{}'", material_name),
-                    &primitive_def.map.location,
+                    &primitive_def.location(),
                 ))?;
 
                 let primitives = load_obj(&file_name, Arc::clone(fallback_material));
@@ -972,7 +1032,7 @@ pub mod scene_parser {
             }
             _ => Err(ParserError::new(
                 &format!("Unknown primitive type: {}", primitive_def.name),
-                &primitive_def.map.location,
+                &primitive_def.location(),
             )),
         }
     }
@@ -981,7 +1041,7 @@ pub mod scene_parser {
         let tokens = tokenize(input)?;
 
         let mut tokens = tokens.iter().peekable();
-        let scene_map = RawValueMap::from_tokens(&mut tokens)?;
+        let mut scene_map = RawValueMap::from_tokens(&mut tokens)?;
 
         let max_depth: usize = scene_map.get_or("max_depth", DEFAULT_MAX_DEPTH)?;
         let num_samples: usize = scene_map.get_or("num_samples", DEFAULT_NUM_SAMPLES)?;
@@ -990,7 +1050,7 @@ pub mod scene_parser {
         let mut lights: Vec<Arc<Light>> = scene_map.get("lights")?;
         let materials: HashMap<String, Arc<Material>> = scene_map.get("materials")?;
         let shapes: HashMap<String, Arc<Shape>> = scene_map.get("shapes")?;
-        let primitive_defs: Vec<&TypedRawValueMap> = scene_map.get("primitives")?;
+        let primitive_defs: Vec<&mut TypedRawValueMap> = scene_map.get("primitives")?;
 
         let mut primitives: Vec<Arc<Primitive>> = Vec::new();
         for primitive_def in primitive_defs {

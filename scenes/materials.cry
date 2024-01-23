@@ -180,7 +180,7 @@
         },
     },
     primitives: [
-        Shape { shape: 'light', material: 'ground', emittance: Color(4, 4, 4) },
+        Shape { shape: 'light', emittance: Color(4, 4, 4) },
         Shape { shape: 'ground', material: 'ground' },
 
         Shape { shape: 'matte1', material: 'matte1' },

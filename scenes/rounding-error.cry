@@ -30,6 +30,6 @@
     primitives: [
         Shape { shape: 'ground', material: 'ground' },
         Shape { shape: 'ball', material: 'ground' },
-        Shape { shape: 'light', emittance: Color(5, 5, 5), material: 'ground' },
+        Shape { shape: 'light', emittance: Color(5, 5, 5)},
     ]
 }

@@ -27,7 +27,7 @@
         light: Disk { origin: Point(0, 2500, 0), rotate_x: 90, radius: 1000 },
     },
     primitives: [
-        Shape { shape: 'light', material: 'statue', emittance: Color(1, 1, 1) },
+        Shape { shape: 'light', emittance: Color(1, 1, 1) },
         Mesh { 
             file_name: 'objs/local/george_washington_greenough_statue_1840/george_washington_greenough_statue_1840.obj',
             fallback_material: 'statue' 

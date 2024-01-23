@@ -45,6 +45,6 @@
     primitives: [
         Shape { shape: 'ground', material: 'ground' },
         Shape { shape: 'glass', material: 'glass' },
-        Shape { shape: 'light', material: 'ground', emittance: Color(5, 3.5, 0.6) },
+        Shape { shape: 'light', emittance: Color(5, 3.5, 0.6) },
     ]
 }

@@ -35,7 +35,7 @@
     },
     primitives: [
         Shape { shape: 'ground', material: 'ground' },
-        Shape { shape: 'light', material: 'ground', emittance: Color(1, 1, 1) },
+        Shape { shape: 'light', emittance: Color(1, 1, 1) },
         Mesh { file_name: 'objs/xyzrgb_dragon.obj', fallback_material: 'dragon' }
     ]
 }
