@@ -3,7 +3,7 @@ use std::env::args;
 use craytracer::{
     geometry::{normal::Normal, point::Point, vector::Vector},
     n, p,
-    sampling::Sampler,
+    sampler::{IndependentSampler, Sampler},
 };
 use minifb::{Key, Scale, ScaleMode, Window, WindowOptions};
 use rand::{rngs::SmallRng, Rng, SeedableRng};
@@ -63,7 +63,7 @@ where
 
 fn main() {
     let mut rng = SmallRng::from_entropy();
-    let mut sampler = Sampler::new(SmallRng::from_entropy());
+    let mut sampler = IndependentSampler::new(0);
     match args()
         .nth(1)
         .expect("Expected name of sampling function")

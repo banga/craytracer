@@ -2,14 +2,13 @@ use clap::Parser;
 use core::time;
 use craytracer::{
     color::Color,
-    sampling::Sampler,
+    sampler::{IndependentSampler, Sampler},
     scene::Scene,
     scene_parser::{scene_parser::parse_scene, tokenizer::ParserError},
     trace::path_trace,
 };
 use log::{error, info};
 use minifb::{Key, Scale, ScaleMode, Window, WindowOptions};
-use rand::{rngs::SmallRng, Rng, SeedableRng};
 use std::{
     sync::{
         atomic::{AtomicUsize, Ordering},
@@ -72,10 +71,10 @@ fn show_preview<C, F>(
     tiles: &Vec<(usize, usize, usize, usize)>,
     pixels: Arc<Mutex<Vec<f32>>>,
     receiver: Receiver<usize>,
-    on_click: C,
+    mut on_click: C,
     on_finish: F,
 ) where
-    C: Fn(usize, usize),
+    C: FnMut(usize, usize),
     F: FnOnce(),
 {
     let mut preview_buffer = vec![0u32; width * height];
@@ -152,29 +151,30 @@ fn show_preview<C, F>(
 }
 
 #[inline]
-fn render_pixel<R>(sampler: &mut Sampler<R>, x: usize, y: usize, scene: &Scene) -> Color
+fn render_pixel<S>(sampler: &mut S, x: usize, y: usize, sample_index: usize, scene: &Scene) -> Color
 where
-    R: SeedableRng + Rng + ?Sized,
+    S: Sampler,
 {
+    sampler.start_pixel(x, y, sample_index);
     let ray = scene.camera.sample(sampler, x, y);
     path_trace(sampler, ray, &scene)
 }
 
-fn render_tile<R>(
-    sampler: &mut Sampler<R>,
+fn render_tile<S>(
+    sampler: &mut S,
     tile: (usize, usize, usize, usize),
     scene: &Scene,
     width: usize,
     pixels: &Arc<Mutex<Vec<f32>>>,
 ) where
-    R: SeedableRng + Rng + ?Sized,
+    S: Sampler,
 {
     let (x1, y1, x2, y2) = tile;
     for y in y1..y2 {
         for x in x1..x2 {
             let mut color = Color::BLACK;
-            for _ in 0..scene.num_samples {
-                color += render_pixel(sampler, x, y, scene);
+            for sample_index in 0..scene.num_samples {
+                color += render_pixel(sampler, x, y, sample_index, scene);
             }
             color /= scene.num_samples as f64;
 
@@ -201,9 +201,8 @@ fn update_render_progress(start: Instant, num_rendered: usize, num_total: usize)
     );
 }
 
-fn render<R, F>(scene: &Scene, preview: bool, start: Instant, on_render_finish: F)
+fn render<F>(scene: &Scene, seed: u32, preview: bool, start: Instant, on_render_finish: F)
 where
-    R: Rng + SeedableRng,
     F: FnOnce(Vec<f32>),
 {
     let num_threads = num_cpus::get();
@@ -225,6 +224,7 @@ where
             let tile_index = Arc::clone(&tile_index);
             let pixels = Arc::clone(&pixels);
             let sender = sender.clone();
+            let mut sampler = IndependentSampler::new(seed);
 
             handles.push(scope.spawn(move || loop {
                 let index = tile_index.fetch_add(1, Ordering::SeqCst);
@@ -232,8 +232,7 @@ where
                     break;
                 }
 
-                let mut sampler = Sampler::new(R::from_entropy());
-                render_tile::<R>(&mut sampler, tiles[index], scene, width, &pixels);
+                render_tile(&mut sampler, tiles[index], scene, width, &pixels);
 
                 update_render_progress(
                     start,
@@ -250,6 +249,7 @@ where
 
         if preview {
             let mut window = create_preview_window(width, height);
+            let mut sampler = IndependentSampler::new(seed);
             show_preview(
                 &mut window,
                 width,
@@ -261,9 +261,8 @@ where
                 receiver,
                 |x, y| {
                     info!("Rendering pixel at ({x},{y})");
-                    let mut sampler = Sampler::new(R::from_entropy());
-                    let color = render_pixel(&mut sampler, x, y, scene);
-                    info!("Color = {}", color);
+                    let color = render_pixel(&mut sampler, x, y, 0, scene);
+                    info!("Color = {} {:?}", color, color.to_rgb());
                 },
                 on_finish,
             );
@@ -286,6 +285,9 @@ struct Cli {
 
     #[clap(short, long)]
     preview: bool,
+
+    #[clap(short, long, default_value_t = 0)]
+    seed: u32,
 }
 
 fn main() -> Result<(), ParserError> {
@@ -310,7 +312,7 @@ fn main() -> Result<(), ParserError> {
     let (width, height) = scene.film_bounds();
 
     // Render to a buffer
-    render::<SmallRng, _>(&scene, args.preview, start, |pixels| {
+    render(&scene, args.seed, args.preview, start, |pixels| {
         info!("Rendering finished in {:?}", start.elapsed());
 
         // Save to file

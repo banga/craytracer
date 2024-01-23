@@ -1,10 +1,8 @@
-use rand::Rng;
-
 use crate::{
     film::Film,
     geometry::{point::Point, vector::Vector, O, Z},
     ray::Ray,
-    sampling::Sampler,
+    sampler::Sampler,
     transformation::{Transformable, Transformation},
 };
 
@@ -130,9 +128,9 @@ impl Camera {
         )
     }
 
-    pub fn sample<R>(&self, sampler: &mut Sampler<R>, raster_x: usize, raster_y: usize) -> Ray
+    pub fn sample<S>(&self, sampler: &mut S, raster_x: usize, raster_y: usize) -> Ray
     where
-        R: Rng,
+        S: Sampler,
     {
         let [dx, dy] = sampler.sample_2d();
         // Convert to [-1, 1)^2
@@ -144,9 +142,9 @@ impl Camera {
         self.world_from_camera.transform(&ray)
     }
 
-    fn generate_ray<R>(&self, sampler: &mut Sampler<R>, p_camera: Point) -> Ray
+    fn generate_ray<S>(&self, sampler: &mut S, p_camera: Point) -> Ray
     where
-        R: Rng,
+        S: Sampler,
     {
         let ray = match self.camera_type {
             CameraType::Perspective => Ray::new(p_camera, (p_camera - O).normalized()),

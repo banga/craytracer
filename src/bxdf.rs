@@ -3,10 +3,9 @@ use crate::{
     constants::EPSILON,
     geometry::{normal::Normal, traits::DotProduct, vector::Vector},
     pdf::Pdf,
-    sampling::Sampler,
+    sampler::Sampler,
 };
 use approx::assert_abs_diff_eq;
-use rand::Rng;
 use std::f64::consts::FRAC_1_PI;
 
 #[allow(non_snake_case)]
@@ -86,14 +85,9 @@ impl BxDF {
     /// light `w_o`. The sample includes `w_i` the sampled incoming direction of
     /// light, `f` the value of the BRDF at this sample and `pdf` the value of
     /// the probability density function at this sample.
-    pub fn sample<R>(
-        &self,
-        sampler: &mut Sampler<R>,
-        w_o: &Vector,
-        normal: &Normal,
-    ) -> Option<SurfaceSample>
+    pub fn sample<S>(&self, sampler: &mut S, w_o: &Vector, normal: &Normal) -> Option<SurfaceSample>
     where
-        R: Rng,
+        S: Sampler,
     {
         match self {
             BxDF::LambertianBRDF { .. } => {

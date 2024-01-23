@@ -1,5 +1,4 @@
 use approx::assert_abs_diff_eq;
-use rand::Rng;
 use std::{
     f64::consts::{FRAC_1_PI, PI},
     sync::Arc,
@@ -13,7 +12,7 @@ use crate::{
     n,
     pdf::Pdf,
     ray::Ray,
-    sampling::Sampler,
+    sampler::Sampler,
     shape::Shape,
 };
 
@@ -55,13 +54,13 @@ impl Light {
     /// Returns the radiance, the direction from which it is arriving (pointing
     /// to the light source) and the pdf value of sampling that direction.
     #[allow(non_snake_case)]
-    pub fn sample_Li<R>(
+    pub fn sample_Li<S>(
         self: &Self,
-        sampler: &mut Sampler<R>,
+        sampler: &mut S,
         intersection: &PrimitiveIntersection,
     ) -> LightSample
     where
-        R: Rng,
+        S: Sampler,
     {
         match &self {
             Light::Point { origin, intensity } => {

@@ -17,9 +17,9 @@ pub enum Axis {
 pub const AXES: [Axis; 3] = [Axis::X, Axis::Y, Axis::Z];
 
 pub mod vector {
-    use super::normal::Normal;
     use super::traits::DotProduct;
-    use super::Axis;
+    use super::{normal::Normal, X};
+    use super::{Axis, Y, Z};
     use crate::constants::EPSILON;
     use approx::AbsDiffEq;
     use std::{
@@ -71,6 +71,18 @@ pub mod vector {
         }
         pub fn powf(&self, p: f64) -> Vector {
             Vector(self.x().powf(p), self.y().powf(p), self.z().powf(p))
+        }
+        pub fn generate_tangents(self: &Vector) -> (Vector, Vector) {
+            let other = if self.x().abs() < EPSILON {
+                X
+            } else if self.y().abs() < EPSILON {
+                Y
+            } else {
+                Z
+            };
+            let tangent = self.cross(&other).normalized();
+            let bitangent = self.cross(&tangent).normalized();
+            (tangent, bitangent)
         }
     }
 

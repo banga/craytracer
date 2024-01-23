@@ -1,7 +1,5 @@
 use std::{f64::consts::PI, sync::Arc};
 
-use rand::Rng;
-
 use crate::{
     bounds::Bounds,
     constants::EPSILON,
@@ -9,7 +7,7 @@ use crate::{
     intersection::{PrimitiveIntersection, ShapeIntersection},
     pdf::Pdf,
     ray::Ray,
-    sampling::Sampler,
+    sampler::Sampler,
     transformation::{Transformable, Transformation},
     v,
 };
@@ -302,9 +300,9 @@ impl Shape {
     /// So far, these are only used for area lights.
 
     /// Samples a point uniformly on the surface of the shape
-    pub fn sample<R>(&self, sampler: &mut Sampler<R>) -> Point
+    pub fn sample<S>(&self, sampler: &mut S) -> Point
     where
-        R: Rng,
+        S: Sampler,
     {
         match &self {
             Shape::Sphere {
@@ -332,13 +330,13 @@ impl Shape {
         }
     }
 
-    pub fn sample_from<R>(
+    pub fn sample_from<S>(
         &self,
-        sampler: &mut Sampler<R>,
+        sampler: &mut S,
         intersection: &PrimitiveIntersection,
     ) -> (Point, Vector, Pdf)
     where
-        R: Rng,
+        S: Sampler,
     {
         // TODO: We should use a better method than sampling the surface of the
         // shape uniformly. It's currently possible that we will return a point

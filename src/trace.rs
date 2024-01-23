@@ -6,22 +6,21 @@ use crate::{
     light::Light,
     pdf::Pdf,
     ray::Ray,
-    sampling::{power_heuristic, Sampler},
+    sampler::{power_heuristic, Sampler},
     scene::Scene,
 };
 use approx::assert_abs_diff_eq;
-use rand::Rng;
 
 #[allow(non_snake_case)]
-fn sample_light<R>(
-    sampler: &mut Sampler<R>,
+fn sample_light<S>(
+    sampler: &mut S,
     intersection: &PrimitiveIntersection<'_>,
     w_o: &Vector,
     light: &Light,
     scene: &Scene,
 ) -> Color
 where
-    R: Rng,
+    S: Sampler,
 {
     let mut light_sample = light.sample_Li(sampler, &intersection);
     if let Pdf::NonDelta(pdf) = light_sample.pdf {
@@ -63,15 +62,15 @@ where
 }
 
 #[allow(non_snake_case)]
-fn sample_brdf<R>(
-    sampler: &mut Sampler<R>,
+fn sample_brdf<S>(
+    sampler: &mut S,
     intersection: &PrimitiveIntersection<'_>,
     w_o: &Vector,
     light: &Light,
     scene: &Scene,
 ) -> Color
 where
-    R: Rng,
+    S: Sampler,
 {
     let material_sample = intersection
         .material
@@ -116,15 +115,15 @@ where
 /// Estimate the radiance leaving the given point in the direction w_o from the
 /// given light source.
 #[allow(non_snake_case)]
-fn estimate_direct<R>(
-    sampler: &mut Sampler<R>,
+fn estimate_direct<S>(
+    sampler: &mut S,
     intersection: &PrimitiveIntersection,
     w_o: &Vector,
     light: &Light,
     scene: &Scene,
 ) -> Color
 where
-    R: Rng,
+    S: Sampler,
 {
     let mut Ld = Color::BLACK;
 
@@ -140,9 +139,9 @@ where
 /// constructing paths starting from the camera and ending at a light source and
 /// summing the radiance along each path.
 #[allow(non_snake_case)]
-pub fn path_trace<R>(sampler: &mut Sampler<R>, mut ray: Ray, scene: &Scene) -> Color
+pub fn path_trace<S>(sampler: &mut S, mut ray: Ray, scene: &Scene) -> Color
 where
-    R: Rng,
+    S: Sampler,
 {
     assert!(scene.lights.len() > 0, "No lights in the scene.");
 

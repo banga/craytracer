@@ -1,11 +1,9 @@
-use rand::Rng;
-
 use crate::{
     bxdf::{BxDF, SurfaceSample},
     color::Color,
     geometry::{normal::Normal, traits::DotProduct, vector::Vector},
     pdf::Pdf,
-    sampling::Sampler,
+    sampler::Sampler,
 };
 
 #[derive(Debug, PartialEq)]
@@ -30,14 +28,9 @@ impl BSDF {
             .collect()
     }
 
-    pub fn sample<R>(
-        &self,
-        sampler: &mut Sampler<R>,
-        w_o: &Vector,
-        normal: &Normal,
-    ) -> Option<SurfaceSample>
+    pub fn sample<S>(&self, sampler: &mut S, w_o: &Vector, normal: &Normal) -> Option<SurfaceSample>
     where
-        R: Rng,
+        S: Sampler,
     {
         let relevant_bxdfs = self.get_relevant_bxdfs(w_o, normal);
         if relevant_bxdfs.len() == 0 {
