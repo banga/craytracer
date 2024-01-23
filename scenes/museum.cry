@@ -1,5 +1,5 @@
 {
-    num_samples: 50,
+    num_samples: 10,
     max_depth: 10,
     camera: Perspective {
         origin: Point(0, 13, -4),
