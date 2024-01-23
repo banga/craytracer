@@ -92,8 +92,11 @@ impl Shape {
         let e1 = v1 - v0;
         let e2 = v2 - v0;
 
-        let magnitude = e2.cross(&e1).magnitude();
-        if magnitude == 0.0 {
+        if e2.cross(&e1).magnitude_squared() == 0.0
+            || n0.magnitude_squared() == 0.0
+            || n1.magnitude_squared() == 0.0
+            || n2.magnitude_squared() == 0.0
+        {
             return None;
         }
 
@@ -101,7 +104,7 @@ impl Shape {
             v0,
             e1,
             e2,
-            n0: n0.normalized(),
+            n0,
             n01: n1 - n0,
             n02: n2 - n0,
         })
