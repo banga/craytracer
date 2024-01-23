@@ -1,5 +1,7 @@
 use std::{collections::HashMap, f64::consts::E, sync::Arc};
 
+use log::{debug, warn};
+
 use crate::{
     color::Color,
     geometry::{point::Point, vector::Vector},
@@ -10,13 +12,13 @@ use crate::{
 };
 
 pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Primitive>> {
-    println!("Loading mesh from \"{}\"", file_name);
+    debug!("Loading mesh from \"{}\"", file_name);
 
     let (models, input_materials) = tobj::load_obj(file_name, &tobj::GPU_LOAD_OPTIONS).unwrap();
     let input_materials = match input_materials {
         Ok(m) => m,
         Err(e) => {
-            println!(
+            warn!(
                 "Error loading materials in {:?}: {}, skipping",
                 file_name, e
             );
@@ -30,7 +32,7 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Pr
         } else if let Ok(i) = s.parse::<i32>() {
             i as f64
         } else {
-            println!("Could not parse float from '{}'", s);
+            warn!("Could not parse float from '{}'", s);
             0.0
         }
     }
@@ -47,7 +49,7 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Pr
     let mut materials = Vec::new();
     let mut emittances = HashMap::new();
     for (id, m) in input_materials.iter().enumerate() {
-        println!("Creating material \"{}\":", m.name);
+        debug!("Creating material \"{}\":", m.name);
 
         let diffuse: Color = m.diffuse.unwrap().into();
         let specular: Color = m.specular.map(|c| c.into()).unwrap_or(Color::BLACK);
@@ -70,21 +72,17 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Pr
             let reflectance = diffuse * dissolve;
             let transmittance = diffuse * (1.0 - dissolve);
             let eta = m.optical_density.unwrap_or(1.0);
-            println!(
-                "\tTransmissive material: {} {dissolve} {reflectance} {transmittance} {eta}",
-                m.name
-            );
             Arc::new(Material::new_glass(reflectance, transmittance, eta))
         } else {
             Arc::new(Material::new_plastic(diffuse, specular, roughness))
         };
-        println!("\t{:?}", material);
+        debug!("\t{:?}", material);
         materials.push(material);
     }
 
     let mut primitives: Vec<Arc<Primitive>> = Vec::new();
     for (i, model) in models.iter().enumerate() {
-        println!("Loading model \"{}\":", model.name,);
+        debug!("Loading model \"{}\":", model.name,);
 
         let mesh = &model.mesh;
 
@@ -146,12 +144,12 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Pr
                     };
                     primitives.push(Arc::new(primitive));
                 } else {
-                    println!("\tSkipping degenerate triangle with vertices {i}, {j}, {k}");
+                    debug!("\tSkipping degenerate triangle with vertices {i}, {j}, {k}");
                 }
             }
         }
 
-        println!(
+        debug!(
             "\t\"{}\" material\n\t{} triangles\n\t{} vertices\n\t{} normals",
             match mesh.material_id {
                 Some(id) => &input_materials[id].name,
@@ -163,7 +161,7 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Pr
         );
     }
 
-    println!(
+    debug!(
         "Loaded {} primitives from {} mesh",
         primitives.len(),
         file_name

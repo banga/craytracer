@@ -1,5 +1,7 @@
 use std::{sync::Arc, time::Instant};
 
+use log::debug;
+
 use crate::{
     bvh::{Bvh, SplitMethod},
     camera::Camera,
@@ -28,13 +30,13 @@ impl Scene {
     ) -> Self {
         // TODO: Maybe allow picking split method in scene files
         let start = Instant::now();
-        println!(
+        debug!(
             "Scene with {} lights and {} primitives",
             lights.len(),
             primitives.len()
         );
         let bvh = Bvh::new(primitives, SplitMethod::SAH);
-        println!("BVH constructed in {:?}", start.elapsed());
+        debug!("BVH constructed in {:?}", start.elapsed());
         Self {
             max_depth,
             num_samples,

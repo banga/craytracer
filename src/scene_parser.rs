@@ -253,6 +253,8 @@ pub mod tokenizer {
 }
 
 pub mod parser {
+    use log::warn;
+
     use super::{
         tokenizer::{ParserError, Token},
         Location,
@@ -574,13 +576,12 @@ pub mod parser {
                 .keys()
                 .filter(|key| !self.used_keys.contains(key.as_str()))
                 .collect();
-            assert!(
-                unused_keys.len() == 0,
-                "Found unused key(s) {:?} in {} at {}",
-                unused_keys,
-                self.name,
-                self.map.location
-            );
+            if unused_keys.len() > 0 {
+                warn!(
+                    "Found unused key(s) {:?} in {} at {}",
+                    unused_keys, self.name, self.map.location
+                );
+            }
         }
     }
 

@@ -6,6 +6,7 @@ use craytracer::{
     scene_parser::{scene_parser::parse_scene, tokenizer::ParserError},
     trace::path_trace,
 };
+use log::{error, info};
 use minifb::{Key, Scale, ScaleMode, Window, WindowOptions};
 use rand::{rngs::SmallRng, Rng, SeedableRng};
 use std::{
@@ -258,10 +259,10 @@ where
                 Arc::clone(&pixels),
                 receiver,
                 |x, y| {
-                    println!("Rendering pixel at ({x},{y})");
+                    info!("Rendering pixel at ({x},{y})");
                     let mut rng = R::from_entropy();
                     let color = render_pixel(&mut rng, x, y, scene);
-                    println!("Color = {}", color);
+                    info!("Color = {}", color);
                 },
                 on_finish,
             );
@@ -287,6 +288,8 @@ struct Cli {
 }
 
 fn main() -> Result<(), ParserError> {
+    env_logger::init();
+
     let args = Cli::parse();
 
     let start = Instant::now();
@@ -295,25 +298,25 @@ fn main() -> Result<(), ParserError> {
         Ok(scene) => scene,
         Err(e) => {
             match e.location {
-                Some(location) => println!("Error: {} at {}:{}", e.message, args.scene, location),
-                None => println!("Error: {} in {}", e.message, args.scene),
+                Some(location) => error!("{} at {}:{}", e.message, args.scene, location),
+                None => error!("{} in {}", e.message, args.scene),
             }
             return Ok(());
         }
     };
-    println!("Scene constructed in {:?}", start.elapsed());
+    info!("Scene constructed in {:?}", start.elapsed());
 
     let (width, height) = scene.film_bounds();
 
     // Render to a buffer
     render::<SmallRng, _>(&scene, args.preview, start, |pixels| {
-        println!("Rendering finished in {:?}", start.elapsed());
+        info!("Rendering finished in {:?}", start.elapsed());
 
         // Save to file
         let image_buffer =
             image::Rgb32FImage::from_raw(width as u32, height as u32, pixels).unwrap();
         image_buffer.save(&args.output).expect("Error saving file");
-        println!("Output written to {}", &args.output);
+        info!("Output written to {}", &args.output);
     });
 
     Ok(())
