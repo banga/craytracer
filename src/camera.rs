@@ -4,7 +4,7 @@ use crate::{
     film::Film,
     geometry::{point::Point, vector::Vector, O, Z},
     ray::Ray,
-    sampling::{sample_2d, sample_disk},
+    sampling::Sampler,
     transformation::{Transformable, Transformation},
 };
 
@@ -130,19 +130,21 @@ impl Camera {
         )
     }
 
-    pub fn sample<R>(&self, rng: &mut R, raster_x: usize, raster_y: usize) -> Ray
+    pub fn sample<R>(&self, sampler: &mut Sampler<R>, raster_x: usize, raster_y: usize) -> Ray
     where
         R: Rng,
     {
-        let (dx, dy) = sample_2d(rng);
+        let [dx, dy] = sampler.sample_2d();
+        // Convert to [-1, 1)^2
+        let [dx, dy] = [2.0 * dx - 1.0, 2.0 * dy - 1.0];
         let p_raster = Point(raster_x as f64 + dx, raster_y as f64 + dy, 0.0);
         let p_camera = self.camera_from_raster.transform(&p_raster);
 
-        let ray = self.generate_ray(rng, p_camera);
+        let ray = self.generate_ray(sampler, p_camera);
         self.world_from_camera.transform(&ray)
     }
 
-    fn generate_ray<R>(&self, rng: &mut R, p_camera: Point) -> Ray
+    fn generate_ray<R>(&self, sampler: &mut Sampler<R>, p_camera: Point) -> Ray
     where
         R: Rng,
     {
@@ -154,7 +156,7 @@ impl Camera {
         if self.lens_radius == 0.0 {
             ray
         } else {
-            let [lens_x, lens_y] = sample_disk(rng);
+            let [lens_x, lens_y] = sampler.sample_disk();
             let p_lens = Point(lens_x * self.lens_radius, lens_y * self.lens_radius, 0.0);
             let p_focal_plane = ray.at(self.focal_distance / ray.direction.z());
             Ray::new(p_lens, (p_focal_plane - p_lens).normalized())

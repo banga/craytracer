@@ -13,7 +13,7 @@ use crate::{
     n,
     pdf::Pdf,
     ray::Ray,
-    sampling::sample_hemisphere,
+    sampling::Sampler,
     shape::Shape,
 };
 
@@ -57,7 +57,7 @@ impl Light {
     #[allow(non_snake_case)]
     pub fn sample_Li<R>(
         self: &Self,
-        rng: &mut R,
+        sampler: &mut Sampler<R>,
         intersection: &PrimitiveIntersection,
     ) -> LightSample
     where
@@ -97,13 +97,13 @@ impl Light {
                 }
             }
             Light::Infinite { intensity } => {
-                let normal = if rng.gen_bool(0.5) {
+                let normal = if sampler.sample_1d() < 0.5 {
                     n!(1, 0, 0)
                 } else {
                     n!(-1, 0, 0)
                 };
 
-                let w_i = sample_hemisphere(rng, &normal);
+                let w_i = sampler.sample_hemisphere(&normal);
                 let shadow_ray = Ray::new(intersection.location, w_i);
 
                 LightSample {
@@ -120,7 +120,7 @@ impl Light {
                 // point that is not actually visible from the intersection. It
                 // returns a pdf of 0.0 in such cases, which must be handled
                 // where it is used.
-                let (shape_point, w_i, pdf) = shape.sample_from(rng, intersection);
+                let (shape_point, w_i, pdf) = shape.sample_from(sampler, intersection);
                 let distance = (shape_point - intersection.location).magnitude();
                 let mut shadow_ray = Ray::new(intersection.location, w_i);
                 shadow_ray.update_max_distance(distance - EPSILON);

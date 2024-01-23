@@ -2,7 +2,8 @@ use std::env::args;
 
 use craytracer::{
     geometry::{normal::Normal, point::Point, vector::Vector},
-    n, p, sampling,
+    n, p,
+    sampling::Sampler,
 };
 use minifb::{Key, Scale, ScaleMode, Window, WindowOptions};
 use rand::{rngs::SmallRng, Rng, SeedableRng};
@@ -54,7 +55,6 @@ where
         let bx = ((x + 1.0) * 0.5 * (width as f64 - 1.0)).round() as usize;
         let by = ((y + 1.0) * 0.5 * (height as f64 - 1.0)).round() as usize;
         buffer[bx + (by * width)] = 0xFF000000 | (r << 16) | (g << 8) | b;
-
         window
             .update_with_buffer(&buffer, width as usize, height as usize)
             .unwrap();
@@ -63,6 +63,7 @@ where
 
 fn main() {
     let mut rng = SmallRng::from_entropy();
+    let mut sampler = Sampler::new(SmallRng::from_entropy());
     match args()
         .nth(1)
         .expect("Expected name of sampling function")
@@ -75,11 +76,11 @@ fn main() {
                 rng.gen_range(-1.0..1.0)
             )
             .normalized();
-            let Vector(x, y, z) = sampling::sample_hemisphere(&mut rng, &normal);
+            let Vector(x, y, z) = sampler.sample_hemisphere(&normal);
             (x, y, z)
         }),
         "disk" => draw_samples(move || {
-            let [x, y] = sampling::sample_disk(&mut rng);
+            let [x, y] = sampler.sample_disk();
             (x, y, 0.0)
         }),
         "triangle" => {
@@ -100,7 +101,7 @@ fn main() {
             );
 
             draw_samples(move || {
-                let [b0, b1] = sampling::sample_triangle(&mut rng);
+                let [b0, b1] = sampler.sample_triangle();
                 let p = p0 + (p1 - p0) * b0 + (p2 - p0) * b1;
                 (p.x(), p.y(), p.z())
             })

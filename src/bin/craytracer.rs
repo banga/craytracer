@@ -2,6 +2,7 @@ use clap::Parser;
 use core::time;
 use craytracer::{
     color::Color,
+    sampling::Sampler,
     scene::Scene,
     scene_parser::{scene_parser::parse_scene, tokenizer::ParserError},
     trace::path_trace,
@@ -151,15 +152,16 @@ fn show_preview<C, F>(
 }
 
 #[inline]
-fn render_pixel<R>(rng: &mut R, x: usize, y: usize, scene: &Scene) -> Color
+fn render_pixel<R>(sampler: &mut Sampler<R>, x: usize, y: usize, scene: &Scene) -> Color
 where
     R: SeedableRng + Rng + ?Sized,
 {
-    let ray = scene.camera.sample(rng, x, y);
-    path_trace(rng, ray, &scene)
+    let ray = scene.camera.sample(sampler, x, y);
+    path_trace(sampler, ray, &scene)
 }
 
 fn render_tile<R>(
+    sampler: &mut Sampler<R>,
     tile: (usize, usize, usize, usize),
     scene: &Scene,
     width: usize,
@@ -167,14 +169,12 @@ fn render_tile<R>(
 ) where
     R: SeedableRng + Rng + ?Sized,
 {
-    let mut rng = R::from_entropy();
-
     let (x1, y1, x2, y2) = tile;
     for y in y1..y2 {
         for x in x1..x2 {
             let mut color = Color::BLACK;
             for _ in 0..scene.num_samples {
-                color += render_pixel(&mut rng, x, y, scene);
+                color += render_pixel(sampler, x, y, scene);
             }
             color /= scene.num_samples as f64;
 
@@ -203,7 +203,7 @@ fn update_render_progress(start: Instant, num_rendered: usize, num_total: usize)
 
 fn render<R, F>(scene: &Scene, preview: bool, start: Instant, on_render_finish: F)
 where
-    R: SeedableRng + Rng + ?Sized,
+    R: Rng + SeedableRng,
     F: FnOnce(Vec<f32>),
 {
     let num_threads = num_cpus::get();
@@ -232,7 +232,8 @@ where
                     break;
                 }
 
-                render_tile::<R>(tiles[index], scene, width, &pixels);
+                let mut sampler = Sampler::new(R::from_entropy());
+                render_tile::<R>(&mut sampler, tiles[index], scene, width, &pixels);
 
                 update_render_progress(
                     start,
@@ -260,8 +261,8 @@ where
                 receiver,
                 |x, y| {
                     info!("Rendering pixel at ({x},{y})");
-                    let mut rng = R::from_entropy();
-                    let color = render_pixel(&mut rng, x, y, scene);
+                    let mut sampler = Sampler::new(R::from_entropy());
+                    let color = render_pixel(&mut sampler, x, y, scene);
                     info!("Color = {}", color);
                 },
                 on_finish,

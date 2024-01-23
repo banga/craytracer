@@ -6,7 +6,7 @@ use crate::{
     light::Light,
     pdf::Pdf,
     ray::Ray,
-    sampling::power_heuristic,
+    sampling::{power_heuristic, Sampler},
     scene::Scene,
 };
 use approx::assert_abs_diff_eq;
@@ -14,7 +14,7 @@ use rand::Rng;
 
 #[allow(non_snake_case)]
 fn sample_light<R>(
-    rng: &mut R,
+    sampler: &mut Sampler<R>,
     intersection: &PrimitiveIntersection<'_>,
     w_o: &Vector,
     light: &Light,
@@ -23,7 +23,7 @@ fn sample_light<R>(
 where
     R: Rng,
 {
-    let mut light_sample = light.sample_Li(rng, &intersection);
+    let mut light_sample = light.sample_Li(sampler, &intersection);
     if let Pdf::NonDelta(pdf) = light_sample.pdf {
         if pdf == 0.0 {
             return Color::BLACK;
@@ -64,7 +64,7 @@ where
 
 #[allow(non_snake_case)]
 fn sample_brdf<R>(
-    rng: &mut R,
+    sampler: &mut Sampler<R>,
     intersection: &PrimitiveIntersection<'_>,
     w_o: &Vector,
     light: &Light,
@@ -73,7 +73,9 @@ fn sample_brdf<R>(
 where
     R: Rng,
 {
-    let material_sample = intersection.material.sample(rng, w_o, &intersection.normal);
+    let material_sample = intersection
+        .material
+        .sample(sampler, w_o, &intersection.normal);
     if material_sample.is_none() {
         return Color::BLACK;
     }
@@ -115,7 +117,7 @@ where
 /// given light source.
 #[allow(non_snake_case)]
 fn estimate_direct<R>(
-    rng: &mut R,
+    sampler: &mut Sampler<R>,
     intersection: &PrimitiveIntersection,
     w_o: &Vector,
     light: &Light,
@@ -126,8 +128,8 @@ where
 {
     let mut Ld = Color::BLACK;
 
-    Ld += sample_light(rng, intersection, w_o, light, scene);
-    Ld += sample_brdf(rng, intersection, w_o, light, scene);
+    Ld += sample_light(sampler, intersection, w_o, light, scene);
+    Ld += sample_brdf(sampler, intersection, w_o, light, scene);
 
     Ld
 }
@@ -138,7 +140,7 @@ where
 /// constructing paths starting from the camera and ending at a light source and
 /// summing the radiance along each path.
 #[allow(non_snake_case)]
-pub fn path_trace<R>(rng: &mut R, mut ray: Ray, scene: &Scene) -> Color
+pub fn path_trace<R>(sampler: &mut Sampler<R>, mut ray: Ray, scene: &Scene) -> Color
 where
     R: Rng,
 {
@@ -193,7 +195,7 @@ where
 
         let surface_sample = match intersection
             .material
-            .sample(rng, &w_o, &intersection.normal)
+            .sample(sampler, &w_o, &intersection.normal)
         {
             Some(surface_sample) => surface_sample,
             None => break,
@@ -207,8 +209,9 @@ where
         // Estimate the contribution from a path that ends here. We will reuse
         // the path without the terminator in the loop.
         let light_pdf = 1.0 / scene.lights.len() as f64;
-        let light = &scene.lights[rng.gen_range(0..scene.lights.len())];
-        L += beta * estimate_direct(rng, &intersection, &w_o, &light, scene) / light_pdf;
+        let light_index = (sampler.sample_1d() * scene.lights.len() as f64) as usize;
+        let light = &scene.lights[light_index];
+        L += beta * estimate_direct(sampler, &intersection, &w_o, &light, scene) / light_pdf;
 
         let cos_theta = surface_sample.w_i.dot(&intersection.normal).abs();
         beta = beta * surface_sample.f * cos_theta;
@@ -219,7 +222,7 @@ where
         // Very naive Russian Roulette
         if bounces > 3 {
             let q: f64 = 0.05_f64.max(1.0 - (beta.r + beta.g + beta.b) * 0.3);
-            if rng.gen_range(0.0..1.0) < q {
+            if sampler.sample_1d() < q {
                 break;
             }
             beta = beta / (1.0 - q);

@@ -5,6 +5,7 @@ use crate::{
     color::Color,
     geometry::{normal::Normal, traits::DotProduct, vector::Vector},
     pdf::Pdf,
+    sampling::Sampler,
 };
 
 #[derive(Debug, PartialEq)]
@@ -29,7 +30,12 @@ impl BSDF {
             .collect()
     }
 
-    pub fn sample<R>(&self, rng: &mut R, w_o: &Vector, normal: &Normal) -> Option<SurfaceSample>
+    pub fn sample<R>(
+        &self,
+        sampler: &mut Sampler<R>,
+        w_o: &Vector,
+        normal: &Normal,
+    ) -> Option<SurfaceSample>
     where
         R: Rng,
     {
@@ -38,10 +44,10 @@ impl BSDF {
             return None;
         }
 
-        let sample_index = rng.gen_range(0..relevant_bxdfs.len());
+        let sample_index = (sampler.sample_1d() * relevant_bxdfs.len() as f64) as usize;
         let bxdf = &relevant_bxdfs[sample_index];
 
-        let sample = bxdf.sample(rng, w_o, normal);
+        let sample = bxdf.sample(sampler, w_o, normal);
         if sample.is_none() {
             return None;
         }

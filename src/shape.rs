@@ -9,7 +9,7 @@ use crate::{
     intersection::{PrimitiveIntersection, ShapeIntersection},
     pdf::Pdf,
     ray::Ray,
-    sampling::{sample_disk, sample_sphere, sample_triangle},
+    sampling::Sampler,
     transformation::{Transformable, Transformation},
     v,
 };
@@ -302,7 +302,7 @@ impl Shape {
     /// So far, these are only used for area lights.
 
     /// Samples a point uniformly on the surface of the shape
-    pub fn sample<R>(&self, rng: &mut R) -> Point
+    pub fn sample<R>(&self, sampler: &mut Sampler<R>) -> Point
     where
         R: Rng,
     {
@@ -312,11 +312,11 @@ impl Shape {
                 radius,
                 ..
             } => {
-                let point = O + sample_sphere(rng) * *radius;
+                let point = O + sampler.sample_sphere() * *radius;
                 object_to_world.transform(&point)
             }
             Shape::Triangle { v0, e1, e2, .. } => {
-                let [b1, b2] = sample_triangle(rng);
+                let [b1, b2] = sampler.sample_triangle();
                 *v0 + *e1 * b1 + *e2 * b2
             }
             Shape::Disk {
@@ -325,7 +325,7 @@ impl Shape {
                 ..
             } => {
                 // Note: this does not account for inner_radius
-                let [x, y] = sample_disk(rng);
+                let [x, y] = sampler.sample_disk();
                 let point = Point(x * radius, y * radius, 0.0);
                 object_to_world.transform(&point)
             }
@@ -334,7 +334,7 @@ impl Shape {
 
     pub fn sample_from<R>(
         &self,
-        rng: &mut R,
+        sampler: &mut Sampler<R>,
         intersection: &PrimitiveIntersection,
     ) -> (Point, Vector, Pdf)
     where
@@ -343,7 +343,7 @@ impl Shape {
         // TODO: We should use a better method than sampling the surface of the
         // shape uniformly. It's currently possible that we will return a point
         // that is not actually visible from the intersection.
-        let point = self.sample(rng);
+        let point = self.sample(sampler);
         let w_i = (point - intersection.location).normalized();
         let pdf = self.pdf_from(intersection, &w_i);
         (point, w_i, pdf)

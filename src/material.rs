@@ -8,6 +8,7 @@ use crate::{
     color::Color,
     geometry::{normal::Normal, vector::Vector},
     pdf::Pdf,
+    sampling::Sampler,
 };
 
 #[derive(Debug, PartialEq)]
@@ -61,13 +62,18 @@ impl Material {
         })
     }
 
-    pub fn sample<R>(&self, rng: &mut R, w_o: &Vector, normal: &Normal) -> Option<SurfaceSample>
+    pub fn sample<R>(
+        &self,
+        sampler: &mut Sampler<R>,
+        w_o: &Vector,
+        normal: &Normal,
+    ) -> Option<SurfaceSample>
     where
         R: Rng,
     {
         match self {
-            Material::BxDF(bxdf) => bxdf.sample(rng, w_o, normal),
-            Material::BSDF(bsdf) => bsdf.sample(rng, w_o, normal),
+            Material::BxDF(bxdf) => bxdf.sample(sampler, w_o, normal),
+            Material::BSDF(bsdf) => bsdf.sample(sampler, w_o, normal),
         }
     }
     pub fn f(&self, w_o: &Vector, w_i: &Vector, normal: &Normal) -> Color {

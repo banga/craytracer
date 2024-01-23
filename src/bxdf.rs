@@ -3,7 +3,7 @@ use crate::{
     constants::EPSILON,
     geometry::{normal::Normal, traits::DotProduct, vector::Vector},
     pdf::Pdf,
-    sampling::cosine_sample_hemisphere,
+    sampling::Sampler,
 };
 use approx::assert_abs_diff_eq;
 use rand::Rng;
@@ -86,13 +86,18 @@ impl BxDF {
     /// light `w_o`. The sample includes `w_i` the sampled incoming direction of
     /// light, `f` the value of the BRDF at this sample and `pdf` the value of
     /// the probability density function at this sample.
-    pub fn sample<R>(&self, rng: &mut R, w_o: &Vector, normal: &Normal) -> Option<SurfaceSample>
+    pub fn sample<R>(
+        &self,
+        sampler: &mut Sampler<R>,
+        w_o: &Vector,
+        normal: &Normal,
+    ) -> Option<SurfaceSample>
     where
         R: Rng,
     {
         match self {
             BxDF::LambertianBRDF { .. } => {
-                let mut w_i = cosine_sample_hemisphere(rng, normal);
+                let mut w_i = sampler.cosine_sample_hemisphere(normal);
                 // Make sure w_i is in the same hemisphere as w_o
                 if normal.dot(w_o) < 0.0 {
                     w_i = -w_i;
@@ -105,7 +110,7 @@ impl BxDF {
                 })
             }
             BxDF::OrenNayyarBRDF { .. } => {
-                let mut w_i = cosine_sample_hemisphere(rng, normal);
+                let mut w_i = sampler.cosine_sample_hemisphere(normal);
                 // Make sure w_i is in the same hemisphere as w_o
                 if normal.dot(w_o) < 0.0 {
                     w_i = -w_i;
@@ -189,7 +194,7 @@ impl BxDF {
                 let cos_theta_i = w_o.dot(normal);
                 let fresnel_reflectance = fresnel_dielectric(*eta_i, *eta_t, cos_theta_i);
 
-                if rng.gen_range(0.0..1.0) < fresnel_reflectance {
+                if sampler.sample_1d() < fresnel_reflectance {
                     Some(SurfaceSample {
                         w_i: reflect(w_o, normal),
                         f: *reflectance * fresnel_reflectance / cos_theta_i.abs(),
