@@ -12,7 +12,10 @@ use crate::{
     n,
     pdf::Pdf,
     ray::Ray,
-    sampler::Sampler,
+    sampling::{
+        samplers::{Sample1d, Sample2d},
+        sampling_fns::sample_hemisphere,
+    },
     shape::Shape,
 };
 
@@ -54,14 +57,11 @@ impl Light {
     /// Returns the radiance, the direction from which it is arriving (pointing
     /// to the light source) and the pdf value of sampling that direction.
     #[allow(non_snake_case)]
-    pub fn sample_Li<S>(
+    pub fn sample_Li(
         self: &Self,
-        sampler: &mut S,
+        (sample_1d, sample_2d): (Sample1d, Sample2d),
         intersection: &PrimitiveIntersection,
-    ) -> LightSample
-    where
-        S: Sampler,
-    {
+    ) -> LightSample {
         match &self {
             Light::Point { origin, intensity } => {
                 let op = *origin - intersection.location;
@@ -96,13 +96,13 @@ impl Light {
                 }
             }
             Light::Infinite { intensity } => {
-                let normal = if sampler.sample_1d() < 0.5 {
+                let normal = if sample_1d.take() < 0.5 {
                     n!(1, 0, 0)
                 } else {
                     n!(-1, 0, 0)
                 };
 
-                let w_i = sampler.sample_hemisphere(&normal);
+                let w_i = sample_hemisphere(sample_2d, &normal);
                 let shadow_ray = Ray::new(intersection.location, w_i);
 
                 LightSample {
@@ -119,7 +119,7 @@ impl Light {
                 // point that is not actually visible from the intersection. It
                 // returns a pdf of 0.0 in such cases, which must be handled
                 // where it is used.
-                let (shape_point, w_i, pdf) = shape.sample_from(sampler, intersection);
+                let (shape_point, w_i, pdf) = shape.sample_from(sample_2d, intersection);
                 let distance = (shape_point - intersection.location).magnitude();
                 let mut shadow_ray = Ray::new(intersection.location, w_i);
                 shadow_ray.update_max_distance(distance - EPSILON);

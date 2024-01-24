@@ -7,7 +7,10 @@ use crate::{
     intersection::{PrimitiveIntersection, ShapeIntersection},
     pdf::Pdf,
     ray::Ray,
-    sampler::Sampler,
+    sampling::{
+        samplers::Sample2d,
+        sampling_fns::{sample_disk, sample_sphere, sample_triangle},
+    },
     transformation::{Transformable, Transformation},
     v,
 };
@@ -300,21 +303,18 @@ impl Shape {
     /// So far, these are only used for area lights.
 
     /// Samples a point uniformly on the surface of the shape
-    pub fn sample<S>(&self, sampler: &mut S) -> Point
-    where
-        S: Sampler,
-    {
+    pub fn sample(&self, point_sample: Sample2d) -> Point {
         match &self {
             Shape::Sphere {
                 object_to_world,
                 radius,
                 ..
             } => {
-                let point = O + sampler.sample_sphere() * *radius;
+                let point = O + sample_sphere(point_sample) * *radius;
                 object_to_world.transform(&point)
             }
             Shape::Triangle { v0, e1, e2, .. } => {
-                let [b1, b2] = sampler.sample_triangle();
+                let (b1, b2) = sample_triangle(point_sample);
                 *v0 + *e1 * b1 + *e2 * b2
             }
             Shape::Disk {
@@ -323,25 +323,22 @@ impl Shape {
                 ..
             } => {
                 // Note: this does not account for inner_radius
-                let [x, y] = sampler.sample_disk();
+                let (x, y) = sample_disk(point_sample);
                 let point = Point(x * radius, y * radius, 0.0);
                 object_to_world.transform(&point)
             }
         }
     }
 
-    pub fn sample_from<S>(
+    pub fn sample_from(
         &self,
-        sampler: &mut S,
+        point_sample: Sample2d,
         intersection: &PrimitiveIntersection,
-    ) -> (Point, Vector, Pdf)
-    where
-        S: Sampler,
-    {
+    ) -> (Point, Vector, Pdf) {
         // TODO: We should use a better method than sampling the surface of the
         // shape uniformly. It's currently possible that we will return a point
         // that is not actually visible from the intersection.
-        let point = self.sample(sampler);
+        let point = self.sample(point_sample);
         let w_i = (point - intersection.location).normalized();
         let pdf = self.pdf_from(intersection, &w_i);
         (point, w_i, pdf)

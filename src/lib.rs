@@ -14,7 +14,7 @@ pub mod obj;
 pub mod pdf;
 pub mod primitive;
 pub mod ray;
-pub mod sampler;
+pub mod sampling;
 pub mod scene;
 pub mod scene_parser;
 pub mod shape;

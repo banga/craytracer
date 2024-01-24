@@ -6,23 +6,23 @@ use crate::{
     light::Light,
     pdf::Pdf,
     ray::Ray,
-    sampler::{power_heuristic, Sampler},
+    sampling::{
+        samplers::{Sample1d, Sample2d, Sampler},
+        sampling_fns::power_heuristic,
+    },
     scene::Scene,
 };
 use approx::assert_abs_diff_eq;
 
 #[allow(non_snake_case)]
-fn sample_light<S>(
-    sampler: &mut S,
+fn sample_light(
+    samples: (Sample1d, Sample2d),
     intersection: &PrimitiveIntersection<'_>,
     w_o: &Vector,
     light: &Light,
     scene: &Scene,
-) -> Color
-where
-    S: Sampler,
-{
-    let mut light_sample = light.sample_Li(sampler, &intersection);
+) -> Color {
+    let mut light_sample = light.sample_Li(samples, &intersection);
     if let Pdf::NonDelta(pdf) = light_sample.pdf {
         if pdf == 0.0 {
             return Color::BLACK;
@@ -62,19 +62,16 @@ where
 }
 
 #[allow(non_snake_case)]
-fn sample_brdf<S>(
-    sampler: &mut S,
+fn sample_brdf(
+    samples: (Sample1d, Sample2d),
     intersection: &PrimitiveIntersection<'_>,
     w_o: &Vector,
     light: &Light,
     scene: &Scene,
-) -> Color
-where
-    S: Sampler,
-{
+) -> Color {
     let material_sample = intersection
         .material
-        .sample(sampler, w_o, &intersection.normal);
+        .sample(samples, w_o, &intersection.normal);
     if material_sample.is_none() {
         return Color::BLACK;
     }
@@ -115,22 +112,45 @@ where
 /// Estimate the radiance leaving the given point in the direction w_o from the
 /// given light source.
 #[allow(non_snake_case)]
-fn estimate_direct<S>(
-    sampler: &mut S,
+fn estimate_direct(
+    light_samples: (Sample1d, Sample2d),
+    brdf_samples: (Sample1d, Sample2d),
     intersection: &PrimitiveIntersection,
     w_o: &Vector,
     light: &Light,
     scene: &Scene,
-) -> Color
-where
-    S: Sampler,
-{
+) -> Color {
     let mut Ld = Color::BLACK;
 
-    Ld += sample_light(sampler, intersection, w_o, light, scene);
-    Ld += sample_brdf(sampler, intersection, w_o, light, scene);
+    Ld += sample_light(light_samples, intersection, w_o, light, scene);
+    Ld += sample_brdf(brdf_samples, intersection, w_o, light, scene);
 
     Ld
+}
+
+// This struct is meant to ensure that all path segments consume samples in the
+// same order, so that for every pixel, they use the same dimension in the
+// sampler, which is how the sampler ensures samples are well distributed.
+struct PathSegmentSamples {
+    material: (Sample1d, Sample2d),
+    light_index: Sample1d,
+    light: (Sample1d, Sample2d),
+    brdf: (Sample1d, Sample2d),
+    russian_roulette: Sample1d,
+}
+impl PathSegmentSamples {
+    fn from<S>(sampler: &mut S) -> PathSegmentSamples
+    where
+        S: Sampler,
+    {
+        PathSegmentSamples {
+            material: (sampler.sample_1d(), sampler.sample_2d()),
+            light_index: sampler.sample_1d(),
+            light: (sampler.sample_1d(), sampler.sample_2d()),
+            brdf: (sampler.sample_1d(), sampler.sample_2d()),
+            russian_roulette: sampler.sample_1d(),
+        }
+    }
 }
 
 /// As described in
@@ -192,13 +212,16 @@ where
             L += beta * intersection.Le(&w_o);
         }
 
-        let surface_sample = match intersection
-            .material
-            .sample(sampler, &w_o, &intersection.normal)
-        {
-            Some(surface_sample) => surface_sample,
-            None => break,
-        };
+        let path_samples = PathSegmentSamples::from(sampler);
+
+        let surface_sample =
+            match intersection
+                .material
+                .sample(path_samples.material, &w_o, &intersection.normal)
+            {
+                Some(surface_sample) => surface_sample,
+                None => break,
+            };
         if surface_sample.f.is_black() {
             break;
         }
@@ -208,9 +231,17 @@ where
         // Estimate the contribution from a path that ends here. We will reuse
         // the path without the terminator in the loop.
         let light_pdf = 1.0 / scene.lights.len() as f64;
-        let light_index = (sampler.sample_1d() * scene.lights.len() as f64) as usize;
+        let light_index = (path_samples.light_index.take() * scene.lights.len() as f64) as usize;
         let light = &scene.lights[light_index];
-        L += beta * estimate_direct(sampler, &intersection, &w_o, &light, scene) / light_pdf;
+        L +=
+            beta * estimate_direct(
+                path_samples.light,
+                path_samples.brdf,
+                &intersection,
+                &w_o,
+                &light,
+                scene,
+            ) / light_pdf;
 
         let cos_theta = surface_sample.w_i.dot(&intersection.normal).abs();
         beta = beta * surface_sample.f * cos_theta;
@@ -221,7 +252,7 @@ where
         // Very naive Russian Roulette
         if bounces > 3 {
             let q: f64 = 0.05_f64.max(1.0 - (beta.r + beta.g + beta.b) * 0.3);
-            if sampler.sample_1d() < q {
+            if path_samples.russian_roulette.take() < q {
                 break;
             }
             beta = beta / (1.0 - q);

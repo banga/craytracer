@@ -3,7 +3,12 @@ use std::env::args;
 use craytracer::{
     geometry::{normal::Normal, point::Point, vector::Vector},
     n, p,
-    sampler::{IndependentSampler, Sampler},
+    sampling::{
+        samplers::{IndependentSampler, Sampler},
+        sampling_fns::sample_disk,
+        sampling_fns::sample_hemisphere,
+        sampling_fns::sample_triangle,
+    },
 };
 use minifb::{Key, Scale, ScaleMode, Window, WindowOptions};
 use rand::{rngs::SmallRng, Rng, SeedableRng};
@@ -76,11 +81,11 @@ fn main() {
                 rng.gen_range(-1.0..1.0)
             )
             .normalized();
-            let Vector(x, y, z) = sampler.sample_hemisphere(&normal);
+            let Vector(x, y, z) = sample_hemisphere(sampler.sample_2d(), &normal);
             (x, y, z)
         }),
         "disk" => draw_samples(move || {
-            let [x, y] = sampler.sample_disk();
+            let (x, y) = sample_disk(sampler.sample_2d());
             (x, y, 0.0)
         }),
         "triangle" => {
@@ -101,7 +106,7 @@ fn main() {
             );
 
             draw_samples(move || {
-                let [b0, b1] = sampler.sample_triangle();
+                let (b0, b1) = sample_triangle(sampler.sample_2d());
                 let p = p0 + (p1 - p0) * b0 + (p2 - p0) * b1;
                 (p.x(), p.y(), p.z())
             })

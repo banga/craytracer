@@ -2,12 +2,12 @@ use clap::Parser;
 use core::time;
 use craytracer::{
     color::Color,
-    sampler::{IndependentSampler, Sampler},
+    sampling::samplers::{IndependentSampler, Sampler},
     scene::Scene,
     scene_parser::{scene_parser::parse_scene, tokenizer::ParserError},
     trace::path_trace,
 };
-use log::{error, info};
+use log::{debug, error, info};
 use minifb::{Key, Scale, ScaleMode, Window, WindowOptions};
 use std::{
     sync::{
@@ -156,7 +156,11 @@ where
     S: Sampler,
 {
     sampler.start_pixel(x, y, sample_index);
-    let ray = scene.camera.sample(sampler, x, y);
+    let film_sample = sampler.sample_2d();
+    let lens_sample = sampler.sample_2d();
+
+    let ray = scene.camera.sample((film_sample, lens_sample), x, y);
+
     path_trace(sampler, ray, &scene)
 }
 
@@ -201,8 +205,9 @@ fn update_render_progress(start: Instant, num_rendered: usize, num_total: usize)
     );
 }
 
-fn render<F>(scene: &Scene, seed: u32, preview: bool, start: Instant, on_render_finish: F)
+fn render<S, F>(scene: &Scene, mut sampler: S, preview: bool, start: Instant, on_render_finish: F)
 where
+    S: Sampler + Send,
     F: FnOnce(Vec<f32>),
 {
     let num_threads = num_cpus::get();
@@ -218,13 +223,20 @@ where
     let tile_index = Arc::new(AtomicUsize::new(0));
     let (sender, receiver) = mpsc::channel();
 
+    debug!(
+        "Rendering {} pixels in {} tiles using {} threads",
+        pixels.lock().unwrap().len(),
+        tiles.len(),
+        num_threads
+    );
+
     thread::scope(|scope| {
         let mut handles = vec![];
         for _ in 0..num_threads {
             let tile_index = Arc::clone(&tile_index);
             let pixels = Arc::clone(&pixels);
             let sender = sender.clone();
-            let mut sampler = IndependentSampler::new(seed);
+            let mut sampler = sampler.clone();
 
             handles.push(scope.spawn(move || loop {
                 let index = tile_index.fetch_add(1, Ordering::SeqCst);
@@ -249,7 +261,6 @@ where
 
         if preview {
             let mut window = create_preview_window(width, height);
-            let mut sampler = IndependentSampler::new(seed);
             show_preview(
                 &mut window,
                 width,
@@ -277,16 +288,16 @@ where
 
 #[derive(Parser)]
 struct Cli {
-    #[clap(short, long)]
+    #[clap(long)]
     scene: String,
 
-    #[clap(short, long, default_value_t = String::from("out.exr"))]
+    #[clap(long, default_value_t = String::from("out.exr"))]
     output: String,
 
-    #[clap(short, long)]
+    #[clap(long)]
     preview: bool,
 
-    #[clap(short, long, default_value_t = 0)]
+    #[clap(long, default_value_t = 0)]
     seed: u32,
 }
 
@@ -312,7 +323,8 @@ fn main() -> Result<(), ParserError> {
     let (width, height) = scene.film_bounds();
 
     // Render to a buffer
-    render(&scene, args.seed, args.preview, start, |pixels| {
+    let sampler = IndependentSampler::new(args.seed);
+    render(&scene, sampler, args.preview, start, |pixels| {
         info!("Rendering finished in {:?}", start.elapsed());
 
         // Save to file
