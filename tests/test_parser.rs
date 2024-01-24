@@ -443,16 +443,16 @@ mod parser {
         );
         expect_raw_value(
             "Sphere { center: Point(0, 0, 0), radius: 1000 }",
-            RawValue::TypedMap(TypedRawValueMap {
-                name: "Sphere".to_string(),
-                map: RawValueMap {
+            RawValue::TypedMap(TypedRawValueMap::new(
+                "Sphere".to_string(),
+                RawValueMap {
                     map: HashMap::from([
                         ("center".to_string(), RawValue::Point(O)),
                         ("radius".to_string(), RawValue::Number(1000.0)),
                     ]),
                     location: Location { line: 1, column: 8 },
                 },
-            }),
+            )),
         );
         expect_raw_value("[]", RawValue::Array(RawValueArray { array: Vec::new() }));
         expect_raw_value(

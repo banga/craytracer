@@ -68,7 +68,7 @@ pub mod tokenizer {
         }
     }
 
-    #[derive(Debug)]
+    #[derive(PartialEq, Debug)]
     pub struct ParserError {
         pub message: String,
         pub location: Option<Location>,
@@ -322,7 +322,7 @@ pub mod parser {
     }
 
     // TODO: Add location to raw values
-    #[derive(Debug)]
+    #[derive(PartialEq, Debug)]
     pub enum RawValue {
         Number(f64),
         String(String),
@@ -409,18 +409,10 @@ pub mod parser {
         }
     }
 
+    #[derive(Debug, PartialEq)]
     pub struct RawValueMap {
         pub location: Location,
         pub map: HashMap<String, RawValue>,
-    }
-
-    impl Debug for RawValueMap {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            f.debug_struct("RawValueMap")
-                .field("map", &self.map)
-                .field("location", &self.location)
-                .finish()
-        }
     }
 
     impl RawValueMap {
@@ -521,7 +513,7 @@ pub mod parser {
         }
     }
 
-    #[derive(Debug)]
+    #[derive(PartialEq, Debug)]
     pub struct TypedRawValueMap {
         pub name: String,
         map: RawValueMap,
@@ -540,6 +532,14 @@ pub mod parser {
                 map,
                 used_keys: HashSet::new(),
             })
+        }
+
+        pub fn new(name: String, map: RawValueMap) -> Self {
+            TypedRawValueMap {
+                name,
+                map,
+                used_keys: HashSet::new(),
+            }
         }
 
         pub fn has(&mut self, key: &str) -> bool {
@@ -585,7 +585,7 @@ pub mod parser {
         }
     }
 
-    #[derive(Debug)]
+    #[derive(PartialEq, Debug)]
     pub struct RawValueArray {
         pub array: Vec<RawValue>,
     }
