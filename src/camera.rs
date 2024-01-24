@@ -136,7 +136,7 @@ impl Camera {
     ) -> Ray {
         let (dx, dy) = film_sample.take();
         // Convert to [-1, 1)^2
-        let [dx, dy] = [2.0 * dx - 1.0, 2.0 * dy - 1.0];
+        let (dx, dy) = (2.0 * dx - 1.0, 2.0 * dy - 1.0);
         let p_raster = Point(raster_x as f64 + dx, raster_y as f64 + dy, 0.0);
         let p_camera = self.camera_from_raster.transform(&p_raster);
 
@@ -154,6 +154,7 @@ impl Camera {
             ray
         } else {
             let (lens_x, lens_y) = lens_sample.take();
+            let (lens_x, lens_y) = (2.0 * lens_x - 1.0, 2.0 * lens_y - 1.0);
             let p_lens = Point(lens_x * self.lens_radius, lens_y * self.lens_radius, 0.0);
             let p_focal_plane = ray.at(self.focal_distance / ray.direction.z());
             Ray::new(p_lens, (p_focal_plane - p_lens).normalized())
