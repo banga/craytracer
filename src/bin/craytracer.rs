@@ -177,10 +177,10 @@ fn render_tile<S>(
     for y in y1..y2 {
         for x in x1..x2 {
             let mut color = Color::BLACK;
-            for sample_index in 0..scene.num_samples {
+            for sample_index in 0..sampler.num_samples() {
                 color += render_pixel(sampler, x, y, sample_index, scene);
             }
-            color /= scene.num_samples as f64;
+            color /= sampler.num_samples() as f64;
 
             let mut pixels = pixels.lock().unwrap();
             let (r, g, b) = color.into();
@@ -298,7 +298,7 @@ struct Cli {
     preview: bool,
 
     #[clap(long, default_value_t = 0)]
-    seed: u32,
+    seed: usize,
 }
 
 fn main() -> Result<(), ParserError> {
@@ -323,7 +323,7 @@ fn main() -> Result<(), ParserError> {
     let (width, height) = scene.film_bounds();
 
     // Render to a buffer
-    let sampler = IndependentSampler::new(args.seed);
+    let sampler = IndependentSampler::new(args.seed, scene.num_samples);
     render(&scene, sampler, args.preview, start, |pixels| {
         info!("Rendering finished in {:?}", start.elapsed());
 

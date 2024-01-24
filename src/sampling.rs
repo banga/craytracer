@@ -92,7 +92,7 @@ pub mod samplers {
     }
 
     pub trait Sampler: Clone {
-        fn new(seed: u32) -> Self;
+        fn num_samples(&self) -> usize;
         fn start_pixel(&mut self, x: usize, y: usize, sample_index: usize);
         /// Returns a value in [0, 1)
         fn sample_1d(&mut self) -> Sample1d;
@@ -102,25 +102,36 @@ pub mod samplers {
 
     #[derive(Clone)]
     pub struct IndependentSampler {
-        seed: u32,
+        seed: usize,
         rng: StdRng,
         dist: Uniform<f64>,
+        num_samples: usize,
     }
 
-    impl Sampler for IndependentSampler {
-        fn new(seed: u32) -> Self {
+    impl IndependentSampler {
+        pub fn new(seed: usize, num_samples: usize) -> Self {
             Self {
                 seed,
                 rng: StdRng::seed_from_u64(0),
                 dist: Uniform::new(0.0, 1.0),
+                num_samples,
             }
         }
+    }
 
+    impl Sampler for IndependentSampler {
+        fn num_samples(&self) -> usize {
+            self.num_samples
+        }
         fn start_pixel(&mut self, x: usize, y: usize, sample_index: usize) {
             let mut hasher = DefaultHasher::new();
             self.seed.hash(&mut hasher);
             x.hash(&mut hasher);
             y.hash(&mut hasher);
+            // Ideally, we would keep all samples in the same sequence by only
+            // hashing (x, y) and then advancing the sequence by a large
+            // multiple of sample_index. But Rng doesn't support that and we are
+            // generating completely independent samples anyway.
             sample_index.hash(&mut hasher);
             let hash = hasher.finish();
             self.rng = StdRng::seed_from_u64(hash);
@@ -132,6 +143,54 @@ pub mod samplers {
 
         fn sample_2d(&mut self) -> Sample2d {
             Sample2d(self.rng.sample(self.dist), self.rng.sample(self.dist))
+        }
+    }
+
+    // Divides each dimension into equal slots and samples the center of each
+    // slot. This is not a good sampler, because samples from each dimension are
+    // correlated. A stratified sampler could be built from this if we could
+    // remove this correlation by randomly permuting the order in which these
+    // samples are drawn per dimension. It's here mainly to help visualize other
+    // sampling functions that use a sampler.
+    #[derive(Clone)]
+    pub struct UniformSampler {
+        num_x_samples: usize,
+        num_y_samples: usize,
+        sample_index: usize,
+    }
+
+    impl UniformSampler {
+        pub fn new(num_x_samples: usize, num_y_samples: usize) -> Self {
+            Self {
+                num_x_samples,
+                num_y_samples,
+                sample_index: 0,
+            }
+        }
+    }
+
+    impl Sampler for UniformSampler {
+        fn num_samples(&self) -> usize {
+            self.num_x_samples * self.num_y_samples
+        }
+
+        fn start_pixel(&mut self, _x: usize, _y: usize, sample_index: usize) {
+            self.sample_index = sample_index;
+        }
+
+        fn sample_1d(&mut self) -> Sample1d {
+            let sample =
+                (self.sample_index as f64 + 0.5) / (self.num_x_samples * self.num_y_samples) as f64;
+            Sample1d(sample)
+        }
+
+        fn sample_2d(&mut self) -> Sample2d {
+            let x = self.sample_index % self.num_x_samples;
+            let y = self.sample_index / self.num_x_samples;
+
+            let sample_x = (x as f64 + 0.5) / self.num_x_samples as f64;
+            let sample_y = (y as f64 + 0.5) / self.num_y_samples as f64;
+            Sample2d(sample_x, sample_y)
         }
     }
 }
