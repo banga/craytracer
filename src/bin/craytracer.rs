@@ -2,7 +2,7 @@ use clap::Parser;
 use core::time;
 use craytracer::{
     color::Color,
-    sampling::samplers::{IndependentSampler, Sampler},
+    sampling::samplers::{Sampler, SobolSampler},
     scene::Scene,
     scene_parser::{scene_parser::parse_scene, tokenizer::ParserError},
     trace::path_trace,
@@ -323,7 +323,7 @@ fn main() -> Result<(), ParserError> {
     let (width, height) = scene.film_bounds();
 
     // Render to a buffer
-    let sampler = IndependentSampler::new(args.seed, scene.num_samples);
+    let sampler = SobolSampler::new(args.seed, scene.num_samples);
     render(&scene, sampler, args.preview, start, |pixels| {
         info!("Rendering finished in {:?}", start.elapsed());
 

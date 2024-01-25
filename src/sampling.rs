@@ -16,10 +16,10 @@ pub mod sampling_fns {
 
     pub fn sample_disk(sample: Sample2d) -> (f64, f64) {
         let (u, v) = sample.take();
-        let (u, v) = (2.0 * u - 1.0, 2.0 * v - 1.0);
         if u == 0.0 || v == 0.0 {
             return (0.0, 0.0);
         }
+        let (u, v) = (2.0 * u - 1.0, 2.0 * v - 1.0);
         let (r, theta) = if u.abs() > v.abs() {
             (u, FRAC_PI_4 * v / u)
         } else {
@@ -55,15 +55,13 @@ pub mod sampling_fns {
     }
 
     pub fn cosine_sample_hemisphere(sample: Sample2d, normal: &Normal) -> Vector {
-        let normal: Vector = normal.into();
-
         let (tangent, bitangent) = normal.generate_tangents();
+        let normal: Vector = normal.into();
         let (x, y) = sample_disk(sample);
         let z = (1.0 - x * x - y * y).max(0.0).sqrt();
         let a = tangent * x + bitangent * y + normal * z;
-        // TODO: This fails when using SobolSampler
-        assert!(a.dot(&normal) >= 0.0);
-        a
+        assert!(a.dot(&normal) >= 0.0,);
+        a.normalized()
     }
 }
 

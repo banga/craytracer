@@ -224,9 +224,20 @@ impl BxDF {
                     let cos_theta_i = w_i.dot(normal).abs();
                     let cos_theta_o = w_o.dot(normal).abs();
 
-                    let sin_theta_i = (1.0 - cos_theta_i).sqrt();
-                    let sin_theta_o = (1.0 - cos_theta_o).sqrt();
-                    let max_cos = (cos_theta_i * cos_theta_o + sin_theta_i * sin_theta_o).max(0.0);
+                    let sin_theta_i = (1.0 - cos_theta_i * cos_theta_i).max(0.0).sqrt();
+                    let sin_theta_o = (1.0 - cos_theta_o * cos_theta_o).max(0.0).sqrt();
+                    let max_cos = if sin_theta_i > 1e-4 && sin_theta_o > 1e-4 {
+                        // TODO: Calculating the tangent can be avoided by
+                        // transforming to shading space first
+                        let tangent = normal.generate_tangents().0;
+                        let cos_phi_i = w_i.dot(&tangent).abs();
+                        let cos_phi_o = w_o.dot(&tangent).abs();
+                        let sin_phi_i = (1.0 - cos_phi_i * cos_phi_i).sqrt();
+                        let sin_phi_o = (1.0 - cos_phi_o * cos_phi_o).sqrt();
+                        (cos_phi_i * cos_phi_o + sin_phi_i * sin_phi_o).max(0.0)
+                    } else {
+                        0.0
+                    };
 
                     let (sin_alpha, tan_beta) = if cos_theta_i > cos_theta_o {
                         // theta_i <= theta_o

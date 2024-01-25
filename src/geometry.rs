@@ -17,9 +17,9 @@ pub enum Axis {
 pub const AXES: [Axis; 3] = [Axis::X, Axis::Y, Axis::Z];
 
 pub mod vector {
+    use super::normal::Normal;
     use super::traits::DotProduct;
-    use super::{normal::Normal, X};
-    use super::{Axis, Y, Z};
+    use super::Axis;
     use crate::constants::EPSILON;
     use approx::AbsDiffEq;
     use std::{
@@ -71,18 +71,6 @@ pub mod vector {
         }
         pub fn powf(&self, p: f64) -> Vector {
             Vector(self.x().powf(p), self.y().powf(p), self.z().powf(p))
-        }
-        pub fn generate_tangents(self: &Vector) -> (Vector, Vector) {
-            let other = if self.x().abs() < EPSILON {
-                X
-            } else if self.y().abs() < EPSILON {
-                Y
-            } else {
-                Z
-            };
-            let tangent = self.cross(&other).normalized();
-            let bitangent = self.cross(&tangent).normalized();
-            (tangent, bitangent)
         }
     }
 
@@ -212,7 +200,7 @@ pub mod vector {
 
     impl Display for Vector {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            let precision = f.precision().unwrap_or(9);
+            let precision = f.precision().unwrap_or(64);
             write!(
                 f,
                 "({:.precision$},{:.precision$},{:.precision$})",
@@ -372,7 +360,7 @@ pub mod point {
 
     impl Display for Point {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            let precision = f.precision().unwrap_or(9);
+            let precision = f.precision().unwrap_or(64);
             write!(
                 f,
                 "({:.precision$},{:.precision$},{:.precision$})",
@@ -435,6 +423,18 @@ pub mod normal {
         /// relative to this normal
         pub fn same_hemisphere(&self, v1: &Vector, v2: &Vector) -> bool {
             self.dot(v1) * self.dot(v2) > 0.0
+        }
+        pub fn generate_tangents(&self) -> (Vector, Vector) {
+            // Source: https://www.pbr-book.org/4ed/Geometry_and_Transformations/Vectors#CoordinateSystemfromaVector
+            let v = self.normalized();
+            let sign = v.z().signum();
+            let a = -1.0 / (sign + v.z());
+            let b = v.x() * v.y() * a;
+            let (x, y) = (
+                Vector(1.0 + sign * v.x() * v.x() * a, sign * b, -sign * v.x()),
+                Vector(b, sign + v.y() * v.y() * a, -v.y()),
+            );
+            (x, y)
         }
     }
 
@@ -564,7 +564,7 @@ pub mod normal {
 
     impl Display for Normal {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            let precision = f.precision().unwrap_or(9);
+            let precision = f.precision().unwrap_or(64);
             write!(
                 f,
                 "({:.precision$},{:.precision$},{:.precision$})",
