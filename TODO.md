@@ -14,5 +14,5 @@ TODO
 - [ ] Film
 - [ ] Thin lens camera
 - [x] Samplers
-  - [ ] Fix cosine_sample_hemisphere assert failing with SobolSampler
+  - [x] Fix cosine_sample_hemisphere assert failing with SobolSampler
 - [ ] Spectrum
