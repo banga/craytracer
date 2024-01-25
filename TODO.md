@@ -13,5 +13,6 @@ TODO
 - [ ] Textures
 - [ ] Film
 - [ ] Thin lens camera
-- [ ] Samplers
+- [x] Samplers
+  - [ ] Fix cosine_sample_hemisphere assert failing with SobolSampler
 - [ ] Spectrum

@@ -61,6 +61,7 @@ pub mod sampling_fns {
         let (x, y) = sample_disk(sample);
         let z = (1.0 - x * x - y * y).max(0.0).sqrt();
         let a = tangent * x + bitangent * y + normal * z;
+        // TODO: This fails when using SobolSampler
         assert!(a.dot(&normal) >= 0.0);
         a
     }
@@ -191,6 +192,59 @@ pub mod samplers {
             let sample_x = (x as f64 + 0.5) / self.num_x_samples as f64;
             let sample_y = (y as f64 + 0.5) / self.num_y_samples as f64;
             Sample2d(sample_x, sample_y)
+        }
+    }
+
+    #[derive(Clone)]
+    pub struct SobolSampler {
+        seed: usize,
+        num_samples: usize,
+
+        hash: u32,
+        sample_index: u32,
+        dimension: u32,
+    }
+
+    impl SobolSampler {
+        pub fn new(seed: usize, num_samples: usize) -> Self {
+            SobolSampler {
+                seed,
+                num_samples,
+                hash: 0,
+                sample_index: 0,
+                dimension: 0,
+            }
+        }
+    }
+
+    impl Sampler for SobolSampler {
+        fn num_samples(&self) -> usize {
+            self.num_samples
+        }
+
+        fn start_pixel(&mut self, x: usize, y: usize, sample_index: usize) {
+            let mut hasher = DefaultHasher::new();
+            self.seed.hash(&mut hasher);
+            x.hash(&mut hasher);
+            y.hash(&mut hasher);
+            self.hash = hasher.finish() as u32;
+
+            self.sample_index = sample_index as u32;
+            self.dimension = 0;
+        }
+
+        fn sample_1d(&mut self) -> Sample1d {
+            let sample = sobol_burley::sample(self.sample_index, self.dimension, self.hash);
+            self.dimension += 1;
+            Sample1d(sample as f64)
+        }
+
+        fn sample_2d(&mut self) -> Sample2d {
+            let sample_x = sobol_burley::sample(self.sample_index, self.dimension, self.hash);
+            self.dimension += 1;
+            let sample_y = sobol_burley::sample(self.sample_index, self.dimension, self.hash);
+            self.dimension += 1;
+            Sample2d(sample_x as f64, sample_y as f64)
         }
     }
 }

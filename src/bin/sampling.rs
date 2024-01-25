@@ -3,7 +3,7 @@ use craytracer::{
     geometry::{normal::Normal, point::Point, vector::Vector},
     n, p,
     sampling::{
-        samplers::{IndependentSampler, Sampler, UniformSampler},
+        samplers::{IndependentSampler, Sampler, SobolSampler, UniformSampler},
         sampling_fns::sample_disk,
         sampling_fns::sample_hemisphere,
         sampling_fns::sample_triangle,
@@ -190,6 +190,7 @@ fn main() {
 
     let width = 10;
     let height = 10;
+    let seed = 0;
     let spp = spp_x * spp_y;
 
     match test.as_str() {
@@ -198,8 +199,14 @@ fn main() {
                 "uniform" => {
                     test_sampler_quality(&mut UniformSampler::new(spp_x, spp_y), width, height, spp)
                 }
-                "independent" => {
-                    test_sampler_quality(&mut IndependentSampler::new(0, spp), width, height, spp)
+                "independent" => test_sampler_quality(
+                    &mut IndependentSampler::new(seed, spp),
+                    width,
+                    height,
+                    spp,
+                ),
+                "sobol" => {
+                    test_sampler_quality(&mut SobolSampler::new(seed, spp), width, height, spp)
                 }
                 _ => panic!("Unknown sampler: {}", sampler),
             };
@@ -210,8 +217,9 @@ fn main() {
                     visualize_samples(sample_fn.as_str(), &mut UniformSampler::new(spp_x, spp_y))
                 }
                 "independent" => {
-                    visualize_samples(sample_fn.as_str(), &mut IndependentSampler::new(0, spp))
+                    visualize_samples(sample_fn.as_str(), &mut IndependentSampler::new(seed, spp))
                 }
+                "sobol" => visualize_samples(sample_fn.as_str(), &mut SobolSampler::new(seed, spp)),
                 _ => panic!("Unknown sampler: {}", sampler),
             };
         }
