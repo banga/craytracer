@@ -21,8 +21,9 @@
           "kind": "bin"
         }
       },
-      "args": ["-s", "scenes/scratch.cry"],
-      "cwd": "${workspaceFolder}"
+      "args": ["--scene", "${file}"],
+      "cwd": "${workspaceFolder}",
+      "env": { "RUST_LOG": "trace" }
     },
     {
       "type": "lldb",
