@@ -288,7 +288,7 @@ where
 
 #[derive(Parser)]
 struct Cli {
-    #[clap(long)]
+    #[clap(long, short)]
     scene: String,
 
     #[clap(long, default_value_t = String::from("out.exr"))]
