@@ -163,8 +163,6 @@ pub fn path_trace<S>(sampler: &mut S, mut ray: Ray, scene: &Scene) -> Color
 where
     S: Sampler,
 {
-    assert!(scene.lights.len() > 0, "No lights in the scene.");
-
     let mut L = Color::BLACK;
     let mut beta = Color::WHITE;
     let mut bounces = 0;

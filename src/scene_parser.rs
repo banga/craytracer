@@ -776,6 +776,7 @@ pub mod scene_parser {
     use super::{
         parser::{RawValue, RawValueMap, TypedRawValueMap},
         tokenizer::{tokenize, ParserError},
+        Location,
     };
     use crate::{
         camera::Camera,
@@ -1061,6 +1062,13 @@ pub mod scene_parser {
                 }
                 primitives.push(primitive);
             }
+        }
+
+        if lights.len() == 0 {
+            return Err(ParserError::new(
+                "No lights in the scene.",
+                &Location { line: 0, column: 0 },
+            ));
         }
 
         Ok(Scene::new(
