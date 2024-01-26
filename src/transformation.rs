@@ -1,10 +1,10 @@
-use approx::AbsDiffEq;
+use approx::{assert_abs_diff_eq, AbsDiffEq};
 use std::{fmt::Display, ops::Mul};
 
 use crate::{
     bounds::Bounds,
     constants::EPSILON,
-    geometry::{normal::Normal, point::Point, vector::Vector},
+    geometry::{normal::Normal, point::Point, traits::DotProduct, vector::Vector},
     intersection::ShapeIntersection,
     ray::Ray,
 };
@@ -487,5 +487,48 @@ impl Transformable<ShapeIntersection> for Transformation {
             location: self.transform(&intersection.location),
             normal: self.transform(&intersection.normal),
         }
+    }
+}
+
+pub struct Frame {
+    // A 3x3 matrix of orthonormal vectors
+    x: Vector,
+    y: Vector,
+    z: Vector,
+}
+
+impl Frame {
+    pub fn from_xy(x: &Vector, y: &Vector) -> Self {
+        assert_abs_diff_eq!(x.dot(y), 0.0);
+        Self {
+            x: x.normalized(),
+            y: y.normalized(),
+            z: x.cross(&y).normalized(),
+        }
+    }
+}
+
+pub trait FrameTransformable<T> {
+    fn from_local(&self, t: &T) -> T;
+    fn to_local(&self, t: &T) -> T;
+}
+
+impl FrameTransformable<Vector> for Frame {
+    fn from_local(&self, t: &Vector) -> Vector {
+        self.x * t.x() + self.y * t.y() + self.z * t.z()
+    }
+
+    fn to_local(&self, v: &Vector) -> Vector {
+        v!(v.dot(&self.x), v.dot(&self.y), v.dot(&self.z))
+    }
+}
+
+impl FrameTransformable<Normal> for Frame {
+    fn from_local(&self, t: &Normal) -> Normal {
+        (self.x * t.x() + self.y * t.y() + self.z * t.z()).into()
+    }
+
+    fn to_local(&self, v: &Normal) -> Normal {
+        n!(v.dot(&self.x), v.dot(&self.y), v.dot(&self.z))
     }
 }

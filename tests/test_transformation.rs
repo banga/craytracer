@@ -177,3 +177,46 @@ pub mod transformation {
         );
     }
 }
+
+#[cfg(test)]
+pub mod frame {
+    use craytracer::geometry::{O, X, Y, Z};
+    use craytracer::macros::Normal;
+    use craytracer::transformation::{Frame, FrameTransformable};
+    use craytracer::{n, v};
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    pub fn vector() {
+        // x -> y, y -> z, z -> x
+        let t = Frame::from_xy(&Y, &Z);
+        assert_eq!(t.from_local(&X), Y);
+        assert_eq!(t.from_local(&Y), Z);
+        assert_eq!(t.from_local(&Z), X);
+
+        assert_eq!(t.to_local(&X), Z);
+        assert_eq!(t.to_local(&Y), X);
+        assert_eq!(t.to_local(&Z), Y);
+
+        assert_eq!(t.from_local(&v!(1.0, -1.0, 0.0)), v!(0.0, 1.0, -1.0));
+        assert_eq!(t.to_local(&v!(1.0, -1.0, 0.0)), v!(-1.0, 0.0, 1.0));
+    }
+
+    pub fn normal() {
+        // x -> y, y -> z, z -> x
+        let t = Frame::from_xy(&Y, &Z);
+        let x: Normal = X.into();
+        let y: Normal = Y.into();
+        let z: Normal = Z.into();
+        assert_eq!(t.from_local(&x), y);
+        assert_eq!(t.from_local(&y), z);
+        assert_eq!(t.from_local(&z), x);
+
+        assert_eq!(t.to_local(&x), z);
+        assert_eq!(t.to_local(&y), x);
+        assert_eq!(t.to_local(&z), y);
+
+        assert_eq!(t.from_local(&n!(1.0, -1.0, 0.0)), n!(0.0, 1.0, -1.0));
+        assert_eq!(t.to_local(&n!(1.0, -1.0, 0.0)), n!(-1.0, 0.0, 1.0));
+    }
+}
