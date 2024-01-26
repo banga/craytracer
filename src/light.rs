@@ -7,7 +7,7 @@ use std::{
 use crate::{
     color::Color,
     constants::EPSILON,
-    geometry::{normal::Normal, point::Point, vector::Vector},
+    geometry::{point::Point, vector::Vector},
     intersection::PrimitiveIntersection,
     n,
     pdf::Pdf,

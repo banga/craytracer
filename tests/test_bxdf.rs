@@ -2,7 +2,7 @@ use approx::assert_abs_diff_eq;
 
 use craytracer::{
     bxdf::{reflect, refract},
-    geometry::{normal::Normal, traits::DotProduct, vector::Vector},
+    geometry::{traits::DotProduct, vector::Vector},
     n, v,
 };
 

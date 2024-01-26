@@ -1,6 +1,6 @@
 use std::env::args;
 
-use craytracer::{bounds::Bounds, geometry::point::Point, p};
+use craytracer::{bounds::Bounds, p};
 use tobj::{Material, Mesh};
 
 fn analyze_obj(file_name: &str) {

@@ -368,7 +368,7 @@ mod parser {
         camera::Camera,
         color::Color,
         film::Film,
-        geometry::{point::Point, vector::Vector, O, Y},
+        geometry::{point::Point, O, Y},
         light::Light,
         material::Material,
         p,

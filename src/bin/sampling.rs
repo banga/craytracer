@@ -1,6 +1,6 @@
 use clap::Parser;
 use craytracer::{
-    geometry::{normal::Normal, point::Point, vector::Vector},
+    geometry::vector::Vector,
     n, p,
     sampling::{
         samplers::{IndependentSampler, Sampler, SobolSampler, UniformSampler},

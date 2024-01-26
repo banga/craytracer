@@ -4,7 +4,7 @@ use std::sync::Arc;
 use craytracer::{
     bvh::{Bvh, SplitMethod},
     color::Color,
-    geometry::{point::Point, X},
+    geometry::X,
     material::Material,
     p,
     primitive::Primitive,

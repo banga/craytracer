@@ -112,7 +112,7 @@ mod triangle {
     use craytracer::{
         bounds::Bounds,
         constants::EPSILON,
-        geometry::{normal::Normal, point::Point, vector::Vector, O, Z},
+        geometry::{point::Point, O, Z},
         n, p,
         ray::Ray,
         shape::Shape,

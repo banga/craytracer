@@ -71,9 +71,6 @@ pub mod matrix {
 pub mod transformation {
     use approx::assert_abs_diff_eq;
     use craytracer::bounds::Bounds;
-    use craytracer::geometry::normal::Normal;
-    use craytracer::geometry::point::Point;
-    use craytracer::geometry::vector::Vector;
     use craytracer::geometry::{O, X, Y, Z};
     use craytracer::ray::Ray;
     use craytracer::transformation::{Transformable, Transformation};
