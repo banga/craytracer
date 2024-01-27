@@ -63,6 +63,15 @@ impl Primitive {
         })
     }
 
+    pub fn intersects(&self, ray: &mut Ray) -> bool {
+        let shape = match self {
+            Primitive::ShapePrimitive { shape, .. } => shape,
+            Primitive::AreaLightPrimitive { shape, .. } => shape,
+        };
+
+        shape.intersects(ray)
+    }
+
     pub fn bounds(&self) -> Bounds {
         match self {
             Primitive::AreaLightPrimitive { shape, .. } => shape,

@@ -59,7 +59,7 @@ impl Bounds {
             (point.z() - self.min.z()) / (self.max.z() - self.min.z()),
         )
     }
-    pub fn intersect(&self, ray: &Ray) -> Option<f64> {
+    pub fn intersects(&self, ray: &Ray) -> bool {
         let mut min_distance = f64::NEG_INFINITY;
         let mut max_distance = f64::INFINITY;
 
@@ -75,22 +75,16 @@ impl Bounds {
 
             max_distance = max_distance.min((max_i - o_i) / d_i);
             if max_distance < EPSILON {
-                return None;
+                return false;
             }
 
             min_distance = min_distance.max((min_i - o_i) / d_i);
             if min_distance > max_distance {
-                return None;
+                return false;
             }
         }
 
-        if ray.contains_distance(min_distance) {
-            Some(min_distance)
-        } else if ray.contains_distance(max_distance) {
-            Some(max_distance)
-        } else {
-            None
-        }
+        ray.contains_distance(min_distance) || ray.contains_distance(max_distance)
     }
 }
 

@@ -180,7 +180,7 @@ pub mod transformation {
 
 #[cfg(test)]
 pub mod frame {
-    use craytracer::geometry::{O, X, Y, Z};
+    use craytracer::geometry::{X, Y, Z};
     use craytracer::macros::Normal;
     use craytracer::transformation::{Frame, FrameTransformable};
     use craytracer::{n, v};

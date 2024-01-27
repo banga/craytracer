@@ -64,8 +64,7 @@ impl Bvh {
 
             // If the ray doesn't intersect the bounds, it could still be contained
             // within them, so check for both
-            let bounds_intersection = bounds.intersect(ray);
-            if bounds_intersection.is_none() && !bounds.contains(&ray.origin) {
+            if !bounds.intersects(ray) && !bounds.contains(&ray.origin) {
                 continue;
             }
 
@@ -99,6 +98,49 @@ impl Bvh {
         }
 
         current
+    }
+
+    pub fn intersects(&self, ray: &mut Ray) -> bool {
+        let mut q = Vec::with_capacity(32);
+        q.push(&self.root);
+        while let Some(node) = q.pop() {
+            let bounds = match node {
+                BvhNode::LeafNode { bounds, .. } => bounds,
+                BvhNode::InteriorNode { bounds, .. } => bounds,
+            };
+
+            // If the ray doesn't intersect the bounds, it could still be contained
+            // within them, so check for both
+            if !bounds.intersects(ray) && !bounds.contains(&ray.origin) {
+                continue;
+            }
+
+            match node {
+                BvhNode::LeafNode { primitives, .. } => {
+                    for primitive in primitives {
+                        if primitive.intersects(ray) {
+                            return true;
+                        }
+                    }
+                }
+                BvhNode::InteriorNode {
+                    left,
+                    right,
+                    split_axis,
+                    ..
+                } => {
+                    if ray.direction[*split_axis] < 0.0 {
+                        q.push(left);
+                        q.push(right);
+                    } else {
+                        q.push(right);
+                        q.push(left);
+                    };
+                }
+            }
+        }
+
+        false
     }
 }
 

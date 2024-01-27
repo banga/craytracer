@@ -1,10 +1,8 @@
-use approx::assert_abs_diff_eq;
 use pretty_assertions::assert_eq;
 use rand::{thread_rng, Rng};
 
 use craytracer::{
     bounds::Bounds,
-    constants::EPSILON,
     geometry::{point::Point, O, X, Y, Z},
     p,
     ray::Ray,
@@ -18,16 +16,16 @@ fn test_intersect_axes() {
     };
 
     // X axis
-    assert_eq!(b.intersect(&Ray::new(O, X,)), Some(1.0));
-    assert_eq!(b.intersect(&Ray::new(O, -X,)), Some(1.0));
+    assert!(b.intersects(&Ray::new(O, X,)));
+    assert!(b.intersects(&Ray::new(O, -X,)));
 
     // Y axis
-    assert_eq!(b.intersect(&Ray::new(O, Y,)), Some(1.0));
-    assert_eq!(b.intersect(&Ray::new(O, -Y,)), Some(1.0));
+    assert!(b.intersects(&Ray::new(O, Y,)));
+    assert!(b.intersects(&Ray::new(O, -Y,)));
 
     // Z axis
-    assert_eq!(b.intersect(&Ray::new(O, Z,)), Some(1.0));
-    assert_eq!(b.intersect(&Ray::new(O, -Z,)), Some(1.0));
+    assert!(b.intersects(&Ray::new(O, Z,)));
+    assert!(b.intersects(&Ray::new(O, -Z,)));
 }
 
 #[test]
@@ -49,12 +47,7 @@ fn test_intersect_random() {
         );
         let direction = target - origin;
         let distance = direction.magnitude();
-        assert_abs_diff_eq!(
-            b.intersect(&Ray::new(origin, direction / distance))
-                .unwrap(),
-            distance,
-            epsilon = EPSILON
-        );
+        assert!(b.intersects(&Ray::new(origin, direction / distance)));
     }
 }
 
@@ -65,10 +58,10 @@ fn test_intersect_miss() {
         max: Point::new(1, 1, 1),
     };
 
-    assert_eq!(b.intersect(&Ray::new(Point::new(0, 2, 0), X)), None);
-    assert_eq!(b.intersect(&Ray::new(Point::new(0, -2, 0), -X)), None);
-    assert_eq!(b.intersect(&Ray::new(Point::new(2, 0, 0), Y)), None);
-    assert_eq!(b.intersect(&Ray::new(Point::new(-2, 0, 0), -Y)), None);
+    assert!(!b.intersects(&Ray::new(Point::new(0, 2, 0), X)));
+    assert!(!b.intersects(&Ray::new(Point::new(0, -2, 0), -X)));
+    assert!(!b.intersects(&Ray::new(Point::new(2, 0, 0), Y)));
+    assert!(!b.intersects(&Ray::new(Point::new(-2, 0, 0), -Y)));
 }
 
 #[test]

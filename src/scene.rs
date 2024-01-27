@@ -50,6 +50,10 @@ impl Scene {
         self.bvh.intersect(ray)
     }
 
+    pub fn intersects(&self, ray: &mut Ray) -> bool {
+        self.bvh.intersects(ray)
+    }
+
     pub fn film_bounds(&self) -> (usize, usize) {
         (self.camera.film.width, self.camera.film.height)
     }

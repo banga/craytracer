@@ -195,19 +195,18 @@ impl Shape {
                 }
 
                 let T = ray.origin - *v0;
-                let inv_denominator = 1.0 / denominator;
-                let u = P.dot(&T) * inv_denominator;
+                let u = P.dot(&T) / denominator;
                 if u < 0.0 || u > 1.0 {
                     return None;
                 }
 
                 let Q = T.cross(e1);
-                let v = Q.dot(&ray.direction) * inv_denominator;
+                let v = Q.dot(&ray.direction) / denominator;
                 if v < 0.0 || u + v > 1.0 {
                     return None;
                 }
 
-                let distance = T.cross(e1).dot(e2) * inv_denominator;
+                let distance = T.cross(e1).dot(e2) / denominator;
                 if ray.update_max_distance(distance) {
                     let location = ray.at(distance);
                     Some(ShapeIntersection {
@@ -256,6 +255,95 @@ impl Shape {
                 } else {
                     None
                 }
+            }
+        }
+    }
+
+    #[allow(non_snake_case)]
+    pub fn intersects(&self, ray: &Ray) -> bool {
+        match self {
+            Shape::Sphere {
+                world_to_object,
+                radius,
+                ..
+            } => {
+                let obj_ray = world_to_object.transform(ray);
+
+                let oc = Vector(obj_ray.origin.x(), obj_ray.origin.y(), obj_ray.origin.z());
+                let a = obj_ray.direction.magnitude_squared();
+                let b = 2.0 * oc.dot(&obj_ray.direction);
+                let c = oc.magnitude_squared() - radius.powf(2.0);
+                let discriminant = b * b - 4.0 * a * c;
+
+                if discriminant < 0.0 {
+                    return false;
+                }
+
+                let discriminant_sqrt = discriminant.sqrt();
+                let inv_2_a = 1.0 / (2.0 * a);
+                let mut distance = (-b - discriminant_sqrt) * inv_2_a;
+                if obj_ray.contains_distance(distance) {
+                    return true;
+                }
+
+                distance = (-b + discriminant_sqrt) * inv_2_a;
+                obj_ray.contains_distance(distance)
+            }
+            Shape::Triangle { v0, e1, e2, .. } => {
+                // Source: http://www.graphics.cornell.edu/pubs/1997/MT97.pdf
+                let P = ray.direction.cross(e2);
+
+                let denominator = P.dot(e1);
+                if denominator > -EPSILON && denominator < EPSILON {
+                    return false;
+                }
+
+                let T = ray.origin - *v0;
+                let u = P.dot(&T) / denominator;
+                if u < 0.0 || u > 1.0 {
+                    return false;
+                }
+
+                let Q = T.cross(e1);
+                let v = Q.dot(&ray.direction) / denominator;
+                if v < 0.0 || u + v > 1.0 {
+                    return false;
+                }
+
+                let distance = T.cross(e1).dot(e2) / denominator;
+                ray.contains_distance(distance)
+            }
+            Shape::Disk {
+                world_to_object,
+                radius,
+                inner_radius,
+                ..
+            } => {
+                let obj_ray = world_to_object.transform(ray);
+                if obj_ray.direction.z() == 0.0 {
+                    return false;
+                }
+                // The ray will intersect the plane at z = 0.
+                // So, o.z + d.z * t = 0
+                let t = -obj_ray.origin.z() / obj_ray.direction.z();
+                if !obj_ray.contains_distance(t) {
+                    return false;
+                }
+
+                // If the distance of the intersection from (0, 0, 0) is in
+                // [inner_radius, radius], then we have found an intersection
+                let location = Point(
+                    obj_ray.origin.x() + obj_ray.direction.x() * t,
+                    obj_ray.origin.y() + obj_ray.direction.y() * t,
+                    0.0,
+                );
+                let distance_squared = location.x().powf(2.0) + location.y().powf(2.0);
+                if distance_squared < inner_radius.powf(2.0) || distance_squared > radius.powf(2.0)
+                {
+                    return false;
+                }
+
+                ray.contains_distance(t)
             }
         }
     }

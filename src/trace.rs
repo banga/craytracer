@@ -32,9 +32,7 @@ fn sample_light(
         return Color::BLACK;
     }
 
-    // TODO: Implement a fast intersection method that just returns a boolean
-    let shadow_intersection = scene.intersect(&mut light_sample.shadow_ray);
-    if shadow_intersection.is_some() {
+    if scene.intersects(&mut light_sample.shadow_ray) {
         return Color::BLACK;
     }
     let f = intersection
