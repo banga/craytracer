@@ -100,7 +100,7 @@ impl Bvh {
         current
     }
 
-    pub fn intersects(&self, ray: &mut Ray) -> bool {
+    pub fn intersects(&self, ray: &Ray) -> bool {
         let mut q = Vec::with_capacity(32);
         q.push(&self.root);
         while let Some(node) = q.pop() {

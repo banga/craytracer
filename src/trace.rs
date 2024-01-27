@@ -22,7 +22,7 @@ fn sample_light(
     light: &Light,
     scene: &Scene,
 ) -> Color {
-    let mut light_sample = light.sample_Li(samples, &intersection);
+    let light_sample = light.sample_Li(samples, &intersection);
     if let Pdf::NonDelta(pdf) = light_sample.pdf {
         if pdf == 0.0 {
             return Color::BLACK;
@@ -32,7 +32,7 @@ fn sample_light(
         return Color::BLACK;
     }
 
-    if scene.intersects(&mut light_sample.shadow_ray) {
+    if scene.intersects(&light_sample.shadow_ray) {
         return Color::BLACK;
     }
     let f = intersection

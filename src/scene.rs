@@ -50,7 +50,7 @@ impl Scene {
         self.bvh.intersect(ray)
     }
 
-    pub fn intersects(&self, ray: &mut Ray) -> bool {
+    pub fn intersects(&self, ray: &Ray) -> bool {
         self.bvh.intersects(ray)
     }
 
