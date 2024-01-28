@@ -179,25 +179,27 @@ impl Light {
 #[derive(Debug, PartialEq)]
 pub struct LightSampler {
     cdfs: Vec<f64>,
-    total_cdf: f64,
 }
 
 impl LightSampler {
     pub fn new(lights: &Vec<Arc<Light>>, world_radius: f64) -> Self {
-        let mut total_cdf = 0.0;
-        let mut cdfs = vec![];
-        for light in lights.iter() {
-            let power = light.power(world_radius);
-            let pdf = (power.r + power.g + power.b) / 3.0;
-            total_cdf += pdf;
-            cdfs.push(total_cdf);
-        }
-        Self { cdfs, total_cdf }
+        let mut total_power = 0.0;
+        let cdfs: Vec<f64> = lights
+            .iter()
+            .map(|light| {
+                let power = light.power(world_radius);
+                let power_avg = (power.r + power.g + power.b) / 3.0;
+                total_power += power_avg;
+                total_power
+            })
+            .collect();
+        let cdfs = cdfs.iter().map(|power| power / total_power).collect();
+        Self { cdfs }
     }
 
     // TODO: Try the "AliasTable" method to do this in constant time
     pub fn sample(&self, sample: Sample1d) -> (usize, f64) {
-        let u = sample.take() * self.total_cdf;
+        let u = sample.take();
         let idx = self
             .cdfs
             .binary_search_by(|probe| probe.total_cmp(&u))
@@ -209,6 +211,6 @@ impl LightSampler {
             self.cdfs[idx]
         };
 
-        (idx, pdf / self.total_cdf)
+        (idx, pdf)
     }
 }
