@@ -160,6 +160,11 @@ impl Mul<Color> for Color {
 
 impl Display for Color {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "({},{},{})", self.r, self.g, self.b)
+        let precision = f.precision().unwrap_or(8);
+        write!(
+            f,
+            "({:.precision$},{:.precision$},{:.precision$})",
+            self.r, self.g, self.b
+        )
     }
 }

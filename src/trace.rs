@@ -226,8 +226,7 @@ where
 
         // Estimate the contribution from a path that ends here. We will reuse
         // the path without the terminator in the loop.
-        let light_pdf = 1.0 / scene.lights.len() as f64;
-        let light_index = (path_samples.light_index.take() * scene.lights.len() as f64) as usize;
+        let (light_index, light_pdf) = scene.light_sampler.sample(path_samples.light_index);
         let light = &scene.lights[light_index];
         L +=
             beta * estimate_direct(

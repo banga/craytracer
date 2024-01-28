@@ -48,9 +48,6 @@ pub struct LightSample {
     pub shadow_ray: Ray,
 }
 
-// TODO: This should be computed using the scene's bounds
-const WORLD_RADIUS: f64 = 1e6;
-
 impl Light {
     /// Samples the light arriving at a given point from this light source.
     ///
@@ -168,12 +165,50 @@ impl Light {
         }
     }
 
-    pub fn power(self: &Self) -> Color {
+    pub fn power(self: &Self, world_radius: f64) -> Color {
         match &self {
             Light::Point { intensity, .. } => *intensity * 4.0 * PI,
-            Light::Distant { intensity, .. } => *intensity * PI * WORLD_RADIUS * WORLD_RADIUS,
-            Light::Infinite { intensity, .. } => *intensity * PI * WORLD_RADIUS * WORLD_RADIUS,
+            Light::Distant { intensity, .. } => *intensity * PI * world_radius * world_radius,
+            Light::Infinite { intensity, .. } => *intensity * PI * world_radius * world_radius,
             Light::Area { emittance, shape } => *emittance * PI * shape.area(),
         }
+    }
+}
+
+/// Samples lights in proportion to their power
+#[derive(Debug, PartialEq)]
+pub struct LightSampler {
+    cdfs: Vec<f64>,
+    total_cdf: f64,
+}
+
+impl LightSampler {
+    pub fn new(lights: &Vec<Arc<Light>>, world_radius: f64) -> Self {
+        let mut total_cdf = 0.0;
+        let mut cdfs = vec![];
+        for light in lights.iter() {
+            let power = light.power(world_radius);
+            let pdf = (power.r + power.g + power.b) / 3.0;
+            total_cdf += pdf;
+            cdfs.push(total_cdf);
+        }
+        Self { cdfs, total_cdf }
+    }
+
+    // TODO: Try the "AliasTable" method to do this in constant time
+    pub fn sample(&self, sample: Sample1d) -> (usize, f64) {
+        let u = sample.take() * self.total_cdf;
+        let idx = self
+            .cdfs
+            .binary_search_by(|probe| probe.total_cmp(&u))
+            .unwrap_or_else(|idx| idx);
+
+        let pdf = if idx > 0 {
+            self.cdfs[idx] - self.cdfs[idx - 1]
+        } else {
+            self.cdfs[idx]
+        };
+
+        (idx, pdf / self.total_cdf)
     }
 }

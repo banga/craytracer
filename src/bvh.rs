@@ -31,6 +31,7 @@ pub enum SplitMethod {
 #[derive(Debug, PartialEq)]
 pub struct Bvh {
     pub root: BvhNode,
+    pub bounds: Bounds,
 }
 
 impl Bvh {
@@ -49,7 +50,9 @@ impl Bvh {
             SplitMethod::SAH => BvhNode::from_sah_splitting(&mut primitive_infos),
         };
 
-        Bvh { root }
+        let bounds: Bounds = primitive_infos.iter().map(|i| i.bounds).sum();
+
+        Bvh { root, bounds }
     }
 
     pub fn intersect(&self, ray: &mut Ray) -> Option<PrimitiveIntersection> {

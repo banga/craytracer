@@ -6,7 +6,7 @@ use crate::{
     bvh::{Bvh, SplitMethod},
     camera::Camera,
     intersection::PrimitiveIntersection,
-    light::Light,
+    light::{Light, LightSampler},
     primitive::Primitive,
     ray::Ray,
 };
@@ -17,6 +17,7 @@ pub struct Scene {
     pub num_samples: usize,
     pub camera: Camera,
     pub lights: Vec<Arc<Light>>,
+    pub light_sampler: LightSampler,
     bvh: Bvh,
 }
 
@@ -37,11 +38,16 @@ impl Scene {
         );
         let bvh = Bvh::new(primitives, SplitMethod::SAH);
         debug!("BVH constructed in {:?}", start.elapsed());
+
+        let world_radius = bvh.bounds.diagonal().magnitude() * 0.5;
+        let light_sampler = LightSampler::new(&lights, world_radius);
+
         Self {
             max_depth,
             num_samples,
             camera,
             lights,
+            light_sampler,
             bvh,
         }
     }
