@@ -74,7 +74,12 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Pr
             let eta = m.optical_density.unwrap_or(1.0);
             Arc::new(Material::new_glass(reflectance, transmittance, eta))
         } else {
-            Arc::new(Material::new_plastic(diffuse, specular, roughness))
+            // This is a hacky way to support reflective surfaces. We should
+            // likely switch to glTF or something
+            match m.illumination_model {
+                Some(3 | 4 | 5 | 6 | 7 | 8 | 9) => Arc::new(Material::new_metal(diffuse, specular)),
+                _ => Arc::new(Material::new_plastic(diffuse, specular, roughness)),
+            }
         };
         debug!("\t{:?}", material);
         materials.push(material);

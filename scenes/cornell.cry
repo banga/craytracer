@@ -1,0 +1,33 @@
+{
+    num_samples: 16,
+    max_depth: 8,
+    camera: Perspective {
+        origin: Point(0, 1, -2.8),
+        target: Point(0, 1, 0),
+        up: Vector(0, 1, 0),
+        fov: 60,
+        film: {
+            width: 400,
+            height: 400,
+        }
+    },
+    lights: [
+    ],
+    materials: {
+        default: Matte { reflectance: Color(1, 1, 1), sigma: 0 }
+    },
+    shapes: {
+    },
+    primitives: [
+        // Source: https://github.com/jvm-graphics-labs/awesome-3d-meshes/
+        Mesh { file_name: 'objs/local/cornell/CornellBox-Original.obj', fallback_material: 'default' },
+        // Mesh { file_name: 'objs/local/cornell/CornellBox-Sphere.obj', fallback_material: 'default' },
+        // Mesh { file_name: 'objs/local/cornell/CornellBox-Empty-CO.obj', fallback_material: 'default' },
+        // Mesh { file_name: 'objs/local/cornell/CornellBox-Empty-RG.obj', fallback_material: 'default' },
+        // Mesh { file_name: 'objs/local/cornell/CornellBox-Empty-White.obj', fallback_material: 'default' },
+        // Mesh { file_name: 'objs/local/cornell/CornellBox-Glossy-Floor.obj', fallback_material: 'default' },
+        // Mesh { file_name: 'objs/local/cornell/CornellBox-Glossy.obj', fallback_material: 'default' },
+        // Mesh { file_name: 'objs/local/cornell/CornellBox-Mirror.obj', fallback_material: 'default' },
+        // Mesh { file_name: 'objs/local/cornell/CornellBox-Water.obj', fallback_material: 'default' },
+    ]
+}
