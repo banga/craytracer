@@ -20,6 +20,7 @@ pub mod sampling;
 pub mod scene;
 pub mod scene_parser;
 pub mod shape;
+pub mod simple_integrator;
 pub mod trace;
 pub mod transformation;
 pub mod util;

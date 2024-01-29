@@ -46,6 +46,9 @@ impl Color {
     pub fn is_black(self) -> bool {
         self.r == 0.0 && self.g == 0.0 && self.b == 0.0
     }
+    pub fn is_finite(self) -> bool {
+        self.r.is_finite() && self.g.is_finite() && self.b.is_finite()
+    }
 }
 
 impl From<Color> for (f32, f32, f32) {
