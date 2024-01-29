@@ -4,11 +4,12 @@ Another hobby raytracer in Rust
 
 ## Images
 
-### Simple
+### Stormtrooper
 
-![simple image](https://github.com/banga/craytracer/blob/main/images/simple.png)
+![stormtrooper image](https://github.com/banga/craytracer/blob/main/images/helmet.png)
 
-Source: [scenes/simple.cry](https://github.com/banga/craytracer/blob/main/scenes/simple.cry)
+Source: [scenes/helmet.cry](https://github.com/banga/craytracer/blob/main/scenes/helmet.cry)
+Model: https://www.blendswap.com/blend/13953
 
 ### XYZ RGB Dragon
 
@@ -29,3 +30,9 @@ Source: [scenes/materials.cry](https://github.com/banga/craytracer/blob/main/sce
 ![washington image](https://github.com/banga/craytracer/blob/main/images/washington.png)
 
 Model: https://sketchfab.com/3d-models/george-washington-greenough-statue-1840-6f90971e3eb24c0b8091086242f2c3b3
+
+### Simple
+
+![simple image](https://github.com/banga/craytracer/blob/main/images/simple.png)
+
+Source: [scenes/simple.cry](https://github.com/banga/craytracer/blob/main/scenes/simple.cry)
