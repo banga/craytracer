@@ -150,18 +150,25 @@ fn show_preview<C, F>(
     }
 }
 
+#[allow(non_snake_case)]
 #[inline]
-fn render_pixel<S>(sampler: &mut S, x: usize, y: usize, sample_index: usize, scene: &Scene) -> Color
+fn render_pixel<S>(sampler: &mut S, x: usize, y: usize, scene: &Scene) -> Color
 where
     S: Sampler,
 {
-    sampler.start_pixel(x, y, sample_index);
-    let film_sample = sampler.sample_2d();
-    let lens_sample = sampler.sample_2d();
+    let mut color = Color::BLACK;
+    for sample_index in 0..sampler.num_samples() {
+        sampler.start_pixel(x, y, sample_index);
+        let film_sample = sampler.sample_2d();
+        let lens_sample = sampler.sample_2d();
 
-    let ray = scene.camera.sample((film_sample, lens_sample), x, y);
+        let ray = scene.camera.sample((film_sample, lens_sample), x, y);
 
-    path_trace(sampler, ray, &scene)
+        let L = path_trace(sampler, ray, &scene);
+
+        color += L;
+    }
+    color / (sampler.num_samples() as f64)
 }
 
 fn render_tile<S>(
@@ -176,12 +183,7 @@ fn render_tile<S>(
     let (x1, y1, x2, y2) = tile;
     for y in y1..y2 {
         for x in x1..x2 {
-            let mut color = Color::BLACK;
-            for sample_index in 0..sampler.num_samples() {
-                color += render_pixel(sampler, x, y, sample_index, scene);
-            }
-            color /= sampler.num_samples() as f64;
-
+            let color = render_pixel(sampler, x, y, scene);
             let mut pixels = pixels.lock().unwrap();
             let (r, g, b) = color.into();
             let offset = x + y * width;
@@ -272,8 +274,8 @@ where
                 receiver,
                 |x, y| {
                     info!("Rendering pixel at ({x},{y})");
-                    let color = render_pixel(&mut sampler, x, y, 0, scene);
-                    info!("Color = {} {:?}", color, color.to_rgb());
+                    let color = render_pixel(&mut sampler, x, y, scene);
+                    info!("Color = {} {:?}", color, color.powf(1.0 / 2.2).to_rgb());
                 },
                 on_finish,
             );
