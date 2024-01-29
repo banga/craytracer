@@ -7,7 +7,7 @@ use craytracer::{
     scene::Scene,
     scene_parser::{scene_parser::parse_scene, tokenizer::ParserError},
 };
-use log::{debug, error, info};
+use log::{debug, error, info, LevelFilter};
 use minifb::{Key, Scale, ScaleMode, Window, WindowOptions};
 use std::{
     sync::{
@@ -306,7 +306,9 @@ struct Cli {
 }
 
 fn main() -> Result<(), ParserError> {
-    env_logger::init();
+    env_logger::Builder::from_default_env()
+        .filter(None, LevelFilter::Info)
+        .init();
 
     let args = Cli::parse();
 
@@ -329,7 +331,8 @@ fn main() -> Result<(), ParserError> {
     // Render to a buffer
     let sampler = SobolSampler::new(args.seed, scene.num_samples);
     render(&scene, sampler, args.preview, start, |pixels| {
-        info!("Rendering finished in {:?}", start.elapsed());
+        eprintln!();
+        info!("Rendering finished in {:.1?}", start.elapsed());
 
         // Save to file
         let image_buffer =
