@@ -8,6 +8,7 @@ use crate::{
 use approx::assert_abs_diff_eq;
 use std::f64::consts::FRAC_1_PI;
 
+#[derive(Debug)]
 #[allow(non_snake_case)]
 pub struct SurfaceSample {
     pub w_i: Vector,
@@ -117,11 +118,11 @@ impl BxDF {
                 let w_i = reflect(&w_o, &normal);
                 assert_abs_diff_eq!(w_i.magnitude(), 1.0, epsilon = EPSILON);
 
-                let cos_theta_i = w_o.dot(normal);
+                let cos_theta_i = w_o.dot(normal).abs();
                 let fresnel = fresnel_conductor(&Color::WHITE, eta, k, cos_theta_i);
                 Some(SurfaceSample {
                     w_i,
-                    f: fresnel / cos_theta_i.abs(),
+                    f: fresnel / cos_theta_i,
                     pdf: self.pdf(w_o, &w_i, normal),
                     is_specular: true,
                 })
@@ -133,21 +134,18 @@ impl BxDF {
                 let w_i = reflect(&w_o, &normal);
                 assert_abs_diff_eq!(w_i.magnitude(), 1.0, epsilon = EPSILON);
 
-                let cos_theta_i = w_o.dot(normal);
+                let cos_theta_i = w_o.dot(normal).abs();
                 let fresnel = match fresnel {
                     Fresnel::Dielectric(dielectric) => {
                         Color::WHITE
                             * fresnel_dielectric(dielectric.eta_i, dielectric.eta_t, cos_theta_i)
                     }
-                    Fresnel::Conductor(conductor) => {
-                        // TODO: Test this, probably needs to take cos_theta_i.abs()
-                        fresnel_conductor(
-                            &conductor.eta_i,
-                            &conductor.eta_t,
-                            &conductor.k,
-                            cos_theta_i,
-                        )
-                    }
+                    Fresnel::Conductor(conductor) => fresnel_conductor(
+                        &conductor.eta_i,
+                        &conductor.eta_t,
+                        &conductor.k,
+                        cos_theta_i,
+                    ),
                 };
                 Some(SurfaceSample {
                     w_i,
@@ -161,14 +159,14 @@ impl BxDF {
                 eta_i,
                 eta_t,
             } => {
-                let cos_theta_i = w_o.dot(normal);
+                let cos_theta_i = w_o.dot(normal).abs();
 
                 if let Some(w_i) = refract(&w_o, &normal, cos_theta_i, *eta_i, *eta_t) {
                     assert_abs_diff_eq!(w_i.magnitude(), 1.0, epsilon = EPSILON);
                     let fresnel = fresnel_dielectric(*eta_i, *eta_t, cos_theta_i);
                     Some(SurfaceSample {
                         w_i,
-                        f: *transmittance * (1.0 - fresnel) / cos_theta_i.abs(),
+                        f: *transmittance * (1.0 - fresnel) / cos_theta_i,
                         pdf: self.pdf(w_o, &w_i, normal),
                         is_specular: true,
                     })
