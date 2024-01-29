@@ -63,7 +63,7 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Pr
         // TODO: Figure out how to properly convert these
         let roughness = 180.0 * (1.0 - E.powf(-shininess / 100.0));
 
-        let dissolve: f64 = m.dissolve.unwrap_or(0.0);
+        let dissolve: f64 = m.dissolve.unwrap_or(1.0);
 
         let material = if !emittance.is_black() {
             emittances.insert(id, emittance);
