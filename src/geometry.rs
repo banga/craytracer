@@ -193,7 +193,7 @@ pub mod vector {
 
     impl Display for Vector {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            let precision = f.precision().unwrap_or(64);
+            let precision = f.precision().unwrap_or(8);
             write!(
                 f,
                 "({:.precision$},{:.precision$},{:.precision$})",
@@ -346,7 +346,7 @@ pub mod point {
 
     impl Display for Point {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            let precision = f.precision().unwrap_or(64);
+            let precision = f.precision().unwrap_or(8);
             write!(
                 f,
                 "({:.precision$},{:.precision$},{:.precision$})",
@@ -543,7 +543,7 @@ pub mod normal {
 
     impl Display for Normal {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            let precision = f.precision().unwrap_or(64);
+            let precision = f.precision().unwrap_or(8);
             write!(
                 f,
                 "({:.precision$},{:.precision$},{:.precision$})",
