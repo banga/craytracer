@@ -2,10 +2,10 @@ use clap::Parser;
 use core::time;
 use craytracer::{
     color::Color,
+    path_integrator,
     sampling::samplers::{Sampler, SobolSampler},
     scene::Scene,
     scene_parser::{scene_parser::parse_scene, tokenizer::ParserError},
-    trace::path_trace,
 };
 use log::{debug, error, info};
 use minifb::{Key, Scale, ScaleMode, Window, WindowOptions};
@@ -164,7 +164,9 @@ where
 
         let ray = scene.camera.sample((film_sample, lens_sample), x, y);
 
-        let L = path_trace(sampler, ray, &scene);
+        // TODO: Allow picking integrator from command line
+        let L = path_integrator::estimate_Li(sampler, ray, &scene);
+        // let L = simple_integrator::estimate_Li(sampler, ray, &scene);
 
         color += L;
     }

@@ -204,13 +204,15 @@ impl LightSampler {
             .cdfs
             .binary_search_by(|probe| probe.total_cmp(&u))
             .unwrap_or_else(|idx| idx);
-
-        let pdf = if idx > 0 {
-            self.cdfs[idx] - self.cdfs[idx - 1]
-        } else {
-            self.cdfs[idx]
-        };
-
+        let pdf = self.pdf(idx);
         (idx, pdf)
+    }
+
+    pub fn pdf(&self, light_idx: usize) -> f64 {
+        if light_idx > 0 {
+            self.cdfs[light_idx] - self.cdfs[light_idx - 1]
+        } else {
+            self.cdfs[light_idx]
+        }
     }
 }
