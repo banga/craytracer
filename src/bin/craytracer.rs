@@ -306,8 +306,9 @@ struct Cli {
 }
 
 fn main() -> Result<(), ParserError> {
-    env_logger::Builder::from_default_env()
+    env_logger::Builder::new()
         .filter(None, LevelFilter::Info)
+        .parse_default_env()
         .init();
 
     let args = Cli::parse();
