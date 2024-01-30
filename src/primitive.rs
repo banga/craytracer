@@ -8,6 +8,7 @@ use crate::{
     material::Material,
     ray::Ray,
     shape::Shape,
+    texture::Texture,
 };
 
 #[derive(Debug, PartialEq)]
@@ -39,7 +40,10 @@ impl Primitive {
             // Set the material to black so that paths will terminate at area
             // lights. Allowing the paths to continue can cause bad results when
             // the material samples the light itself.
-            material: Arc::new(Material::new_matte(Color::BLACK, 0.0)),
+            material: Arc::new(Material::new_matte(
+                Texture::Constant(Color::BLACK),
+                Texture::Constant(0.0),
+            )),
         }
     }
 
@@ -53,11 +57,16 @@ impl Primitive {
             } => (shape, material),
         };
 
-        let ShapeIntersection { location, normal } = shape.intersect(ray)?;
+        let ShapeIntersection {
+            location,
+            normal,
+            uv,
+        } = shape.intersect(ray)?;
         Some(PrimitiveIntersection {
             distance: ray.max_distance,
             normal,
             location,
+            uv,
             material,
             primitive: self,
         })

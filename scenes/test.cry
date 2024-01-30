@@ -1,12 +1,11 @@
 // Test scene for judging correctness of various things
 {
-    num_samples: 100,
-    max_depth: 10,
+    num_samples: 256,
     camera: Perspective {
-        origin: Point(1.5, 1, -3),
+        origin: Point(1.5, 1.5, -4),
         target: Point(1.5, 1, 0),
         up: Vector(0, 1, 0),
-        fov: 90,
+        fov: 60,
         film: {
             width: 500,
             height: 500,
@@ -15,20 +14,20 @@
     lights: [
 //        Point { origin: Point(0, 0, 1), intensity: Color(1, 1, 1) },
 //        Infinite { intensity: Color(0.1, 0.1, 0.1) },
-        Distant { direction: Vector(0, 0, 1), intensity: Color(1, 1, 1) },
+        Distant { direction: Vector(0, 0, -1), intensity: Color(1, 1, 1) },
     ],
     materials: {
         white: Matte { reflectance: Color(1, 1, 1), sigma: 100 },
         red: Matte { reflectance: Color(1, 0, 0), sigma: 0 },
         green: Matte { reflectance: Color(0, 1, 0), sigma: 0 },
-        blue: Matte { reflectance: Color(0, 0, 1), sigma: 0 },
-        transparent: Glass { reflectance: Color(1, 1, 1), transmittance: Color(0.9, 0.9, 0.9), eta: 1.0 },
+        blue: Matte { reflectance: Checkerboard { a: Color(0, 0, 1), b: Color(1, 1, 1), scale: 4 }, sigma: 0 },
+        mirror: Metal { eta: Color(0.9, 0.8, 0.4), k: Color(4.0, 3.0, 2.0), },
         glass: Glass { reflectance: Color(1, 1, 1), transmittance: Color(0.9, 0.9, 0.9), eta: 1.5 },
     },
     shapes: {
         light: Triangle { v0: Point(0, 0, 0), v1: Point(0, 0, -1), v2: Point(0, 1, 0) },
         
-        ground: Sphere { origin: Point(0, -1000, 0), radius: 1000 },
+        ground: Sphere { origin: Point(0, -100, 0), radius: 100 },
 
         // Two identical triangles with opposite normals
         triangle1: Triangle { v0: Point(0, 0, 0), v1: Point(1, 0, 0), v2: Point(0, 1, 0) },
@@ -38,9 +37,11 @@
         disk1: Disk { origin: Point(0.5, 2, 0), radius: 0.5, rotate_x: 180 },
         disk2: Disk { origin: Point(2.5, 2, 0), radius: 0.5, rotate_x: 0 },
 
-        // Transparent spheres
-        glass1: Sphere { origin: Point(0.5, 0.25, -1), radius: 0.25 },
-        glass2: Sphere { origin: Point(2.5, 0.25, -1), radius: 0.25 },
+        // Transparent sphere
+        glass: Sphere { origin: Point(0.5, 0.25, -1), radius: 0.25 },
+        
+        // Reflective sphere
+        mirror: Sphere { origin: Point(2.5, 0.25, -1), radius: 0.25 },
 
         // Plain sphere
         sphere: Sphere { origin: Point(1.5, 0.25, -1), radius: 0.25},
@@ -53,8 +54,8 @@
         Shape { shape: 'triangle2', material: 'green' },
         Shape { shape: 'disk1', material: 'red' },
         Shape { shape: 'disk2', material: 'green' },
-        Shape { shape: 'glass1', material: 'transparent' },
-        Shape { shape: 'glass2', material: 'glass' },
-        Shape { shape: 'sphere', material: 'white' },
+        Shape { shape: 'glass', material: 'glass' },
+        Shape { shape: 'mirror', material: 'mirror' },
+        Shape { shape: 'sphere', material: 'blue' },
     ]
 }

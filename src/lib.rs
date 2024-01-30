@@ -22,5 +22,6 @@ pub mod scene;
 pub mod scene_parser;
 pub mod shape;
 pub mod simple_integrator;
+pub mod texture;
 pub mod transformation;
 pub mod util;

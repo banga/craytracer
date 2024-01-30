@@ -10,6 +10,7 @@ pub struct ShapeIntersection {
     pub location: Point,
     // TODO: Get the normal lazily when needed
     pub normal: Normal,
+    pub uv: (f64, f64),
 }
 
 pub struct PrimitiveIntersection<'a> {
@@ -18,6 +19,7 @@ pub struct PrimitiveIntersection<'a> {
     pub normal: Normal,
     pub material: &'a Material,
     pub primitive: &'a Primitive,
+    pub uv: (f64, f64),
 }
 
 impl<'a> PrimitiveIntersection<'a> {

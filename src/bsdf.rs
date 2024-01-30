@@ -17,6 +17,7 @@ impl BSDF {
         (sample1, sample2): (Sample1d, Sample2d),
         w_o: &Vector,
         normal: &Normal,
+        uv: &(f64, f64),
     ) -> Option<SurfaceSample> {
         if self.bxdfs.len() == 0 {
             return None;
@@ -25,7 +26,7 @@ impl BSDF {
         let sample_index = (sample1.take() * self.bxdfs.len() as f64) as usize;
         let bxdf = &self.bxdfs[sample_index];
 
-        let sample = bxdf.sample(sample2, w_o, normal);
+        let sample = bxdf.sample(sample2, w_o, normal, uv);
         if sample.is_none() {
             return None;
         }
@@ -35,7 +36,7 @@ impl BSDF {
             let mut f = sample.f;
             for other_bxdf in self.get_relevant_bxdfs(w_o, &sample.w_i, normal).iter() {
                 if *other_bxdf != bxdf {
-                    f += other_bxdf.f(w_o, &sample.w_i, &normal);
+                    f += other_bxdf.f(w_o, &sample.w_i, &normal, uv);
                     if let Pdf::NonDelta(other_pdf) = other_bxdf.pdf(w_o, &sample.w_i, normal) {
                         pdf += other_pdf;
                     }
@@ -66,10 +67,10 @@ impl BSDF {
             .collect()
     }
 
-    pub fn f(&self, w_o: &Vector, w_i: &Vector, normal: &Normal) -> Color {
+    pub fn f(&self, w_o: &Vector, w_i: &Vector, normal: &Normal, uv: &(f64, f64)) -> Color {
         let mut f = Color::BLACK;
         for bxdf in self.get_relevant_bxdfs(w_o, w_i, normal) {
-            f += bxdf.f(w_o, w_i, normal);
+            f += bxdf.f(w_o, w_i, normal, uv);
         }
         f
     }

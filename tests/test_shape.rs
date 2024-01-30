@@ -2,7 +2,6 @@ mod sphere {
     use craytracer::{
         bounds::Bounds,
         geometry::{normal::Normal, point::Point, vector::Vector, AXES},
-        intersection::ShapeIntersection,
         n, p,
         ray::Ray,
         shape::Shape,
@@ -20,7 +19,10 @@ mod sphere {
         let ray = &mut Ray::new(ray_origin, ray_direction);
         let intersection = s.intersect(ray);
         eprintln!("sphere: {origin}, {radius} ray: {ray_origin}, {ray_direction} intersection: {location}, {normal}");
-        assert_eq!(intersection, Some(ShapeIntersection { location, normal }));
+        assert!(intersection.is_some());
+        let intersection = intersection.unwrap();
+        assert_eq!(intersection.location, location);
+        assert_eq!(intersection.normal, normal);
     }
 
     #[test]

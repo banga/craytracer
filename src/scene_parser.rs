@@ -789,6 +789,7 @@ pub mod scene_parser {
         primitive::Primitive,
         scene::Scene,
         shape::Shape,
+        texture::Texture,
     };
     use std::{collections::HashMap, convert::TryFrom, sync::Arc};
 
@@ -898,6 +899,41 @@ pub mod scene_parser {
                     typed_map.name
                 ))),
             }
+        }
+    }
+
+    /// RawValue -> Texture
+    ///
+    /// Textures support a shorthand where a value of type T will work as a
+    /// constant texture instead of writing out a  Texture<T>.
+    impl<T> TryFrom<&mut RawValue> for Texture<T>
+    where
+        T: for<'a> TryFrom<&'a mut RawValue, Error = ParserError> + Copy,
+    {
+        type Error = ParserError;
+        fn try_from(value: &mut RawValue) -> Result<Self, Self::Error> {
+            // If a value of type T can be directly constructed from this raw
+            // value, create a constant texture using it
+            T::try_from(value)
+                .map(|value| Texture::Constant(value))
+                // Otherwise expect a typed map describing the texture
+                .or_else(|_| match value {
+                    RawValue::TypedMap(typed_map) => match typed_map.name.as_str() {
+                        "Checkerboard" => Ok(Texture::checkerboard(
+                            typed_map.get("a")?,
+                            typed_map.get("b")?,
+                            typed_map.get_or("scale", 1.0)?,
+                        )),
+                        _ => Err(ParserError::new(
+                            &format!("Unknown material type: {}", typed_map.name),
+                            &typed_map.location(),
+                        )),
+                    },
+                    _ => Err(ParserError::without_location(&format!(
+                        "Cannot get Color, found {:?}",
+                        value
+                    ))),
+                })
         }
     }
 

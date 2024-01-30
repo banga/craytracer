@@ -1,5 +1,5 @@
 {
-    num_samples: 4096,
+    num_samples: 16,
     camera: Perspective {
         origin: Point(0, 2.2, -4.2),
         target: Point(0, 2.25, 0),

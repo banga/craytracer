@@ -66,6 +66,7 @@ where
             normal,
             location,
             material,
+            uv,
             ..
         } = intersection;
 
@@ -97,7 +98,7 @@ where
             };
 
             if light_pdf > 0.0 && !scene.intersects(&shadow_ray) {
-                let f = material.f(&w_o, &w_i, &normal);
+                let f = material.f(&w_o, &w_i, &normal, &uv);
                 let cos_theta = w_i.dot(&normal).abs();
                 L += beta * Li * f * cos_theta / light_sampler_pdf / light_pdf;
             }
@@ -110,7 +111,7 @@ where
                 f,
                 pdf: bsdf_pdf,
                 is_specular,
-            } = match material.sample(path_samples.material, &w_o, &normal) {
+            } = match material.sample(path_samples.material, &w_o, &normal, &uv) {
                 Some(surface_sample) => surface_sample,
                 None => break,
             };

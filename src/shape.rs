@@ -1,4 +1,7 @@
-use std::{f64::consts::PI, sync::Arc};
+use std::{
+    f64::consts::{FRAC_1_PI, PI},
+    sync::Arc,
+};
 
 use crate::{
     bounds::Bounds,
@@ -159,9 +162,17 @@ impl Shape {
                 if obj_ray.update_max_distance(distance) {
                     let location = obj_ray.at(distance);
                     ray.update_max_distance(distance);
+                    let mut phi = location.y().atan2(location.x());
+                    if phi < 0.0 {
+                        phi += PI * 2.0;
+                    }
+                    let u = phi / (PI * 2.0);
+                    let theta = (location.z() / radius).acos();
+                    let v = theta * FRAC_1_PI;
                     return Some(object_to_world.transform(&ShapeIntersection {
                         location,
                         normal: Normal(location.x(), location.y(), location.z()) / *radius,
+                        uv: (u, v),
                     }));
                 }
 
@@ -169,9 +180,17 @@ impl Shape {
                 if obj_ray.update_max_distance(distance) {
                     let location = obj_ray.at(distance);
                     ray.update_max_distance(distance);
+                    let mut phi = location.y().atan2(location.x());
+                    if phi < 0.0 {
+                        phi += PI * 2.0;
+                    }
+                    let u = phi / (PI * 2.0);
+                    let theta = (location.z() / radius).acos();
+                    let v = theta * FRAC_1_PI;
                     return Some(object_to_world.transform(&ShapeIntersection {
                         location,
                         normal: Normal(location.x(), location.y(), location.z()) / *radius,
+                        uv: (u, v),
                     }));
                 }
 
@@ -209,9 +228,11 @@ impl Shape {
                 let distance = T.cross(e1).dot(e2) / denominator;
                 if ray.update_max_distance(distance) {
                     let location = ray.at(distance);
+
                     Some(ShapeIntersection {
                         location,
                         normal: (*n0 + *n01 * u + *n02 * v).normalized().into(),
+                        uv: (u, v),
                     })
                 } else {
                     None
@@ -247,10 +268,18 @@ impl Shape {
                     return None;
                 }
 
+                let mut theta = location.y().atan2(location.x());
+                if theta < 0.0 {
+                    theta += PI * 2.0;
+                }
+                let u = theta / (PI * 2.0);
+                let v = distance_squared.sqrt() / radius;
+
                 if ray.update_max_distance(t) {
                     Some(object_to_world.transform(&ShapeIntersection {
                         location,
                         normal: Normal::Z,
+                        uv: (u, v),
                     }))
                 } else {
                     None

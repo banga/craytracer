@@ -486,6 +486,7 @@ impl Transformable<ShapeIntersection> for Transformation {
         ShapeIntersection {
             location: self.transform(&intersection.location),
             normal: self.transform(&intersection.normal),
+            uv: intersection.uv,
         }
     }
 }

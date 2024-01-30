@@ -93,6 +93,7 @@ where
             normal,
             location,
             material,
+            uv,
             ..
         } = intersection;
 
@@ -138,7 +139,7 @@ where
             } = light.sample_Li(path_samples.light, &intersection);
 
             if !scene.intersects(&shadow_ray) {
-                let f = material.f(&w_o, &w_i, &normal);
+                let f = material.f(&w_o, &w_i, &normal, &uv);
                 let cos_theta = w_i.dot(&normal).abs();
                 match light_pdf {
                     Pdf::NonDelta(light_pdf) => {
@@ -169,7 +170,7 @@ where
                 f,
                 pdf: bsdf_pdf,
                 is_specular,
-            } = match material.sample(path_samples.material, &w_o, &normal) {
+            } = match material.sample(path_samples.material, &w_o, &normal, &uv) {
                 Some(surface_sample) => surface_sample,
                 None => break,
             };

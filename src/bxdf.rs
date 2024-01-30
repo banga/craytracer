@@ -4,6 +4,7 @@ use crate::{
     geometry::{normal::Normal, traits::DotProduct, vector::Vector},
     pdf::Pdf,
     sampling::{samplers::Sample2d, sampling_fns::cosine_sample_hemisphere},
+    texture::Texture,
 };
 use approx::assert_abs_diff_eq;
 use std::f64::consts::FRAC_1_PI;
@@ -21,43 +22,36 @@ pub struct SurfaceSample {
 #[derive(Debug, PartialEq)]
 pub enum BxDF {
     LambertianBRDF {
-        reflectance: Color,
+        reflectance: Texture<Color>,
     },
     OrenNayyarBRDF {
-        reflectance: Color,
-        A: f64,
-        B: f64,
+        reflectance: Texture<Color>,
+        sigma: Texture<f64>,
     },
     FresnelConductorBRDF {
-        eta: Color,
-        k: Color,
+        eta: Texture<Color>,
+        k: Texture<Color>,
     },
     SpecularBRDF {
-        reflectance: Color,
+        reflectance: Texture<Color>,
         fresnel: Fresnel,
     },
     SpecularBTDF {
-        transmittance: Color,
+        transmittance: Texture<Color>,
         eta_i: f64,
         eta_t: f64,
     },
     FresnelSpecularBxDF {
-        reflectance: Color,
-        transmittance: Color,
+        reflectance: Texture<Color>,
+        transmittance: Texture<Color>,
         eta_i: f64,
         eta_t: f64,
     },
 }
 
 impl BxDF {
-    pub fn new_oren_nayyar(reflectance: Color, sigma: f64) -> BxDF {
-        let sigma = sigma.to_radians();
-        let sigma_2 = sigma * sigma;
-        BxDF::OrenNayyarBRDF {
-            reflectance,
-            A: 1.0 - sigma_2 / (2.0 * (sigma_2 + 0.33)),
-            B: 0.45 * sigma_2 / (sigma_2 + 0.09),
-        }
+    pub fn new_oren_nayyar(reflectance: Texture<Color>, sigma: Texture<f64>) -> BxDF {
+        BxDF::OrenNayyarBRDF { reflectance, sigma }
     }
 
     pub fn has_reflection(&self) -> bool {
@@ -86,7 +80,13 @@ impl BxDF {
     /// light `w_o`. The sample includes `w_i` the sampled incoming direction of
     /// light, `f` the value of the BRDF at this sample and `pdf` the value of
     /// the probability density function at this sample.
-    pub fn sample(&self, sample: Sample2d, w_o: &Vector, normal: &Normal) -> Option<SurfaceSample> {
+    pub fn sample(
+        &self,
+        sample: Sample2d,
+        w_o: &Vector,
+        normal: &Normal,
+        uv: &(f64, f64),
+    ) -> Option<SurfaceSample> {
         match self {
             BxDF::LambertianBRDF { .. } => {
                 let mut w_i = cosine_sample_hemisphere(sample, normal);
@@ -96,7 +96,7 @@ impl BxDF {
                 }
                 Some(SurfaceSample {
                     w_i,
-                    f: self.f(w_o, &w_i, normal),
+                    f: self.f(w_o, &w_i, normal, uv),
                     pdf: self.pdf(w_o, &w_i, normal),
                     is_specular: false,
                 })
@@ -109,7 +109,7 @@ impl BxDF {
                 }
                 Some(SurfaceSample {
                     w_i,
-                    f: self.f(w_o, &w_i, normal),
+                    f: self.f(w_o, &w_i, normal, uv),
                     pdf: self.pdf(w_o, &w_i, normal),
                     is_specular: false,
                 })
@@ -119,7 +119,8 @@ impl BxDF {
                 assert_abs_diff_eq!(w_i.magnitude(), 1.0, epsilon = EPSILON);
 
                 let cos_theta_i = w_o.dot(normal).abs();
-                let fresnel = fresnel_conductor(&Color::WHITE, eta, k, cos_theta_i);
+                let fresnel =
+                    fresnel_conductor(&Color::WHITE, &eta.eval(uv), &k.eval(uv), cos_theta_i);
                 Some(SurfaceSample {
                     w_i,
                     f: fresnel / cos_theta_i,
@@ -149,7 +150,7 @@ impl BxDF {
                 };
                 Some(SurfaceSample {
                     w_i,
-                    f: *reflectance * fresnel / cos_theta_i.abs(),
+                    f: reflectance.eval(uv) * fresnel / cos_theta_i.abs(),
                     pdf: self.pdf(w_o, &w_i, normal),
                     is_specular: true,
                 })
@@ -166,7 +167,7 @@ impl BxDF {
                     let fresnel = fresnel_dielectric(*eta_i, *eta_t, cos_theta_i);
                     Some(SurfaceSample {
                         w_i,
-                        f: *transmittance * (1.0 - fresnel) / cos_theta_i,
+                        f: transmittance.eval(uv) * (1.0 - fresnel) / cos_theta_i,
                         pdf: self.pdf(w_o, &w_i, normal),
                         is_specular: true,
                     })
@@ -186,7 +187,7 @@ impl BxDF {
                 if sample.take().0 < fresnel_reflectance {
                     Some(SurfaceSample {
                         w_i: reflect(w_o, normal),
-                        f: *reflectance * fresnel_reflectance / cos_theta_i.abs(),
+                        f: reflectance.eval(uv) * fresnel_reflectance / cos_theta_i.abs(),
                         pdf: Pdf::NonDelta(fresnel_reflectance),
                         is_specular: true,
                     })
@@ -194,7 +195,8 @@ impl BxDF {
                     if let Some(w_i) = refract(w_o, normal, cos_theta_i, *eta_i, *eta_t) {
                         Some(SurfaceSample {
                             w_i,
-                            f: *transmittance * (1.0 - fresnel_reflectance) / cos_theta_i.abs(),
+                            f: transmittance.eval(uv) * (1.0 - fresnel_reflectance)
+                                / cos_theta_i.abs(),
                             pdf: Pdf::NonDelta(1.0 - fresnel_reflectance),
                             is_specular: true,
                         })
@@ -208,16 +210,17 @@ impl BxDF {
 
     /// Returns the value of the BRDF given outgoing and incoming directions for
     /// light `w_o` and `w_i`
-    pub fn f(&self, w_o: &Vector, w_i: &Vector, normal: &Normal) -> Color {
+    #[allow(non_snake_case)]
+    pub fn f(&self, w_o: &Vector, w_i: &Vector, normal: &Normal, uv: &(f64, f64)) -> Color {
         match self {
-            BxDF::LambertianBRDF { reflectance } => {
+            BxDF::LambertianBRDF { reflectance, .. } => {
                 if normal.same_hemisphere(w_o, w_i) {
-                    *reflectance * FRAC_1_PI
+                    reflectance.eval(uv) * FRAC_1_PI
                 } else {
                     Color::BLACK
                 }
             }
-            BxDF::OrenNayyarBRDF { reflectance, A, B } => {
+            BxDF::OrenNayyarBRDF { reflectance, sigma } => {
                 if normal.same_hemisphere(w_o, w_i) {
                     let cos_theta_i = w_i.dot(normal).abs();
                     let cos_theta_o = w_o.dot(normal).abs();
@@ -244,7 +247,12 @@ impl BxDF {
                         (sin_theta_i, sin_theta_o / cos_theta_o)
                     };
 
-                    *reflectance * (A + B * max_cos * sin_alpha * tan_beta) * FRAC_1_PI
+                    let sigma = sigma.eval(uv).to_radians();
+                    let sigma_2 = sigma * sigma;
+                    let A = 1.0 - sigma_2 / (2.0 * (sigma_2 + 0.33));
+                    let B = 0.45 * sigma_2 / (sigma_2 + 0.09);
+
+                    reflectance.eval(uv) * (A + B * max_cos * sin_alpha * tan_beta) * FRAC_1_PI
                 } else {
                     Color::BLACK
                 }
