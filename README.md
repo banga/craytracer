@@ -16,8 +16,14 @@ Model: https://www.blendswap.com/blend/13953
 ![dragon image](https://github.com/banga/craytracer/blob/main/images/dragon.png)
 
 Source: [scenes/dragon.cry](https://github.com/banga/craytracer/blob/main/scenes/dragon.cry)
-
 Model: https://github.com/alecjacobson/common-3d-test-models/blob/main/data/xyzrgb_dragon.obj
+
+### Staircase
+
+![staircase image](https://github.com/banga/craytracer/blob/main/images/staircase.png)
+
+Source: [scenes/staircase.cry](https://github.com/banga/craytracer/blob/main/scenes/staircase.cry)
+Model: https://blendswap.com/blend/14449
 
 ### Materials
 

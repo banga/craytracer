@@ -1,16 +1,15 @@
 {
-    num_samples: 10,
-    max_depth: 20,
+    num_samples: 64,
     camera: Perspective {
-        origin: Point(0, 2.2, -4.6),
+        origin: Point(0, 2.25, -4.2),
         target: Point(0, 2.25, 0),
         up: Vector(0, 1, 0),
         lens_radius: 0.025,
         focal_distance: 7,
-        fov: 40,
+        fov: 45,
         film: {
-            width: 500,
-            height: 700,
+            width: 800,
+            height: 1200,
         }
     },
     lights: [
@@ -19,8 +18,11 @@
         default: Matte { reflectance: Color(1, 1, 1), sigma: 0 }
     },
     shapes: {
+        light: Disk { origin: Point(-3, 5.5, 2.5), rotate_x: 60, rotate_y: 0, radius: 1.5 }
     },
     primitives: [
+        Shape { shape: 'light', emittance: Color(10, 8, 4) },
+
         // Model from https://blendswap.com/blend/14449. Exported from Blender
         // and tweaked the material file to make the "Emission" material actually
         // emissive 
