@@ -1,27 +1,28 @@
 {
-    num_samples: 64,
+    num_samples: 4096,
     camera: Perspective {
-        origin: Point(0, 2.25, -4.2),
+        origin: Point(0, 2.2, -4.2),
         target: Point(0, 2.25, 0),
         up: Vector(0, 1, 0),
         lens_radius: 0.025,
         focal_distance: 7,
         fov: 45,
         film: {
-            width: 800,
-            height: 1200,
+            width: 400,
+            height: 600,
         }
     },
     lights: [
+        Point { origin: Point(0, 2.25, -4.5), intensity: Color(1, 1, 1) }
     ],
     materials: {
         default: Matte { reflectance: Color(1, 1, 1), sigma: 0 }
     },
     shapes: {
-        light: Disk { origin: Point(-3, 5.5, 2.5), rotate_x: 60, rotate_y: 0, radius: 1.5 }
+        light1: Disk { origin: Point(0, 5.5, 2.5), rotate_x: 60, rotate_y: 0, radius: 2 },
     },
     primitives: [
-        Shape { shape: 'light', emittance: Color(10, 8, 4) },
+        Shape { shape: 'light1', emittance: Color(4, 4, 4) },
 
         // Model from https://blendswap.com/blend/14449. Exported from Blender
         // and tweaked the material file to make the "Emission" material actually
