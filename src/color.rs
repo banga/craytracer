@@ -10,6 +10,8 @@ pub struct Color {
     pub b: f64,
 }
 
+const GAMMA: f64 = 2.2;
+
 impl Color {
     pub const BLACK: Color = Color {
         r: 0.0,
@@ -22,13 +24,6 @@ impl Color {
         b: 1.0,
     };
 
-    pub fn from_rgb(r: u8, g: u8, b: u8) -> Color {
-        Color {
-            r: r as f64 / 255.0,
-            g: g as f64 / 255.0,
-            b: b as f64 / 255.0,
-        }
-    }
     pub fn powf(self, pow: f64) -> Color {
         Color {
             r: self.r.powf(pow),
@@ -36,11 +31,25 @@ impl Color {
             b: self.b.powf(pow),
         }
     }
+
+    // Very naive conversion to/from rgb color space that just applies some
+    // gamma correction. This should be replaced with a proper spectrum
+    // representation that is then converted to rgb values depending on the film
+    // properties.
+    pub fn from_rgb(r: u8, g: u8, b: u8) -> Color {
+        Color {
+            r: r as f64 / 255.0,
+            g: g as f64 / 255.0,
+            b: b as f64 / 255.0,
+        }
+        .powf(GAMMA)
+    }
     pub fn to_rgb(self) -> (u8, u8, u8) {
+        let Color { r, g, b } = self.powf(1.0 / GAMMA);
         (
-            (self.r.clamp(0.0, 1.0) * 255.0) as u8,
-            (self.g.clamp(0.0, 1.0) * 255.0) as u8,
-            (self.b.clamp(0.0, 1.0) * 255.0) as u8,
+            (r.clamp(0.0, 1.0) * 255.0) as u8,
+            (g.clamp(0.0, 1.0) * 255.0) as u8,
+            (b.clamp(0.0, 1.0) * 255.0) as u8,
         )
     }
     pub fn is_black(self) -> bool {

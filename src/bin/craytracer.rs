@@ -115,8 +115,6 @@ fn show_preview<C, F>(
                         g: pixels[3 * offset + 1] as f64,
                         b: pixels[3 * offset + 2] as f64,
                     }
-                    // Gamma correction
-                    .powf(1.0 / 2.2)
                     .to_rgb();
                     preview_buffer[offset] = (r as u32) << 16 | (g as u32) << 8 | b as u32;
                 }
@@ -277,7 +275,7 @@ where
                 |x, y| {
                     info!("Rendering pixel at ({x},{y})");
                     let color = render_pixel(&mut sampler, x, y, scene);
-                    info!("Color = {} {:?}", color, color.powf(1.0 / 2.2).to_rgb());
+                    info!("Color = {} {:?}", color, color.to_rgb());
                 },
                 on_finish,
             );

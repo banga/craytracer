@@ -4,25 +4,25 @@
         origin: Point(0, 2, -4.92),
         target: Point(0, 2.5, 0),
         up: Vector(0, 1, 0),
-        lens_radius: 0.01,
-        focal_distance: 7,
+        lens_radius: 0.001,
+        focal_distance: 3,
         fov: 35,
         film: {
-            width: 360,
-            height: 640,
+            width: 720,
+            height: 1280,
         }
     },
     lights: [
-        Point { origin: Point(0, 2.25, -4.5), intensity: Color(0.2, 0.2, 0.2) }
+        Point { origin: Point(0, 2.25, -4.5), intensity: Color(0.3, 0.3, 0.3) }
     ],
     materials: {
         default: Matte { reflectance: Color(1, 1, 1), sigma: 0 }
     },
     shapes: {
-        light1: Disk { origin: Point(0, 5.5, 2.5), rotate_x: 60, rotate_y: 0, radius: 2 },
+        light1: Disk { origin: Point(1, 5.5, 2.5), rotate_x: 60, rotate_y: 0, radius: 2 },
     },
     primitives: [
-        Shape { shape: 'light1', emittance: Color(4, 3, 2) },
+        Shape { shape: 'light1', emittance: Color(5, 5, 5) },
 
         // Model from https://blendswap.com/blend/14449. Exported from Blender
         // and tweaked the material file to make the "Emission" material actually

@@ -1,0 +1,29 @@
+{
+    num_samples: 16,
+    camera: Perspective {
+        origin: Point(1, 0.75, -2),
+        target: Point(-0.25, -0.25, 0),
+        up: Vector(0, 1, 0),
+        fov: 45,
+        film: {
+            width: 800,
+            height: 600,
+        }
+    },
+    lights: [
+        Infinite { intensity: Color(0.5, 0.55, 0.6) }
+    ],
+    materials: {
+        fallback: Matte { reflectance: Color(1, 0.9, 0.8), sigma: 0 },
+        ground: Matte { reflectance: Color(0.9, 0.95, 1.0), sigma: 1000 },
+    },
+    shapes: {
+        light: Disk { origin: Point(0, 2, 0), radius: 3, rotate_x: 90 },
+        ground: Disk { origin: Point(0, 0, 0), radius: 2, rotate_x: 90 },
+    },
+    primitives: [
+        Mesh { file_name: 'objs/local/mustang/mustang.obj', fallback_material: 'fallback' },
+        Shape { shape: 'light', emittance: Color(2, 2, 2) },
+        Shape { shape: 'ground', material: 'ground' }
+    ]
+}
