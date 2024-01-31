@@ -1,31 +1,27 @@
 {
-    num_samples: 10,
-    max_depth: 10,
+    num_samples: 16,
     camera: Perspective {
-        origin: Point(0, 13, -4),
-        target: Point(0, 3, -4),
+        origin: Point(2, 10, -2),
+        target: Point(0.5, 3, -3),
         up: Vector(0, 0, -1),
-        fov: 90,
+        fov: 60,
         film: {
             width: 800,
             height: 600,
         }
     },
     lights: [
-        // Infinite { intensity: Color(0.2, 0.2, 0.2) },
-        // Distant { direction: Vector(0, 0, -1), intensity: Color(1, 1, 1) }
     ],
     materials: {
         matte: Matte { reflectance: Color(1, 0.9, 0.8), sigma: 30 }
     },
     shapes: {
-        light: Disk { origin: Point(0, 0, -16), radius: 3, rotate_x: 180 }
+        light: Disk { origin: Point(0, 8, -8), radius: 1, rotate_x: 90 }
     },
     primitives: [
         Mesh { 
             file_name: 'objs/local/hintze-hall/source/NHMHintzeHall01/NHMHintzeHall01.obj',
             fallback_material: 'matte' 
         },
-        Shape { shape: 'light', emittance: Color(3, 3, 3) },
     ]
 }

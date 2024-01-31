@@ -1,9 +1,9 @@
 {
-    num_samples: 10,
+    num_samples: 16,
     max_depth: 8,
     camera: Perspective {
-        origin: Point(2.5, 1.1, -5),
-        target: Point(-2.5, 0, 0),
+        origin: Point(2.9, 1.5, -4),
+        target: Point(-5, -1.5, -1),
         up: Vector(0, 1, 0),
         fov: 60,
         film: {
