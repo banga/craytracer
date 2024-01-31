@@ -32,6 +32,9 @@ pub enum Shape {
         n0: Vector,
         n01: Vector,
         n02: Vector,
+        uv0: (f64, f64),
+        uv01: (f64, f64),
+        uv02: (f64, f64),
     },
     Disk {
         object_to_world: Arc<Transformation>,
@@ -83,15 +86,21 @@ impl Shape {
             n0,
             n01: v!(0, 0, 0),
             n02: v!(0, 0, 0),
+            uv0: (0.0, 0.0),
+            uv01: (1.0, 0.0),
+            uv02: (1.0, 1.0),
         })
     }
-    pub fn new_triangle_with_normals(
+    pub fn new_triangle_with_normals_and_texture_coordinates(
         v0: Point,
         v1: Point,
         v2: Point,
         n0: Vector,
         n1: Vector,
         n2: Vector,
+        uv0: (f64, f64),
+        uv1: (f64, f64),
+        uv2: (f64, f64),
     ) -> Option<Shape> {
         let e1 = v1 - v0;
         let e2 = v2 - v0;
@@ -111,6 +120,9 @@ impl Shape {
             n0,
             n01: n1 - n0,
             n02: n2 - n0,
+            uv0,
+            uv01: (uv1.0 - uv0.0, uv1.1 - uv0.1),
+            uv02: (uv2.0 - uv0.0, uv2.1 - uv0.1),
         })
     }
     pub fn new_disk(
@@ -203,7 +215,9 @@ impl Shape {
                 n0,
                 n01,
                 n02,
-                ..
+                uv0,
+                uv01,
+                uv02,
             } => {
                 // Source: http://www.graphics.cornell.edu/pubs/1997/MT97.pdf
                 let P = ray.direction.cross(e2);
@@ -232,7 +246,10 @@ impl Shape {
                     Some(ShapeIntersection {
                         location,
                         normal: (*n0 + *n01 * u + *n02 * v).normalized().into(),
-                        uv: (u, v),
+                        uv: (
+                            uv0.0 + uv01.0 * u + uv02.0 * v,
+                            uv0.1 + uv01.1 * u + uv02.1 * v,
+                        ),
                     })
                 } else {
                     None

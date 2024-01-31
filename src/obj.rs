@@ -116,36 +116,58 @@ pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Pr
             model.name
         );
 
-        let mut vertices = Vec::new();
-        for chunk in mesh.positions.chunks(3) {
-            if let [x, y, z] = chunk {
+        let vertices: Vec<Point> = mesh
+            .positions
+            .chunks_exact(3)
+            .map(|p| {
                 // Convert from right-handed to left-handed coordinate system
-                vertices.push(Point(*x, *y, -*z));
-            }
-        }
+                Point(p[0], p[1], -p[2])
+            })
+            .collect();
 
-        let mut normals = Vec::new();
-        for chunk in mesh.normals.chunks(3) {
-            if let [x, y, z] = chunk {
+        let normals: Vec<Vector> = mesh
+            .normals
+            .chunks_exact(3)
+            .map(|n| {
                 // Convert from right-handed to left-handed coordinate system
-                normals.push(Vector(*x, *y, -*z));
-            }
-        }
+                Vector(n[0], n[1], -n[2])
+            })
+            .collect();
+
+        let texture_coordinates: Vec<(f64, f64)> = mesh
+            .texcoords
+            .chunks_exact(2)
+            .map(|tc| (tc[0], tc[1]))
+            .collect();
 
         for chunk in mesh.indices.chunks(3) {
-            if let [i, j, k] = chunk {
-                let vi = vertices[*i as usize];
-                let vj = vertices[*j as usize];
-                let vk = vertices[*k as usize];
+            if let &[i, j, k] = chunk {
+                let vi = vertices[i as usize];
+                let vj = vertices[j as usize];
+                let vk = vertices[k as usize];
 
-                let triangle = if normals.len() > 0 {
-                    let ni = normals[*i as usize];
-                    let nj = normals[*j as usize];
-                    let nk = normals[*k as usize];
-                    Shape::new_triangle_with_normals(vi, vj, vk, ni, nj, nk)
-                } else {
-                    Shape::new_triangle(vi, vj, vk)
-                };
+                let normal = (vk - vi).cross(&(vj - vi)).normalized();
+                let mut ni = normal;
+                let mut nj = normal;
+                let mut nk = normal;
+                if normals.len() > 0 {
+                    ni = normals[i as usize];
+                    nj = normals[j as usize];
+                    nk = normals[k as usize];
+                }
+
+                let mut uv0 = (0.0, 0.0);
+                let mut uv1 = (1.0, 0.0);
+                let mut uv2 = (1.0, 1.0);
+                if texture_coordinates.len() > 0 {
+                    uv0 = texture_coordinates[i as usize];
+                    uv1 = texture_coordinates[j as usize];
+                    uv2 = texture_coordinates[k as usize];
+                }
+
+                let triangle = Shape::new_triangle_with_normals_and_texture_coordinates(
+                    vi, vj, vk, ni, nj, nk, uv0, uv1, uv2,
+                );
 
                 if let Some(triangle) = triangle {
                     let triangle = Arc::new(triangle);
