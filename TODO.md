@@ -7,6 +7,7 @@ TODO
   - [ ] Primitives
 - [x] Area lights
   - [ ] Better sampling for spheres and triangles
+  - [ ] Emissive textures
 - [x] Handled flipped normals correctly
 - [ ] Handle rounding error properly
 - [x] Disc shape
