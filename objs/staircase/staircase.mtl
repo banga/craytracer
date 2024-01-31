@@ -1,0 +1,272 @@
+# Blender 3.5.0 MTL File: 'staircase.blend'
+# www.blender.org
+
+newmtl Black
+Ns 250.0
+Ka 1.0 1.0 1.0
+Kd 0.8 0.8 0.8
+Ks 0.0 0.0 0.0
+Ke 0.0 0.0 0.0
+Ni 1.0
+d 1.0
+illum 2
+
+newmtl Black.002
+Ns 250.0
+Ka 1.0 1.0 1.0
+Kd 0.6 0.6 0.6
+Ks 0.0 0.0 0.0
+Ke 0.0 0.0 0.0
+Ni 1.0
+d 1.0
+illum 2
+
+newmtl Brass
+Ns 250.0
+Ka 1.0 1.0 1.0
+Kd 0.9 0.8 0.5
+Ks 3.0 2.0 1.0
+Ke 0.0 0.0 0.0
+Ni 1.0
+d 1.0
+illum 4
+
+newmtl Brushed_Aluminium
+Ns 250.0
+Ka 1.0 1.0 1.0
+Kd 0.9 0.7 0.4
+Ks 4.0 3.0 2.0
+Ke 0.0 0.0 0.0
+Ni 1.0
+d 1.0
+map_Kd textures/BrushedAluminium.jpg
+illum 4
+
+newmtl Brushed_Stainless_Steel
+Ns 250.0
+Ka 1.0 1.0 1.0
+Kd 0.9 0.7 0.4
+Ks 4.0 3.0 2.0
+Ke 0.0 0.0 0.0
+Ni 1.0
+d 1.0
+illum 4
+
+newmtl Candles
+Ns 250.0
+Ka 1.0 1.0 1.0
+Kd 0.9 0.8 0.5
+Ks 0.0 0.0 0.0
+Ke 0.0 0.0 0.0
+Ni 1.0
+d 1.0
+illum 2
+
+newmtl Chair_Seat
+Ns 0.0
+Ka 1.0 1.0 1.0
+Kd 0.09 0.02 0.08
+Ks 0.0 0.0 0.0
+Ke 0.0 0.0 0.0
+Ni 1.0
+d 1.0
+map_Kd textures/Fabric.jpg
+illum 2
+
+newmtl Emission
+Ns 250.0
+Ka 1.0 1.0 1.0
+Kd 0.8 0.8 0.8
+Ks 0.0 0.0 0.0
+Ke 0.0 0.0 0.0
+Ni 1.0
+d 1.0
+illum 2
+
+newmtl Glass
+Ns 250.0
+Ka 1.0 1.0 1.0
+Kd 1.0 1.0 1.0
+Ks 1.0 1.0 1.0
+Ke 0.0 0.0 0.0
+Ni 1.1
+d 0.1
+illum 2
+
+newmtl Gold
+Ns 250.0
+Ka 1.0 1.0 1.0
+Kd 0.2 0.4 1.4
+Ks 3.4 2.3 1.8
+Ke 0.0 0.0 0.0
+Ni 1.0
+d 1.0
+illum 4
+
+newmtl Lampshade_material
+Ns 250.0
+Ka 1.0 1.0 1.0
+Kd 0.8 0.650 0.450
+Ks 0.0 0.0 0.0
+Ke 0.0 0.0 0.0
+Ni 1.0
+d 1.0
+illum 2
+
+newmtl Material.001
+Ns 0.0
+Ka 1.0 1.0 1.0
+Kd 0.02 0.05 0.03
+Ks 0.0 0.0 0.0
+Ke 0.0 0.0 0.0
+Ni 1.0
+d 1.0
+illum 2
+
+newmtl Paint_-_Magnolia_Matt
+Ns 250.0
+Ka 1.0 1.0 1.0
+Kd 0.8 0.8 0.8
+Ks 0.0 0.0 0.0
+Ke 0.0 0.0 0.0
+Ni 1.0
+d 1.0
+illum 2
+
+newmtl Paint_-_White_Gloss
+Ns 250.0
+Ka 1.0 1.0 1.0
+Kd 0.8 0.8 0.8
+Ks 0.0 0.0 0.0
+Ke 0.0 0.0 0.0
+Ni 1.0
+d 1.0
+illum 2
+
+newmtl Paint_-_White_Matt
+Ns 250.0
+Ka 1.0 1.0 1.0
+Kd 0.8 0.8 0.8
+Ks 0.0 0.0 0.0
+Ke 0.0 0.0 0.0
+Ni 1.0
+d 1.0
+illum 2
+
+newmtl Painting
+Ns 250.0
+Ka 1.0 1.0 1.0
+Kd 0.8 0.8 0.8
+Ks 0.0 0.0 0.0
+Ke 0.0 0.0 0.0
+Ni 1.0
+d 1.0
+map_Kd textures/Painting3.jpg
+illum 2
+
+newmtl Painting_01
+Ns 250.0
+Ka 1.0 1.0 1.0
+Kd 0.8 0.8 0.8
+Ks 0.0 0.0 0.0
+Ke 0.0 0.0 0.0
+Ni 1.0
+d 1.0
+map_Kd textures/Painting1.jpg
+illum 2
+
+newmtl Painting_02
+Ns 250.0
+Ka 1.0 1.0 1.0
+Kd 0.8 0.8 0.8
+Ks 0.0 0.0 0.0
+Ke 0.0 0.0 0.0
+Ni 1.0
+d 1.0
+map_Kd textures/Painting2.jpg
+illum 2
+
+newmtl Wallpaper
+Ns 250.0
+Ka 1.0 1.0 1.0
+Kd 0.9 0.8 0.6
+Ks 0.3 0.3 0.3
+Ke 0.0 0.0 0.0
+Ni 1.0
+d 1.0
+map_Kd textures/Wallpaper.jpg
+illum 2
+
+newmtl White.001
+Ns 250.0
+Ka 1.0 1.0 1.0
+Kd 1.0 1.0 1.0
+Ks 0.0 0.0 0.0
+Ke 0.0 0.0 0.0
+Ni 1.0
+d 1.0
+illum 2
+
+newmtl White_Plastic
+Ns 250.0
+Ka 1.0 1.0 1.0
+Kd 0.8 0.8 0.8
+Ks 0.0 0.0 0.0
+Ke 0.0 0.0 0.0
+Ni 1.0
+d 1.0
+illum 2
+
+newmtl Wood_-_Chair
+Ns 250.0
+Ka 1.0 1.0 1.0
+Kd 0.8 0.3 0.1
+Ks 0.5 0.5 0.5
+Ke 0.0 0.0 0.0
+Ni 1.0
+d 1.0
+map_Kd textures/WoodChair.jpg
+illum 2
+
+newmtl Wood_-_Floor
+Ns 250.0
+Ka 1.0 1.0 1.0
+Kd 0.8 0.3 0.1
+Ks 0.5 0.5 0.5
+Ke 0.0 0.0 0.0
+Ni 1.0
+d 1.0
+map_Kd textures/WoodFloor.jpg
+illum 2
+
+newmtl Wood_-_Lamp
+Ns 250.0
+Ka 1.0 1.0 1.0
+Kd 0.6 0.4 0.1
+Ks 0.5 0.5 0.5
+Ke 0.0 0.0 0.0
+Ni 1.0
+d 1.0
+map_Kd textures/WoodPanel.jpg
+illum 2
+
+newmtl Wood_-_Stairs
+Ns 250.0
+Ka 1.0 1.0 1.0
+Kd 0.8 0.3 0.1
+Ks 0.5 0.5 0.5
+Ke 0.0 0.0 0.0
+Ni 1.0
+d 1.0
+map_Kd textures/Wood.jpg
+illum 2
+
+newmtl copper.001
+Ns 250.0
+Ka 1.0 1.0 1.0
+Kd 0.9 0.9 0.1
+Ks 0.1 0.1 0.1
+Ke 0.0 0.0 0.0
+Ni 1.0
+d 1.0
+illum 4

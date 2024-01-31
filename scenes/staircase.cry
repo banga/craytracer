@@ -1,19 +1,19 @@
 {
-    num_samples: 16,
+    num_samples: 64,
     camera: Perspective {
-        origin: Point(0, 2.2, -4.2),
-        target: Point(0, 2.25, 0),
+        origin: Point(0, 2, -4.92),
+        target: Point(0, 2.5, 0),
         up: Vector(0, 1, 0),
-        lens_radius: 0.025,
+        lens_radius: 0.01,
         focal_distance: 7,
-        fov: 45,
+        fov: 35,
         film: {
-            width: 400,
-            height: 600,
+            width: 360,
+            height: 640,
         }
     },
     lights: [
-        Point { origin: Point(0, 2.25, -4.5), intensity: Color(1, 1, 1) }
+        Point { origin: Point(0, 2.25, -4.5), intensity: Color(0.2, 0.2, 0.2) }
     ],
     materials: {
         default: Matte { reflectance: Color(1, 1, 1), sigma: 0 }
@@ -22,11 +22,11 @@
         light1: Disk { origin: Point(0, 5.5, 2.5), rotate_x: 60, rotate_y: 0, radius: 2 },
     },
     primitives: [
-        Shape { shape: 'light1', emittance: Color(4, 4, 4) },
+        Shape { shape: 'light1', emittance: Color(4, 3, 2) },
 
         // Model from https://blendswap.com/blend/14449. Exported from Blender
         // and tweaked the material file to make the "Emission" material actually
         // emissive 
-        Mesh { file_name: 'objs/local/staircase/staircase.obj', fallback_material: 'default' },
+        Mesh { file_name: 'objs/staircase/staircase.obj', fallback_material: 'default' },
     ]
 }
