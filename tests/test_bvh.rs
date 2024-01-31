@@ -10,6 +10,7 @@ use craytracer::{
     primitive::Primitive,
     ray::Ray,
     shape::Shape,
+    texture::Texture,
 };
 
 #[test]
@@ -18,11 +19,17 @@ fn bvh_node() {
         vec![
             Arc::new(Primitive::new(
                 Arc::new(Shape::new_sphere(p!(0.5, 0.5, 0.5), 0.5)),
-                Arc::new(Material::new_matte(Color::WHITE, 0.0)),
+                Arc::new(Material::new_matte(
+                    Texture::constant(Color::WHITE),
+                    Texture::constant(0.0),
+                )),
             )),
             Arc::new(Primitive::new(
                 Arc::new(Shape::new_sphere(p!(1.5, 0.5, 0.5), 0.5)),
-                Arc::new(Material::new_matte(Color::WHITE, 0.0)),
+                Arc::new(Material::new_matte(
+                    Texture::constant(Color::WHITE),
+                    Texture::constant(0.0),
+                )),
             )),
         ],
         SplitMethod::Median,

@@ -3,7 +3,7 @@ use crate::{
     geometry::{point::Point, vector::Vector},
 };
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Ray {
     pub origin: Point,
     pub direction: Vector,
