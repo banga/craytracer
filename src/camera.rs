@@ -6,13 +6,13 @@ use crate::{
     transformation::{Transformable, Transformation},
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub enum CameraType {
     Perspective,
     Orthographic,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct Camera {
     pub film: Film,
     camera_from_raster: Transformation,

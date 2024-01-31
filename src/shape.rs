@@ -18,6 +18,8 @@ use crate::{
     v,
 };
 
+// TODO: Avoid this PartialEq, currently used by path_integrator to map an area
+// light to index in the lights array
 #[derive(Debug, PartialEq)]
 pub enum Shape {
     Sphere {
@@ -113,6 +115,9 @@ impl Shape {
             return None;
         }
 
+        let uv01 = (uv1.0 - uv0.0, uv1.1 - uv0.1);
+        let uv02 = (uv2.0 - uv0.0, uv2.1 - uv0.1);
+
         Some(Shape::Triangle {
             v0,
             e1,
@@ -121,8 +126,8 @@ impl Shape {
             n01: n1 - n0,
             n02: n2 - n0,
             uv0,
-            uv01: (uv1.0 - uv0.0, uv1.1 - uv0.1),
-            uv02: (uv2.0 - uv0.0, uv2.1 - uv0.1),
+            uv01,
+            uv02,
         })
     }
     pub fn new_disk(

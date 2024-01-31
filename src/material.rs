@@ -10,7 +10,7 @@ use crate::{
     texture::Texture,
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub enum Material {
     BxDF(BxDF),
     BSDF(BSDF),

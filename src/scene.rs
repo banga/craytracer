@@ -11,7 +11,7 @@ use crate::{
     ray::Ray,
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct Scene {
     pub max_depth: usize,
     pub num_samples: usize,

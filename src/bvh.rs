@@ -9,7 +9,7 @@ use crate::{
     util::partition_by,
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub enum BvhNode {
     InteriorNode {
         bounds: Bounds,
@@ -28,7 +28,7 @@ pub enum SplitMethod {
     SAH,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct Bvh {
     pub root: BvhNode,
     pub bounds: Bounds,
@@ -147,7 +147,7 @@ impl Bvh {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Clone)]
 struct PrimitiveInfo {
     primitive: Arc<Primitive>,
     bounds: Bounds,

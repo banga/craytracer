@@ -19,6 +19,8 @@ use crate::{
     shape::Shape,
 };
 
+// TODO: Avoid this PartialEq, currently used by path_integrator to map an area
+// light to index in the lights array
 #[derive(Debug, PartialEq)]
 pub enum Light {
     Point {
@@ -176,7 +178,7 @@ impl Light {
 }
 
 /// Samples lights in proportion to their power
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct LightSampler {
     cdfs: Vec<f64>,
 }

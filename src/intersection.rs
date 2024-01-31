@@ -5,7 +5,7 @@ use crate::{
     primitive::Primitive,
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct ShapeIntersection {
     pub location: Point,
     // TODO: Get the normal lazily when needed

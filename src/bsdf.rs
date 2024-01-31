@@ -6,7 +6,7 @@ use crate::{
     sampling::samplers::{Sample1d, Sample2d},
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct BSDF {
     pub bxdfs: Vec<BxDF>,
 }
@@ -34,14 +34,14 @@ impl BSDF {
         let sample = sample.unwrap();
         if let Pdf::NonDelta(mut pdf) = sample.pdf {
             let mut f = sample.f;
-            for other_bxdf in self.get_relevant_bxdfs(w_o, &sample.w_i, normal).iter() {
-                if *other_bxdf != bxdf {
+            self.for_each_relevant_bsdf(w_o, &sample.w_i, normal, |other_idx, other_bxdf| {
+                if other_idx != sample_index {
                     f += other_bxdf.f(w_o, &sample.w_i, &normal, uv);
                     if let Pdf::NonDelta(other_pdf) = other_bxdf.pdf(w_o, &sample.w_i, normal) {
                         pdf += other_pdf;
                     }
                 }
-            }
+            });
             Some(SurfaceSample {
                 w_i: sample.w_i,
                 pdf: Pdf::NonDelta(pdf / self.bxdfs.len() as f64),
@@ -53,32 +53,35 @@ impl BSDF {
         }
     }
 
-    fn get_relevant_bxdfs(&self, w_o: &Vector, w_i: &Vector, normal: &Normal) -> Vec<&BxDF> {
+    fn for_each_relevant_bsdf<F>(&self, w_o: &Vector, w_i: &Vector, normal: &Normal, mut f: F)
+    where
+        F: FnMut(usize, &BxDF),
+    {
         let is_reflecting = w_o.dot(normal) * w_i.dot(normal) > 0.0;
-        self.bxdfs
-            .iter()
-            .filter(|b| {
-                if is_reflecting {
-                    b.has_reflection()
-                } else {
-                    b.has_transmission()
-                }
-            })
-            .collect()
+        for (idx, bxdf) in self.bxdfs.iter().enumerate() {
+            let is_relevant = if is_reflecting {
+                bxdf.has_reflection()
+            } else {
+                bxdf.has_transmission()
+            };
+            if is_relevant {
+                f(idx, bxdf);
+            }
+        }
     }
 
     pub fn f(&self, w_o: &Vector, w_i: &Vector, normal: &Normal, uv: &(f64, f64)) -> Color {
         let mut f = Color::BLACK;
-        for bxdf in self.get_relevant_bxdfs(w_o, w_i, normal) {
+        self.for_each_relevant_bsdf(w_o, w_i, normal, |_, bxdf| {
             f += bxdf.f(w_o, w_i, normal, uv);
-        }
+        });
         f
     }
 
     pub fn pdf(&self, w_o: &Vector, w_i: &Vector, normal: &Normal) -> Pdf {
         let mut pdf = 0.0;
         let mut num_matching_bxdfs = 0;
-        for bxdf in self.get_relevant_bxdfs(w_o, w_i, normal) {
+        self.for_each_relevant_bsdf(w_o, w_i, normal, |_, bxdf| {
             match bxdf.pdf(w_o, w_i, normal) {
                 Pdf::NonDelta(p) => {
                     pdf += p;
@@ -86,7 +89,7 @@ impl BSDF {
                 }
                 Pdf::Delta => {}
             }
-        }
+        });
         if num_matching_bxdfs > 0 {
             Pdf::NonDelta(pdf / num_matching_bxdfs as f64)
         } else {

@@ -11,7 +11,7 @@ use crate::{
     texture::Texture,
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub enum Primitive {
     ShapePrimitive {
         shape: Arc<Shape>,

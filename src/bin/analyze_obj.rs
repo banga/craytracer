@@ -1,7 +1,22 @@
-use std::env::args;
+use std::{env::args, path::Path};
 
 use craytracer::{bounds::Bounds, p};
+use image::GenericImageView;
 use tobj::{Material, Mesh};
+
+fn analyze_texture(file_name: &str, texture_file_name: &str) {
+    let path = Path::new(file_name)
+        .parent()
+        .unwrap_or(Path::new(""))
+        .join(texture_file_name);
+    let img = image::io::Reader::open(&path).unwrap().decode().unwrap();
+    println!(
+        "\t\t{:?} is {:?} and {} bytes",
+        path,
+        img.dimensions(),
+        img.as_bytes().len()
+    );
+}
 
 fn analyze_obj(file_name: &str) {
     println!("Loading mesh from \"{}\"", file_name);
@@ -49,21 +64,27 @@ fn analyze_obj(file_name: &str) {
         }
         if let Some(ambient_texture) = ambient_texture {
             println!("\tambient_texture = {:?}", ambient_texture);
+            analyze_texture(file_name, ambient_texture);
         }
         if let Some(diffuse_texture) = diffuse_texture {
             println!("\tdiffuse_texture = {:?}", diffuse_texture);
+            analyze_texture(file_name, diffuse_texture);
         }
         if let Some(specular_texture) = specular_texture {
             println!("\tspecular_texture = {:?}", specular_texture);
+            analyze_texture(file_name, specular_texture);
         }
         if let Some(normal_texture) = normal_texture {
             println!("\tnormal_texture = {:?}", normal_texture);
+            analyze_texture(file_name, normal_texture);
         }
         if let Some(shininess_texture) = shininess_texture {
             println!("\tshininess_texture = {:?}", shininess_texture);
+            analyze_texture(file_name, shininess_texture);
         }
         if let Some(dissolve_texture) = dissolve_texture {
             println!("\tdissolve_texture = {:?}", dissolve_texture);
+            analyze_texture(file_name, dissolve_texture);
         }
         if let Some(illumination_model) = illumination_model {
             println!("\tillumination_model = {:?}", illumination_model);
@@ -92,13 +113,14 @@ fn analyze_obj(file_name: &str) {
             println!("\tmaterial: \"{}\"", materials[*material_id].name);
         }
         if positions.len() > 0 {
-            println!("\t{} positions", positions.len());
+            print!("\t{} positions", positions.len());
             let bounds: Bounds = positions
                 .chunks_exact(3)
                 .map(|p| Bounds::new(p!(p[0], p[1], p[2]), p!(p[0], p[1], p[2])))
                 .sum();
-            println!("\t\tmin: {}", bounds.min);
-            println!("\t\tmax: {}", bounds.max);
+            print!("\tmin: {}", bounds.min);
+            print!("\tmax: {}", bounds.max);
+            println!();
             world_bounds = world_bounds.or(Some(bounds)).map(|b| b + bounds);
         }
         if vertex_color.len() > 0 {

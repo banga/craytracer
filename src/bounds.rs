@@ -6,7 +6,7 @@ use crate::{
     ray::Ray,
 };
 
-#[derive(PartialEq, Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct Bounds {
     pub min: Point,
     pub max: Point,

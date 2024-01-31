@@ -10,7 +10,7 @@ TODO
 - [x] Handled flipped normals correctly
 - [ ] Handle rounding error properly
 - [x] Disc shape
-- [ ] Textures
+- [x] Textures
 - [ ] Film
 - [ ] Thin lens camera
 - [x] Samplers

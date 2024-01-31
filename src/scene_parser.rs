@@ -789,7 +789,7 @@ pub mod scene_parser {
         primitive::Primitive,
         scene::Scene,
         shape::Shape,
-        texture::Texture,
+        texture::{FromPixel, Texture},
     };
     use std::{collections::HashMap, convert::TryFrom, sync::Arc};
 
@@ -908,7 +908,7 @@ pub mod scene_parser {
     /// constant texture instead of writing out a  Texture<T>.
     impl<T> TryFrom<&mut RawValue> for Texture<T>
     where
-        T: for<'a> TryFrom<&'a mut RawValue, Error = ParserError> + Copy,
+        T: for<'a> TryFrom<&'a mut RawValue, Error = ParserError> + Copy + FromPixel,
     {
         type Error = ParserError;
         fn try_from(value: &mut RawValue) -> Result<Self, Self::Error> {
