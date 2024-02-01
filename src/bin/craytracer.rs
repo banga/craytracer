@@ -10,6 +10,7 @@ use craytracer::{
 use log::{debug, error, info, LevelFilter};
 use minifb::{Key, Scale, ScaleMode, Window, WindowOptions};
 use std::{
+    ops::Range,
     sync::{
         atomic::{AtomicUsize, Ordering},
         mpsc::{self, Receiver},
@@ -22,18 +23,21 @@ use std::{
 fn generate_tiles(
     height: usize,
     width: usize,
+    num_samples: usize,
     tile_width: usize,
     tile_height: usize,
-) -> Vec<(usize, usize, usize, usize)> {
+    sample_batch_size: usize,
+) -> Vec<(Range<usize>, Range<usize>, Range<usize>)> {
     let mut tiles = Vec::new();
-    for ty in (0..height).step_by(tile_height as usize) {
-        for tx in (0..width).step_by(tile_width as usize) {
-            tiles.push((
-                tx,
-                ty,
-                (tx + tile_width).min(width),
-                (ty + tile_height).min(height),
-            ));
+    for si in (0..num_samples).step_by(sample_batch_size) {
+        for ty in (0..height).step_by(tile_height) {
+            for tx in (0..width).step_by(tile_width) {
+                tiles.push((
+                    tx..(tx + tile_width).min(width),
+                    ty..(ty + tile_height).min(height),
+                    si..(si + sample_batch_size).min(num_samples),
+                ));
+            }
         }
     }
     tiles
@@ -68,7 +72,7 @@ fn show_preview<C, F>(
     height: usize,
     tile_width: usize,
     tile_height: usize,
-    tiles: &Vec<(usize, usize, usize, usize)>,
+    tiles: &Vec<(Range<usize>, Range<usize>, Range<usize>)>,
     pixels: Arc<Mutex<Vec<f32>>>,
     receiver: Receiver<usize>,
     mut on_click: C,
@@ -80,14 +84,17 @@ fn show_preview<C, F>(
     let mut preview_buffer = vec![0u32; width * height];
 
     // Initialize buffer to draw a checkerboard pattern
-    for (x1, y1, x2, y2) in tiles.iter() {
-        let tile_color = if ((x1 / tile_width) + (y1 / tile_height)) % 2 == 0 {
+    for (xr, yr, sr) in tiles.iter() {
+        if sr.start > 0 {
+            continue;
+        }
+        let tile_color = if ((xr.start / tile_width) + (yr.start / tile_height)) % 2 == 0 {
             0x999999
         } else {
             0xaaaaaa
         };
-        for y in *y1..*y2 {
-            for x in *x1..*x2 {
+        for y in yr.clone() {
+            for x in xr.clone() {
                 preview_buffer[x + y * width] = tile_color;
             }
         }
@@ -105,17 +112,17 @@ fn show_preview<C, F>(
         }
 
         if let Ok(tile_index) = receiver.try_recv() {
-            let (x1, y1, x2, y2) = tiles[tile_index];
-            for x in x1..x2 {
-                for y in y1..y2 {
+            let (xr, yr, sr) = &tiles[tile_index];
+            for x in xr.clone() {
+                for y in yr.clone() {
                     let offset = x + y * width;
                     let pixels = pixels.lock().unwrap();
-                    let (r, g, b) = Color {
+                    let (r, g, b) = ((Color {
                         r: pixels[3 * offset] as f64,
                         g: pixels[3 * offset + 1] as f64,
                         b: pixels[3 * offset + 2] as f64,
-                    }
-                    .to_rgb();
+                    }) / (sr.end as f64))
+                        .to_rgb();
                     preview_buffer[offset] = (r as u32) << 16 | (g as u32) << 8 | b as u32;
                 }
             }
@@ -150,46 +157,46 @@ fn show_preview<C, F>(
 
 #[allow(non_snake_case)]
 #[inline]
-fn render_pixel<S>(sampler: &mut S, x: usize, y: usize, scene: &Scene) -> Color
+fn render_pixel<S>(sampler: &mut S, x: usize, y: usize, sample_index: usize, scene: &Scene) -> Color
 where
     S: Sampler,
 {
-    let mut color = Color::BLACK;
-    for sample_index in 0..sampler.num_samples() {
-        sampler.start_pixel(x, y, sample_index);
-        let film_sample = sampler.sample_2d();
-        let lens_sample = sampler.sample_2d();
+    sampler.start_pixel(x, y, sample_index);
+    let film_sample = sampler.sample_2d();
+    let lens_sample = sampler.sample_2d();
 
-        let ray = scene.camera.sample((film_sample, lens_sample), x, y);
+    let ray = scene.camera.sample((film_sample, lens_sample), x, y);
 
-        // TODO: Allow picking integrator from command line
-        let L = path_integrator::estimate_Li(sampler, ray, &scene);
-        // let L = simple_integrator::estimate_Li(sampler, ray, &scene);
-
-        color += L;
-    }
-    color / (sampler.num_samples() as f64)
+    // TODO: Allow picking integrator from command line
+    let L = path_integrator::estimate_Li(sampler, ray, &scene);
+    // let L = simple_integrator::estimate_Li(sampler, ray, &scene);
+    L
 }
 
 fn render_tile<S>(
     sampler: &mut S,
-    tile: (usize, usize, usize, usize),
+    tile: &(Range<usize>, Range<usize>, Range<usize>),
     scene: &Scene,
     width: usize,
     pixels: &Arc<Mutex<Vec<f32>>>,
 ) where
     S: Sampler,
 {
-    let (x1, y1, x2, y2) = tile;
-    for y in y1..y2 {
-        for x in x1..x2 {
-            let color = render_pixel(sampler, x, y, scene);
-            let mut pixels = pixels.lock().unwrap();
+    let (x_range, y_range, sample_range) = tile;
+    for y in y_range.clone() {
+        for x in x_range.clone() {
+            let mut color = Color::BLACK;
+            for sample_index in sample_range.clone() {
+                color += render_pixel(sampler, x, y, sample_index, scene);
+            }
+
             let (r, g, b) = color.into();
             let offset = x + y * width;
-            pixels[3 * offset] = r;
-            pixels[3 * offset + 1] = g;
-            pixels[3 * offset + 2] = b;
+
+            let mut pixels = pixels.lock().unwrap();
+            pixels[3 * offset] += r;
+            pixels[3 * offset + 1] += g;
+            pixels[3 * offset + 2] += b;
         }
     }
 }
@@ -217,10 +224,25 @@ where
     let (width, height) = scene.film_bounds();
     let tile_width = 64;
     let tile_height = 64;
-    let tiles = &generate_tiles(height, width, tile_width, tile_height);
+    let sample_batch_size = 8;
+    let num_samples = sampler.num_samples();
+    let tiles = &generate_tiles(
+        height,
+        width,
+        num_samples,
+        tile_width,
+        tile_height,
+        sample_batch_size,
+    );
 
     let pixels = Arc::new(Mutex::new(vec![0f32; width * height * 3]));
-    let on_finish = || on_render_finish(pixels.lock().unwrap().clone());
+    let on_finish = || {
+        let mut pixels = pixels.lock().unwrap().clone();
+        for pixel in pixels.iter_mut() {
+            *pixel /= num_samples as f32;
+        }
+        on_render_finish(pixels);
+    };
 
     let tile_index = Arc::new(AtomicUsize::new(0));
     let (sender, receiver) = mpsc::channel();
@@ -246,7 +268,7 @@ where
                     break;
                 }
 
-                render_tile(&mut sampler, tiles[index], scene, width, &pixels);
+                render_tile(&mut sampler, &tiles[index], scene, width, &pixels);
 
                 update_render_progress(
                     start,
@@ -274,7 +296,11 @@ where
                 receiver,
                 |x, y| {
                     info!("Rendering pixel at ({x},{y})");
-                    let color = render_pixel(&mut sampler, x, y, scene);
+                    let mut color = Color::BLACK;
+                    for sample_index in 0..sampler.num_samples() {
+                        color += render_pixel(&mut sampler, x, y, sample_index, scene);
+                    }
+                    color /= sampler.num_samples() as f64;
                     info!("Color = {} {:?}", color, color.to_rgb());
                 },
                 on_finish,
