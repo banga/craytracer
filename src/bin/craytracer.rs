@@ -13,11 +13,10 @@ use std::{
     ops::Range,
     sync::{
         atomic::{AtomicUsize, Ordering},
-        mpsc::{self, Receiver},
         Arc, Mutex,
     },
-    thread,
-    time::Instant,
+    thread::{self, sleep},
+    time::{Duration, Instant},
 };
 
 fn generate_tiles(
@@ -66,21 +65,13 @@ fn create_preview_window(width: usize, height: usize) -> Window {
     window
 }
 
-fn show_preview<C, F>(
-    window: &mut Window,
+fn create_preview_buffer(
     width: usize,
     height: usize,
     tile_width: usize,
     tile_height: usize,
     tiles: &Vec<(Range<usize>, Range<usize>, Range<usize>)>,
-    pixels: Arc<Mutex<Vec<f32>>>,
-    receiver: Receiver<usize>,
-    mut on_click: C,
-    on_finish: F,
-) where
-    C: FnMut(usize, usize),
-    F: FnOnce(),
-{
+) -> Vec<u32> {
     let mut preview_buffer = vec![0u32; width * height];
 
     // Initialize buffer to draw a checkerboard pattern
@@ -99,11 +90,24 @@ fn show_preview<C, F>(
             }
         }
     }
+    preview_buffer
+}
 
-    let mut tile_count = 0;
-    while tile_count < tiles.len() {
+fn show_preview<C, F>(
+    window: &mut Window,
+    width: usize,
+    height: usize,
+    preview_buffer: &Arc<Mutex<Vec<u32>>>,
+    tiles_remaining: &Arc<AtomicUsize>,
+    mut on_click: C,
+    on_finish: F,
+) where
+    C: FnMut(usize, usize),
+    F: FnOnce(),
+{
+    while tiles_remaining.load(Ordering::SeqCst) > 0 {
         window
-            .update_with_buffer(&preview_buffer, width, height)
+            .update_with_buffer(&preview_buffer.lock().unwrap(), width, height)
             .unwrap();
 
         if window.is_key_released(Key::Escape) {
@@ -111,23 +115,7 @@ fn show_preview<C, F>(
             break;
         }
 
-        if let Ok(tile_index) = receiver.try_recv() {
-            let (xr, yr, sr) = &tiles[tile_index];
-            for x in xr.clone() {
-                for y in yr.clone() {
-                    let offset = x + y * width;
-                    let pixels = pixels.lock().unwrap();
-                    let (r, g, b) = ((Color {
-                        r: pixels[3 * offset] as f64,
-                        g: pixels[3 * offset + 1] as f64,
-                        b: pixels[3 * offset + 2] as f64,
-                    }) / (sr.end as f64))
-                        .to_rgb();
-                    preview_buffer[offset] = (r as u32) << 16 | (g as u32) << 8 | b as u32;
-                }
-            }
-            tile_count += 1;
-        }
+        sleep(Duration::from_millis(100));
     }
 
     on_finish();
@@ -137,7 +125,7 @@ fn show_preview<C, F>(
     let mut is_left_button_down = false;
     while window.is_open() && !window.is_key_released(Key::Escape) {
         window
-            .update_with_buffer(&mut preview_buffer, width, height)
+            .update_with_buffer(&mut preview_buffer.lock().unwrap(), width, height)
             .unwrap();
 
         // TODO: Sometimes the mouse events stop reporting if you click too
@@ -177,11 +165,12 @@ fn render_tile<S>(
     sampler: &mut S,
     tile: &(Range<usize>, Range<usize>, Range<usize>),
     scene: &Scene,
-    width: usize,
     pixels: &Arc<Mutex<Vec<f32>>>,
+    preview_buffer: &Arc<Mutex<Vec<u32>>>,
 ) where
     S: Sampler,
 {
+    let (width, _) = scene.film_bounds();
     let (x_range, y_range, sample_range) = tile;
     for y in y_range.clone() {
         for x in x_range.clone() {
@@ -199,19 +188,37 @@ fn render_tile<S>(
             pixels[3 * offset + 2] += b;
         }
     }
+
+    let pixels = pixels.lock().unwrap();
+    let mut preview_buffer = preview_buffer.lock().unwrap();
+    for y in y_range.clone() {
+        for x in x_range.clone() {
+            let offset = x + y * width;
+            let (r, g, b) = ((Color {
+                r: pixels[3 * offset] as f64,
+                g: pixels[3 * offset + 1] as f64,
+                b: pixels[3 * offset + 2] as f64,
+            }) / sample_range.end as f64)
+                .to_rgb();
+            preview_buffer[offset] = (r as u32) << 16 | (g as u32) << 8 | b as u32;
+        }
+    }
 }
 
-fn update_render_progress(start: Instant, num_rendered: usize, num_total: usize) {
+fn update_render_progress(start: Instant, num_remaining: usize, num_total: usize) {
     let elapsed = start.elapsed().as_secs_f32();
-    let estimate = elapsed * num_total as f32 / num_rendered as f32;
-    eprint!(
-        "\r{:3} / {:3} tiles {:5.1}s / {:5.1}s ({:5.1}s remaining)",
-        num_rendered,
-        num_total,
-        elapsed,
-        estimate,
-        estimate - elapsed
-    );
+    let num_rendered = num_total - num_remaining;
+    let progress = num_rendered as f32 / num_total as f32;
+    eprint!("\r{:5.1}% {:5.1}s", progress * 100.0, elapsed);
+
+    if elapsed > 1.0 && progress > 0.001 {
+        let estimate = elapsed / progress;
+        eprint!(
+            " / {:5.1}s ({:5.1}s remaining)",
+            estimate,
+            estimate - elapsed
+        );
+    }
 }
 
 fn render<S, F>(scene: &Scene, mut sampler: S, preview: bool, start: Instant, on_render_finish: F)
@@ -236,6 +243,13 @@ where
     );
 
     let pixels = Arc::new(Mutex::new(vec![0f32; width * height * 3]));
+    let preview_buffer = Arc::new(Mutex::new(create_preview_buffer(
+        width,
+        height,
+        tile_width,
+        tile_height,
+        tiles,
+    )));
     let on_finish = || {
         let mut pixels = pixels.lock().unwrap().clone();
         for pixel in pixels.iter_mut() {
@@ -245,7 +259,7 @@ where
     };
 
     let tile_index = Arc::new(AtomicUsize::new(0));
-    let (sender, receiver) = mpsc::channel();
+    let tiles_remaining = Arc::new(AtomicUsize::new(tiles.len()));
 
     debug!(
         "Rendering {} pixels in {} tiles using {} threads",
@@ -258,8 +272,9 @@ where
         let mut handles = vec![];
         for _ in 0..num_threads {
             let tile_index = Arc::clone(&tile_index);
+            let tiles_remaining = Arc::clone(&tiles_remaining);
             let pixels = Arc::clone(&pixels);
-            let sender = sender.clone();
+            let preview_buffer = Arc::clone(&preview_buffer);
             let mut sampler = sampler.clone();
 
             handles.push(scope.spawn(move || loop {
@@ -268,18 +283,10 @@ where
                     break;
                 }
 
-                render_tile(&mut sampler, &tiles[index], scene, width, &pixels);
+                render_tile(&mut sampler, &tiles[index], scene, &pixels, &preview_buffer);
 
-                update_render_progress(
-                    start,
-                    tile_index.load(Ordering::Relaxed).min(tiles.len()),
-                    tiles.len(),
-                );
-
-                if sender.send(index).is_err() {
-                    // The receiver has early exited
-                    break;
-                }
+                let tiles_remaining = tiles_remaining.fetch_sub(1, Ordering::SeqCst);
+                update_render_progress(start, tiles_remaining, tiles.len());
             }));
         }
 
@@ -289,11 +296,8 @@ where
                 &mut window,
                 width,
                 height,
-                tile_width,
-                tile_height,
-                tiles,
-                Arc::clone(&pixels),
-                receiver,
+                &Arc::clone(&preview_buffer),
+                &Arc::clone(&tiles_remaining),
                 |x, y| {
                     info!("Rendering pixel at ({x},{y})");
                     let mut color = Color::BLACK;
