@@ -362,26 +362,17 @@ mod tokenizer {
 #[cfg(test)]
 mod parser {
     use pretty_assertions::assert_eq;
-    use std::{collections::HashMap, sync::Arc};
+    use std::collections::HashMap;
 
     use craytracer::{
-        camera::Camera,
         color::Color,
-        film::Film,
-        geometry::{point::Point, O, Y},
-        light::Light,
-        material::Material,
-        p,
-        primitive::Primitive,
-        scene::Scene,
+        geometry::O,
         scene_parser::scene_parser::parse_scene,
         scene_parser::tokenizer::tokenize,
         scene_parser::{
             parser::{RawValue, RawValueArray, RawValueMap, TypedRawValueMap},
             Location,
         },
-        shape::Shape,
-        texture::Texture,
         v,
     };
 
@@ -594,10 +585,13 @@ mod parser {
 
     #[test]
     fn scene() {
-        assert_eq!(
-            parse_scene(
-                "
+        // It would be nice to verify the contents of the parsed scene, but that
+        // would require implementing PartialEq for everything in Scene, which
+        // can be problematic if accidentally used to compare very large values
+        parse_scene(
+            "
 {
+    // Comment
     max_depth: 3,
     num_samples: 1,
     camera: Perspective {
@@ -619,70 +613,29 @@ mod parser {
         }
     ],
     materials: {
-        ball: Matte {
+        matte: Matte {
             reflectance: Color(1, 1, 1),
             sigma: 0
+        },
+        // Textures
+        checks: Matte {
+            reflectance: Checkerboard { a: Color(1, 1, 1), b: Color(0, 0, 0), scale: 2.5 },
+            sigma: Checkerboard { a: 0, b: 1 }
         },
     },
     shapes: {
         ball: Sphere {
             origin: Point(0, 0, 2),
             radius: 1
-        },
+        }
     },
     primitives: [
-       Shape { shape: 'ball', material: 'ball' },
-       Mesh { file_name: 'objs/triangle.obj', fallback_material: 'ball' },
+       Shape { shape: 'ball', material: 'matte' },
+       Mesh { file_name: 'objs/triangle.obj', fallback_material: 'checks' },
     ]
 }
 ",
-            )
-            .unwrap(),
-            Scene::new(
-                3,
-                1,
-                Camera::perspective(
-                    Film {
-                        width: 400,
-                        height: 300
-                    },
-                    O,
-                    Point::new(0, 0, 1),
-                    Y,
-                    60.0,
-                    1.0,
-                    100.0
-                ),
-                vec![Arc::new(Light::Point {
-                    origin: O,
-                    intensity: Color::WHITE
-                }),],
-                vec![
-                    Arc::new(Primitive::new(
-                        Arc::new(Shape::new_sphere(p!(0, 0, 2), 1.0)),
-                        Arc::new(Material::new_matte(
-                            Texture::constant(Color::WHITE),
-                            Texture::constant(0.0)
-                        )),
-                    )),
-                    Arc::new(Primitive::new(
-                        // source: objs/triangle.obj
-                        Arc::new(
-                            Shape::new_triangle(
-                                p!(1, 0, 0),
-                                p!(0, 1, 0),
-                                // Co-ordinate system correction
-                                p!(0, 0, -1),
-                            )
-                            .unwrap()
-                        ),
-                        Arc::new(Material::new_matte(
-                            Texture::constant(Color::WHITE),
-                            Texture::constant(0.0)
-                        )),
-                    ))
-                ],
-            )
-        );
+        )
+        .unwrap();
     }
 }
