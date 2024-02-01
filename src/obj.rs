@@ -19,7 +19,8 @@ fn load_texture(file_name: &str, texture_file_name: &str) -> DynamicImage {
         .unwrap_or(Path::new(""))
         .join(texture_file_name);
     debug!("Loading texture from {:?}", path);
-    image::io::Reader::open(&path).unwrap().decode().unwrap()
+    image::io::Reader::open(&path).expect(
+        &format!("Could not find texture file \"{}\"", texture_file_name)).decode().unwrap()
 }
 
 pub fn load_obj(file_name: &str, fallback_material: Arc<Material>) -> Vec<Arc<Primitive>> {
