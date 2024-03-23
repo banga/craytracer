@@ -1,0 +1,26 @@
+{
+    num_samples: 1024,
+    camera: Perspective {
+        origin: Point(0.7, 2, 1.0),
+        target: Point(0.3, 0, 0.05),
+        up: Vector(0, 0, 1),
+        fov: 30,
+        film: { width: 800, height: 600, },
+    },
+    lights: [
+       Infinite { intensity: Color(1.6, 1.6, 1.5), },
+    ],
+    materials: {
+        ground: Matte { reflectance: Color(1, 1, 1), sigma: 10 },
+        text: Plastic { diffuse: Color(0.03, 0.03, 0.03), specular: Color(0.2, 0.2, 0.2), roughness: 120, },
+    },
+    shapes: {
+        ground: Disk { origin: Point(0.25, 0, -0.001), radius: 20, rotate_x: 0 },
+        light: Disk { origin: Point(0.5, 0.1, 1), rotate_y: 0, rotate_x: 0, radius: 1 }
+    },
+    primitives: [
+        Shape { shape: 'ground', material: 'ground' },
+        Mesh { file_name: 'objs/anthropic.obj', fallback_material: 'text' },
+        Shape { shape: 'light', emittance: Color(1, 0, 0) },
+     ]
+}
